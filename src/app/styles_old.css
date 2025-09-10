@@ -1,0 +1,327 @@
+/* --- Contact Form Centrado y Minimalista --- */
+.contactFormCentered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.contactSection {
+  margin-top: 4em;
+  margin-bottom: 4em;
+}
+
+.aboutSection {
+  background-color: #f3f4f6; /* gray-100 */
+  padding: 2em;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.contactInput {
+  width: 90%;
+  max-width: 350px;
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  background: #fff;
+  transition: border 0.2s;
+}
+.contactInput:focus {
+  border: 1.5px solid #2563eb;
+  outline: none;
+}
+.contactButton {
+  width: 140px;
+  padding: 10px 0;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  letter-spacing: 1px;
+}
+.contactButton:hover {
+  background: #1746a0;
+}
+
+.servicesSection {
+  background-color: #f9fafb; /* gray-50 */
+  padding: 2em;
+  border-radius: 8px;
+  text-align: center;
+}
+/* Contenedor principal de la página */
+.pageContainer {
+  background-color: #ffffff;
+  color: #1f2937; /* gray-800 */
+  font-family: sans-serif;
+}
+
+/* Header y Navegación */
+.header {
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  transition: box-shadow 0.2s;
+}
+
+.videoContainer{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+.nav {
+  container-type: inline-size;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700;
+  color: #2563eb; /* blue-600 */
+}
+
+.navLinks {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .navLinks {
+    display: flex;
+    gap: 1.5rem; /* space-x-6 */
+  }
+}
+
+.navLink {
+  color: #4b5563; /* gray-600 */
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: #2563eb; /* blue-600 */
+}
+.especialtiesSection {
+  background-color: #f3f4f6; /* gray-100 */
+  padding: 2em;
+  border-radius: 8px;
+  text-align: center;
+}
+.mobileMenuButton {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .mobileMenuButton {
+    display: none;
+  }
+}
+
+/* Sección Hero */
+.heroSection {
+  color: #ffffff;
+  text-align: center;
+  padding: 5rem 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.heroOverlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5rem 0;
+}
+
+.heroTitle {
+  font-size: 3rem; /* text-5xl */
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem; /* text-xl */
+  margin-bottom: 2rem;
+}
+
+.heroButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem; /* space-x-4 */
+}
+
+.button {
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+.buttonPrimary {
+  background-color: #ffffff;
+  color: #2563eb; /* blue-600 */
+}
+
+.buttonPrimary:hover {
+  background-color: #e5e7eb; /* gray-200 */
+}
+
+.buttonSecondary {
+  background-color: #2563eb; /* blue-600 */
+  color: #ffffff;
+  border: 1px solid #ffffff;
+}
+
+.buttonSecondary:hover {
+  background-color: #1d4ed8; /* blue-700 */
+}
+
+/* Secciones de Contenido */
+.contentSection {
+  padding: 4rem 0;
+}
+
+.sectionContainer {
+  container-type: inline-size;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+}
+
+@media (min-width: 768px) {
+  .gridContainer {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tarjetas de Características */
+.featureCard {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.featureIcon {
+  font-size: 2.25rem; /* text-4xl */
+  color: #2563eb; /* blue-600 */
+  margin-bottom: 1rem;
+}
+
+.featureTitle {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.featureText {
+  color: #4b5563; /* gray-600 */
+}
+
+/* Sección "Por Qué Elegirnos" */
+.whyChooseUsSection {
+  background-color: #f9fafb; /* gray-50 */
+  padding: 4rem 0;
+}
+
+.sectionTitle {
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: 700;
+  margin-bottom: 3rem;
+}
+
+.whyChooseUsItem {
+  text-align: left;
+}
+
+.whyChooseUsItemTitle {
+  font-size: 1.25rem; /* text-xl */
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.whyChooseUsItemText {
+  color: #4b5563; /* gray-600 */
+}
+
+/* Footer */
+.footer {
+  background-color: #1f2937; /* gray-800 */
+  color: #ffffff;
+  padding: 2rem 0;
+}
+
+.footerContainer {
+  container-type: inline-size;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.socialLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1rem; /* space-x-4 */
+  margin-top: 1rem;
+}
+
+.socialLink {
+  color: #ffffff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.socialLink:hover {
+  color: #60a5fa; /* blue-400 */
+}
+
+.sectionContainer{
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  margin-bottom: 2em;
+}
+
+.especialtyTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2563eb; /* blue-600 */
+  margin-bottom: 1rem;
+}

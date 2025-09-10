@@ -1,0 +1,128 @@
+[
+  {
+    "email": "juan.perez@example.com",
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "edad": 34,
+    "peso": "78 kg",
+    "altura": "1.78 m",
+    "tipoSangre": "O+",
+    "motivo": "Control general",
+    "avatar": "/perfiles/usuario/juan.perez@example.com/perfil.jpg",
+    "contactoEmergencia": {
+      "nombre": "María López",
+      "relacion": "Esposa",
+      "telefono": "+34 600 123 456"
+    },
+    "recetas": [
+      {
+        "id": "REC001",
+        "medicamento": "Ibuprofeno 400mg",
+        "fecha": "2024-11-15",
+        "fechaCreacion": "2024-11-15T10:30:00Z",
+        "dosis": "1 tablet cada 8 horas",
+        "frecuencia": "cada-8h",
+        "duracion": "7 días",
+        "cantidad": "21 tablets",
+        "conComidas": "Sí",
+        "indicaciones": "Para dolor de cabeza. Tomar después de las comidas para evitar irritación gástrica",
+        "estado": "Activa",
+        "medico": "Dr. García",
+        "medicoEmail": "dr.garcia@virtualaid.com"
+      },
+      {
+        "id": "REC002",
+        "medicamento": "Omeprazol 20mg",
+        "fecha": "2024-10-20",
+        "fechaCreacion": "2024-10-20T14:15:00Z",
+        "dosis": "1 cápsula al día",
+        "frecuencia": "cada-24h",
+        "duracion": "14 días",
+        "cantidad": "14 cápsulas",
+        "conComidas": "Antes",
+        "indicaciones": "Para protección gástrica. Tomar 30 minutos antes del desayuno",
+        "estado": "Completada",
+        "medico": "Dr. García",
+        "medicoEmail": "dr.garcia@virtualaid.com"
+      }
+    ],
+    "historial": [
+      {
+        "fecha": "2024-06-10",
+        "motivo": "Dolor abdominal",
+        "sintomas": "Dolor difuso, náuseas",
+        "diagnostico": "Gastritis aguda",
+        "tratamiento": "IBP x 14 días, dieta blanda",
+        "resultados": "Mejoría a la semana",
+        "observaciones": "Evitar alimentos irritantes"
+      },
+      {
+        "fecha": "2023-11-02",
+        "motivo": "Consulta preventiva",
+        "sintomas": "Ninguno",
+        "diagnostico": "Paciente sano",
+        "tratamiento": "Revisión anual recomendada",
+        "resultados": "Examén normal",
+        "observaciones": "Mantener hábitos saludables"
+      },
+      {
+        "fecha": "2022-08-15",
+        "motivo": "Infección respiratoria",
+        "sintomas": "Tos, febrícula, congestión",
+        "diagnostico": "Bronquitis viral",
+        "tratamiento": "Reposo, fluidos, broncodilatador inhalado PRN",
+        "resultados": "Resolución en 10 días",
+        "observaciones": "Control si persiste más de 2 semanas"
+      }
+    ]
+  },
+  {
+    "email": "maria.lopez@example.com",
+    "nombre": "María",
+    "apellido": "López",
+    "edad": 29,
+    "peso": "62 kg",
+    "altura": "1.65 m",
+    "tipoSangre": "A-",
+    "motivo": "Dolor de cabeza recurrente",
+    "avatar": "/perfiles/usuario/maria.lopez@example.com/perfil.jpg",
+    "contactoEmergencia": {
+      "nombre": "Carlos López",
+      "relacion": "Hermano",
+      "telefono": "+34 611 987 654"
+    },
+    "recetas": [
+      {
+        "id": "REC003",
+        "medicamento": "Sumatriptán 50mg",
+        "fecha": "2024-11-10",
+        "fechaCreacion": "2024-11-10T09:45:00Z",
+        "dosis": "1 tablet al inicio de la migraña",
+        "frecuencia": "PRN",
+        "duracion": "Según necesidad",
+        "cantidad": "6 tablets",
+        "conComidas": "No necesario",
+        "indicaciones": "Para crisis de migraña. Máximo 2 tabletas en 24 horas. Si no mejora en 2 horas, consultar",
+        "estado": "Activa",
+        "medico": "Dr. García",
+        "medicoEmail": "dr.garcia@virtualaid.com"
+      },
+      {
+        "id": "REC004",
+        "medicamento": "Paracetamol 500mg",
+        "fecha": "2024-09-15",
+        "fechaCreacion": "2024-09-15T16:20:00Z",
+        "dosis": "1 tablet cada 6 horas",
+        "frecuencia": "cada-6h",
+        "duracion": "5 días",
+        "cantidad": "20 tablets",
+        "conComidas": "No necesario",
+        "indicaciones": "Para dolor de cabeza leve a moderado. No exceder 4 gramos al día",
+        "estado": "Completada",
+        "medico": "Dr. García",
+        "medicoEmail": "dr.garcia@virtualaid.com"
+      }
+    ],
+    "historial": []
+  }
+]

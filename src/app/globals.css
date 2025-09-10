@@ -1,0 +1,74 @@
+ /* Ocultar botón de Next.js Dev Tools en toda la app */
+button[data-nextjs-data-overlay-console-button] {
+  display: none !important;
+}
+div[data-nextjs-dialog-overlay] {
+  display: none !important;
+}
+div[data-nextjs-toast] {
+  display: none !important;
+}
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Día seleccionado en React Calendar: verde oscuro y letra blanca */
+.react-calendar__tile--active,
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:focus {
+  background: linear-gradient(to right, #1d4ed8, #16a34a) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 2px #116c1333 !important;
+  align-items: center;
+}
+
+/* Mostrar cursor de mano (pointer) en todos los botones y controles interactivos */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn {
+  cursor: pointer;
+}
+
+/* Reduce ligeramente el tamaño de letra en pantallas muy pequeñas (<430px) */
+@media (max-width: 430px) {
+  /* Ajuste global suave: reduce base y evita romper layouts dependientes de rem */
+  html, body {
+    font-size: 13px;
+  }
+
+  /* Tablas y elementos compactos dentro del dashboard */
+  table, th, td {
+    font-size: 0.85rem; /* hace las tablas más compactas */
+  }
+
+  /* Reducir paddings de controles específicos si es necesario */
+  .px-2 { padding-left: .4rem; padding-right: .4rem; }
+  .py-1 { padding-top: .2rem; padding-bottom: .2rem; }
+}

@@ -1,0 +1,76 @@
+/* --- Estilo consistente con la página de inicio para términos --- */
+.contentSection {
+  background: #f7fafd;
+  padding: 48px 0 64px 0;
+}
+.sectionContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+.sectionTitle {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 32px;
+  text-align: center;
+}
+.policyContent {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(30,90,180,0.08);
+  padding: 36px 28px;
+  color: #222;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+.policyContent h2 {
+  margin-top: 1.7em;
+  font-size: 1.25em;
+  color: #2563eb;
+}
+.policyContent ul {
+  margin: 0 0 1em 1.5em;
+  padding: 0;
+  list-style: disc inside;
+}
+.policyContent li {
+  margin-bottom: 0.5em;
+}
+.header {
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.nav {
+  container-type: inline-size;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.navLinks {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .navLinks {
+    display: flex;
+    gap: 1.5rem; /* space-x-6 */
+  }
+}
+.logo {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700;
+  color: #2563eb; /* blue-600 */
+}
+
+.navLink {
+  color: #4b5563; /* gray-600 */
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: #2563eb; /* blue-600 */
+}

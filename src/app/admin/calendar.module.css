@@ -1,0 +1,178 @@
+.noDisponible {
+  background: #690000 !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+}
+
+.calendarBox {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #333;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(30,90,180,0.1), 0 1px 3px rgba(0,0,0,0.05);
+  padding: 24px 20px;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+/* Mejoras al calendario de React Calendar */
+.calendarBox :global(.react-calendar) {
+  width: 100% !important;
+  max-width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  font-family: inherit !important;
+}
+
+.calendarBox :global(.react-calendar__navigation) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  border-radius: 12px !important;
+  margin-bottom: 16px !important;
+  padding: 8px !important;
+}
+
+.calendarBox :global(.react-calendar__navigation button) {
+  background: none !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.calendarBox :global(.react-calendar__navigation button:hover) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+.calendarBox :global(.react-calendar__month-view__weekdays) {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+  border-radius: 8px !important;
+  padding: 8px 4px !important;
+  margin-bottom: 8px !important;
+}
+
+.calendarBox :global(.react-calendar__month-view__weekdays__weekday) {
+  color: #64748b !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.calendarBox :global(.react-calendar__tile) {
+  background: none !important;
+  border: 2px solid transparent !important;
+  border-radius: 10px !important;
+  color: #374151 !important;
+  font-weight: 500 !important;
+  padding: 12px 8px !important;
+  margin: 2px !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+.calendarBox :global(.react-calendar__tile:hover) {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  border-color: #3b82f6 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+}
+
+.calendarBox :global(.react-calendar__tile--active) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: white !important;
+  border-color: #1e40af !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.calendarBox :global(.react-calendar__tile--now) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+  border-color: #047857 !important;
+}
+
+.calendarBox :global(.react-calendar__tile--hasActive) {
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dateInput {
+  font-size: 1rem;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+  width: 100%;
+  background: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.hoursList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.hourBtn {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: #0369a1;
+  border: 2px solid #0ea5e9;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1);
+}
+
+.hourBtn.selected, .hourBtn:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.solicitarBtn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 18px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
+}
+
+.solicitarBtn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.solicitarBtn:disabled {
+  background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

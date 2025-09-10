@@ -1,0 +1,42 @@
+.userInfo {
+  position: relative;
+  top: auto;
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #1976d2;
+  background: #fff;
+}
+
+.userName {
+  font-weight: bold;
+  color: #1976d2;
+  font-size: 1.1rem;
+}
+
+.profileLink {
+  color: #1565c0;
+  text-decoration: underline;
+  font-size: 0.98rem;
+  margin-top: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.profileLink:hover {
+  color: #002a55;
+}

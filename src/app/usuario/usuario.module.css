@@ -1,0 +1,1357 @@
+/* Mis Citas (dashboard citas) */
+.citasContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  color: #333;
+}
+.citasTitle {
+  margin: 16px 0 8px 0;
+  color: #1976d2;
+}
+.citasCalendarBox {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30,90,180,0.08);
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 16px;
+}
+
+/* Especialistas mejorados */
+.specialistCard {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.specialistCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.12);
+}
+
+.specialistAvatar {
+  transition: all 0.3s ease;
+}
+
+.specialistCard:hover .specialistAvatar {
+  transform: scale(1.05);
+}
+
+.statusIndicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.specialistModal {
+  backdrop-filter: blur(8px);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive mejoras para especialistas */
+@media (max-width: 768px) {
+  .specialistCard {
+    padding: 12px !important;
+  }
+  
+  .specialistAvatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  
+  .specialistModal .modal-content {
+    margin: 16px;
+    max-height: calc(100vh - 32px);
+  }
+}
+
+/* Estilos mejorados para el calendario responsive */
+.calendarBox {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 320px !important;
+  background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.08), 0 3px 10px rgba(0, 0, 0, 0.05) !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.calendarBox::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Navegación del calendario */
+.calendarBox .react-calendar__navigation {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 20px !important;
+  gap: 12px !important;
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  padding: 16px 20px !important;
+  margin: 0 0 20px 0 !important;
+  color: white !important;
+}
+
+.calendarBox .react-calendar__navigation button {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #000000 !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-size: 14px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(10px) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.calendarBox .react-calendar__navigation button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.calendarBox .react-calendar__navigation button:hover::before {
+  left: 100%;
+}
+
+.calendarBox .react-calendar__navigation button:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.calendarBox .react-calendar__navigation button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.calendarBox .react-calendar__navigation button:disabled {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.calendarBox .react-calendar__navigation button:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.calendarBox .react-calendar__navigation__label {
+  flex: 1 !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  color: #000000 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Vista del mes */
+.calendarBox .react-calendar__month-view {
+  width: 100% !important;
+  padding: 0 16px 16px 16px !important;
+}
+
+.calendarBox .react-calendar__month-view__weekdays {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 6px !important;
+  margin-bottom: 12px !important;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0) !important;
+  border-radius: 12px !important;
+  padding: 10px 8px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.calendarBox .react-calendar__month-view__weekdays__weekday {
+  padding: 8px 2px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  background: none !important;
+  border: none !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Días del mes */
+.calendarBox .react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 8px !important;
+  padding: 8px !important;
+}
+
+.calendarBox .react-calendar__tile {
+  position: relative !important; /* ancla del badge */
+  padding: 8px !important;
+  border: 2px solid transparent !important;
+  background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+  color: #000000 !important;
+  border-radius: 10px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  aspect-ratio: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  min-height: 42px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  overflow: hidden !important;
+}
+
+.calendarBox .react-calendar__tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.1), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.calendarBox .react-calendar__tile:hover::before {
+  opacity: 1;
+}
+
+.calendarBox .react-calendar__tile:hover {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+  color: #1e40af !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.calendarBox .react-calendar__tile:active {
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.12) !important;
+}
+
+/* Estados especiales de los días */
+.calendarBox .react-calendar__tile.has-appointment {
+  background: linear-gradient(135deg, #bfdbfe, #93c5fd) !important;
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  position: relative !important;
+}
+
+/* Clase auxiliar para asegurar anclaje del badge dentro del tile */
+.calendarBox .badge-anchor {
+  position: relative !important;
+}
+
+/* Refuerzo: que el tile con cita sea el contexto relativo del badge */
+.calendarBox .react-calendar__tile.has-appointment {
+  position: relative !important;
+}
+
+/* Ocultar el número por defecto (abbr) cuando mostramos un contador centrado */
+/* Mostrar siempre el número del día; el badge azul va en la esquina sin reemplazarlo. */
+/* (Regla removida que ocultaba abbr en .has-appointment) */
+
+.calendarBox .react-calendar__tile.has-appointment::after {
+  /* Desactivado para usar el badge azul con conteo */
+  content: none !important;
+  display: none !important;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.calendarBox .react-calendar__tile.is-today {
+  background: linear-gradient(135deg, #10b981, #047857) !important;
+  color: white !important;
+  font-weight: 900 !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  border: 2px solid #064e3b !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  animation: todayGlow 3s ease-in-out infinite alternate;
+}
+
+/* Quitar el amarillo por defecto de react-calendar para el día actual */
+.calendarBox .react-calendar__tile--now {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+@keyframes todayGlow {
+  0% { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15); }
+  100% { box-shadow: 0 8px 30px rgba(16, 185, 129, 0.6), 0 4px 15px rgba(0, 0, 0, 0.2); }
+}
+
+/* Selección sutil: mantener aspecto del día y solo resaltar con un borde/ring interno */
+.calendarBox .react-calendar__tile.is-selected {
+  border: 2px solid #93c5fd !important; /* azul suave */
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+  background: linear-gradient(135deg, #ffffff, #f8fafc) !important; /* conservar el look base */
+  color: inherit !important;
+  font-weight: inherit !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+/* Bordes redondeados al seleccionar */
+.calendarBox .react-calendar__tile.is-selected {
+  border-radius: 10px !important;
+}
+
+/* Cubrir también la clase nativa de React Calendar para selección */
+.calendarBox .react-calendar__tile--active {
+  border-radius: 10px !important;
+}
+
+/* Refuerzo global: mantener esquinas redondeadas consistentes en todos los estados */
+.calendarBox .react-calendar__tile,
+.calendarBox .react-calendar__tile--active,
+.calendarBox .react-calendar__tile--hasActive,
+.calendarBox .react-calendar__tile--now,
+.calendarBox .react-calendar__tile.is-selected,
+.calendarBox .react-calendar__tile.is-today {
+  border-radius: 10px !important;
+}
+
+/* Reset de estilos del número del día para evitar burbujas redondas */
+.calendarBox .react-calendar__tile abbr {
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+}
+
+.calendarBox .react-calendar__tile.has-appointment.is-today {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  color: white !important;
+  border: 2px solid #065f46 !important;
+  box-shadow: 0 8px 25px rgba(5, 150, 105, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Si hay cita y está seleccionado, mantener el fondo de "has-appointment" y solo dibujar borde sutil */
+.calendarBox .react-calendar__tile.has-appointment.is-selected {
+  border: 2px solid #2563eb !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.25) !important;
+}
+
+/* Días del fin de semana */
+.calendarBox .react-calendar__month-view__days__day--weekend {
+  color: #dc2626 !important;
+  font-weight: 800 !important;
+}
+
+.calendarBox .react-calendar__month-view__days__day--weekend:hover {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2) !important;
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Días de meses anteriores/posteriores */
+.calendarBox .react-calendar__month-view__days__day--neighboringMonth {
+  color: #6b7280 !important;
+  opacity: 0.6 !important;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
+  font-weight: 500 !important;
+}
+
+.calendarBox .react-calendar__month-view__days__day--neighboringMonth:hover {
+  opacity: 0.7 !important;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1) !important;
+  transform: translateY(-1px) scale(1.02) !important;
+}
+
+/* Responsive design para móviles */
+@media (max-width: 640px) {
+  .calendarBox {
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    min-width: unset !important;
+  }
+  
+  .calendarWrapper {
+    padding: 16px;
+    min-width: unset;
+  }
+  
+  .calendarBox .react-calendar__navigation {
+    padding: 12px 16px !important;
+    gap: 8px !important;
+  }
+  
+  .calendarBox .react-calendar__navigation button {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    min-height: 36px !important;
+    border-radius: 8px !important;
+  }
+  
+  .calendarBox .react-calendar__navigation__label {
+    font-size: 16px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view {
+    padding: 0 12px 16px 12px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__weekdays {
+    gap: 6px !important;
+    padding: 8px 6px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__weekdays__weekday {
+    padding: 8px 2px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__days {
+    gap: 6px !important;
+    padding: 0 4px !important;
+  }
+  
+  .calendarBox .react-calendar__tile {
+    font-size: 14px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    border-width: 1px !important;
+    font-weight: 600 !important;
+  }
+  
+  .calendarBox .react-calendar__tile:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+  }
+  
+  .calendarBox .react-calendar__tile.is-selected,
+  .calendarBox .react-calendar__tile.is-today {
+    transform: scale(1.04) !important;
+  }
+  
+  .calendarBox .react-calendar__tile.has-appointment::after {
+    width: 6px;
+    height: 6px;
+    top: 2px;
+    right: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendarBox .react-calendar__navigation {
+    padding: 10px 12px !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+  }
+  
+  .calendarBox .react-calendar__navigation button {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+    min-height: 32px !important;
+  }
+  
+  .calendarBox .react-calendar__navigation__label {
+    font-size: 14px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view {
+    padding: 0 8px 12px 8px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__weekdays {
+    gap: 2px !important;
+    padding: 6px 4px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__weekdays__weekday {
+    padding: 6px 1px !important;
+    font-size: 9px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__days {
+    gap: 2px !important;
+  }
+  
+  .calendarBox .react-calendar__tile {
+    font-size: 11px !important;
+    min-height: 32px !important;
+    border-radius: 6px !important;
+  }
+  
+  .calendarBox .react-calendar__tile.has-appointment::after {
+    width: 5px;
+    height: 5px;
+    top: 1px;
+    right: 1px;
+  }
+}
+
+.calendarWrapper {
+  position: relative;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.calendarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.calendarStats {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.calendarStat {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.calendarStatNumber {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.calendarStatLabel {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.calendarStatNumber.upcoming {
+  color: #10b981;
+}
+
+.calendarStatNumber.completed {
+  color: #6b7280;
+}
+
+/* Mejoras adicionales para la lista de citas */
+.citaCard {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.citaCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+  border-color: #c3d4f0;
+}
+
+.citaCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #3b82f6, #10b981);
+  transition: width 0.3s ease;
+}
+
+.citaCard:hover::before {
+  width: 6px;
+}
+
+.citaCardUpcoming::before {
+  background: linear-gradient(180deg, #10b981, #059669);
+}
+
+.citaCardToday::before {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+  animation: pulse 2s infinite;
+}
+
+.citaCardPast::before {
+  background: linear-gradient(180deg, #6b7280, #4b5563);
+}
+
+.citaCardPast {
+  opacity: 0.8;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.citaCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.citaCardDate {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.citaCardTime {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.citaCardStatus {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.citaCardStatusUpcoming {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.citaCardStatusToday {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  animation: pulse 2s infinite;
+}
+
+.citaCardStatusPast {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.citaCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.citaCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.citaCardIcon {
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.citaCardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.citaCardAction {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  /* Alinear icono a la izquierda del texto y centrar verticalmente */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Asegurar que el ícono se muestre junto al texto y no se desplace a la esquina */
+.citaCardAction > svg {
+  margin-right: 6px;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.citaCardActionPrimary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-color: #2563eb;
+}
+
+.citaCardActionPrimary:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.citaCardActionSecondary {
+  background: white;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.citaCardActionSecondary:hover {
+  background: #f9fafb;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+/* Variante de éxito (verde) para acciones activas como "Desactivar recordatorio" */
+.citaCardActionSuccess {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-color: #059669;
+}
+
+.citaCardActionSuccess:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+/* Animaciones para mejorar la experiencia */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.citaCard {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.citaCard:nth-child(1) { animation-delay: 0.1s; }
+.citaCard:nth-child(2) { animation-delay: 0.2s; }
+.citaCard:nth-child(3) { animation-delay: 0.3s; }
+.citaCard:nth-child(4) { animation-delay: 0.4s; }
+.citaCard:nth-child(5) { animation-delay: 0.5s; }
+
+/* Lista de citas vacía */
+.citasEmpty {
+  text-align: center;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: 16px;
+  border: 2px dashed #cbd5e1;
+}
+
+.citasEmptyIcon {
+  width: 64px;
+  height: 64px;
+  color: #cbd5e1;
+  margin: 0 auto 16px;
+}
+
+.citasEmptyTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.citasEmptyDescription {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+.citasEmptyAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.citasEmptyAction:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+/* Scrollbar personalizada */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #94a3b8, #64748b);
+}
+
+/* Mejoras responsive adicionales */
+@media (max-width: 768px) {
+  .calendarWrapper {
+    padding: 18px;
+    border-radius: 12px;
+    min-width: unset;
+  }
+  
+  .calendarHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .citaCard {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .citaCardActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .citaCardAction {
+    text-align: center;
+    justify-content: center;
+  }
+  
+  .citasEmpty {
+    padding: 32px 16px;
+    border-radius: 12px;
+  }
+  
+  .citasEmptyIcon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .citasEmptyTitle {
+    font-size: 16px;
+  }
+  
+  .citasEmptyDescription {
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .calendarBox .react-calendar__tile {
+    min-height: 48px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+  }
+  
+  .calendarBox .react-calendar__navigation button {
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+  }
+  
+  .calendarWrapper {
+    min-width: 380px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .calendarBox .react-calendar__tile {
+    min-height: 52px !important;
+    font-size: 16px !important;
+  }
+  
+  .calendarBox .react-calendar__month-view__days {
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendarWrapper {
+    padding: 12px;
+  }
+  
+  .calendarStats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .citaCard {
+    padding: 12px;
+  }
+  
+  .citaCardDate {
+    font-size: 14px;
+  }
+  
+  .citaCardInfo {
+    font-size: 12px;
+  }
+}
+
+.citasList {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.citaItem {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(30,90,180,0.06);
+}
+
+.citaFecha {
+  font-weight: bold;
+  color: #1976d2;
+  margin-bottom: 4px;
+}
+@media (max-width: 1024px) {
+  .sidebar {
+    position: static !important;
+    height: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    padding: 8px 0 0 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px 12px 0 0 !important;
+    margin-right: 0 !important;
+    background: rgba(30, 90, 180, 0.85) !important;
+    z-index: 10 !important;
+  }
+  .sidebarMenu {
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding: 0 8px 0 8px !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+  }
+  .sidebarTitle, .sidebarDivider {
+    display: none !important;
+  }
+  .sidebarItem {
+    font-size: 1rem !important;
+    padding: 10px 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+    border-left: none !important;
+    border-bottom: 2px solid transparent !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+  .sidebarItem.active, .sidebarItem:hover {
+    border-left: none !important;
+    border-bottom: 2px solid #fff !important;
+  }
+
+  /* Ajustes para el layout principal en pantallas pequeñas */
+  .mainBox {
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 16px 4px 16px 4px !important;
+    margin-top: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .mainBoxContent {
+    flex-direction: column !important;
+    gap: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  .mainBoxRight {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    align-items: stretch !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  .actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .solicitarCitaCenter {
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+  .specialists {
+    max-width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+  .search {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+/* Barra superior tipo Windows, semitransparente */
+.topBarWin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  background: linear-gradient( rgba(52, 133, 255, 0.1) 0%, rgba(30, 90, 180, 0) 100%);
+  /* Quitar borde inferior para fusionar */
+  border-bottom: none; /* Cambiado a none */
+  padding: 0 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.topBarTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  color: #0050ac;
+  margin-left: 12px;
+  text-wrap: bolder;
+}
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 210px;
+  background: rgba(30, 90, 180, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 48px 0 0 0;
+  box-shadow: 2px 0 12px rgba(30,90,180,0.08);
+  z-index: 20;
+}
+.sidebarMenu {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px 16px 24px;
+  flex-grow: 1;
+}
+.sidebarItem {
+  color: #fff;
+  font-size: 1.08rem;
+  padding: 12px 0;
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+  transition: background 0.2s, color 0.2s;
+  border-left: 4px solid transparent;
+}
+.sidebarItem:hover, .sidebarItem.active {
+  background: rgba(255,255,255,0.08);
+  border-left: 4px solid #ffffff;
+}
+.sidebarTitle {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 22px;
+  margin-left: 12px;
+}
+.sidebarClose {
+  margin-top: auto;
+  background-color: rgb(173, 0, 0);
+}
+.sidebarClose:hover {
+  background-color: rgb(94, 0, 0);
+}
+.sidebarDivider {
+  width: 100%;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.459);
+  margin: 8px 0;
+}
+.topBar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  margin-bottom: 24px;
+}
+.mainContent {
+  width: 100%;
+  padding: 40px 16px;
+}
+.dashboard {
+  background: linear-gradient(120deg, #e3f2fd 0%, #bbdefb 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 36px);
+  box-sizing: border-box;
+}
+
+.header {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1976d2;
+  margin-bottom: 24px;
+  text-align: left;
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 32px;
+  margin-bottom: 32px;
+  width: 100%;
+}
+
+.solicitarCitaCenter {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.button {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(30,90,180,0.10);
+  transition: background 0.2s;
+}
+.button:hover {
+  background: #1565c0;
+}
+
+.search {
+  width: 100%;
+  max-width: 320px;
+  padding: 12px;
+  border-radius: 8px;
+  color:#333;
+  border: 1px solid #b0bec5;
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+.specialists {
+  width: 100%;
+  max-width: 600px;
+  background: #fff;
+  border-radius: 12px;
+  color: #333;
+  box-shadow: 0 2px 12px rgba(30,90,180,0.08);
+  padding: 24px;
+}
+
+/* Solo una definición de .mainBox, fusionando los cambios */
+.mainBox {
+  width: 100%;
+  background: #fff;
+  border-radius: 0 0 12px 12px; /* Suaviza la transición con la barra */
+  box-shadow: 0 4px 24px rgba(30,90,180,0.10);
+  padding: 32px 24px 32px 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 32px;
+  margin-top: 0;
+}
+
+.mainBoxContent {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 32px;
+}
+
+.mainBoxRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sidebar {
+  position: static;
+  height: auto;
+  min-width: 210px;
+  max-width: 210px;
+  background: rgba(30, 90, 180, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24px 0 0 0;
+  box-shadow: 2px 0 12px rgba(30,90,180,0.08);
+  z-index: 1;
+  border-radius: 12px;
+  margin-right: 16px;
+}
+
+.specialist {
+  padding: 12px 0;
+  border-bottom: 1px solid #e3e3e3;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.specialist:last-child {
+  border-bottom: none;
+}
+
+/* --- Refuerzo final de estilos del calendario (prioridad alta) --- */
+.calendarBox :global(.react-calendar__tile),
+.calendarBox :global(.react-calendar__tile--active),
+.calendarBox :global(.react-calendar__tile--hasActive),
+.calendarBox :global(.react-calendar__tile--now),
+.calendarBox :global(.react-calendar__tile.is-selected),
+.calendarBox :global(.react-calendar__tile.is-today) {
+  border-radius: 10px !important; /* siempre bordes redondeados */
+}
+
+/* Asegurar también los pseudoelementos no redondeen */
+.calendarBox :global(.react-calendar__tile::before),
+.calendarBox :global(.react-calendar__tile::after) {
+  border-radius: inherit !important;
+}
+
+.calendarBox :global(.react-calendar__tile abbr),
+.calendarBox :global(.react-calendar__tile.is-today abbr),
+.calendarBox :global(.react-calendar__tile--active abbr),
+.calendarBox :global(.react-calendar__tile--now abbr) {
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+}
+
+/* Quitar escalado que puede provocar efecto de píldora visual */
+.calendarBox .react-calendar__tile.is-selected {
+  transform: none !important;
+}
+
+/* Estados :hover y :focus del seleccionado también cuadrados */
+.calendarBox :global(.react-calendar__tile--active:enabled:hover),
+.calendarBox :global(.react-calendar__tile--active:enabled:focus) {
+  border-radius: 12px !important;
+}

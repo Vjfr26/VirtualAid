@@ -1,0 +1,68 @@
+.noDisponible {
+  background: #690000 !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+}
+.calendarBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff27;
+  color: #333;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(30,90,180,0.08);
+  padding: 24px 16px;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.dateInput {
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #b0bec5;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.hoursList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+  justify-content: center;
+}
+
+.hourBtn {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.hourBtn.selected, .hourBtn:hover {
+  background: #1976d2;
+  color: #fff;
+}
+
+.solicitarBtn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 18px;
+  box-shadow: 0 2px 8px rgba(30,90,180,0.10);
+  transition: background 0.2s;
+}
+.solicitarBtn:disabled {
+  background: #b0bec5;
+  cursor: not-allowed;
+}

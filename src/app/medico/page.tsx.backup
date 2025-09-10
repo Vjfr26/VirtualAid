@@ -1,0 +1,2767 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+import React, { useState, useEffect } from "react";
+import Footer from "../components/Footer";
+// Componente de pantalla de carga global
+function PantallaCarga() {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(255,255,255,0.85)',
+      zIndex: 10000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+    }}>
+  <div className="animate-spin rounded-full border-8 border-primary-200 border-t-primary h-20 w-20 mb-6"></div>
+  <span className="text-primary-700 text-xl font-bold">Cargando panel...</span>
+    </div>
+  );
+}
+import TopActions from '../components/TopActions';
+import { useMediaQuery } from 'react-responsive';
+import Image from "next/image";
+import { useRouter } from 'next/navigation';
+
+import Calendar from "react-calendar";
+import 'react-calendar/dist/Calendar.css';
+import styles from './calendar.module.css';
+
+// Importamos los servicios modularizados
+import {
+  getMedicoPerfil, 
+  getHorarios, 
+  agregarHorario, 
+  eliminarHorario as eliminarHorarioService,
+  getCitas,
+  logout,
+  getPagosMedico,
+  formatearMonto,
+  calcularIngresosPorPeriodo,
+  type Medico,
+  type Horario,
+  type Cita,
+  type Paciente,
+  type Pago,
+  cambiarContrasena,
+  updateMedicoAvatar,
+  resolverAvatarDeterministaMedico
+} from './services';
+import {
+  getBillingProfileByOwner,
+  createOrUpdateBillingProfile,
+  listPaymentMethodsByProfile,
+  listInvoices,
+  createAddress,
+  updateAddress,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  type BillingProfile,
+  type Address,
+  type PaymentMethod,
+  type Invoice
+} from './services/billing';
+import { extraerPacientes } from './services/pacientes';
+import HeaderLogo from "../components/HeaderLogo";
+
+
+// Gradientes suaves como en Admin (más profundidad visual)
+const resumenGradients = [
+  'from-blue-700 via-blue-500/70 to-blue-600/60',
+  'from-orange-400 via-orange-600/80 to-orange-400/60',
+  'from-purple-700 via-purple-500/80 to-purple-600/60',
+  'from-emerald-400 via-emerald-600/80 to-emerald-400/60',
+] as const;
+// Utilidad para fusionar intervalos contiguos de horarios
+function fusionarHorariosPorDia(disponibilidad: { id: number, dia: string, horas: string }[]) {
+  // Agrupar por día
+  const dias: Record<string, { inicio: number, fin: number }[]> = {};
+  disponibilidad.forEach(({ dia, horas }) => {
+    const [hInicio, hFin] = horas.split(' - ');
+    const inicio = parseInt(hInicio.split(':')[0], 10);
+    const fin = parseInt(hFin.split(':')[0], 10);
+    if (!dias[dia]) dias[dia] = [];
+    dias[dia].push({ inicio, fin });
+  });
+  // Fusionar intervalos contiguos
+  const resultado: { dia: string, intervalos: string[] }[] = [];
+  Object.entries(dias).forEach(([dia, franjas]) => {
+    franjas.sort((a, b) => a.inicio - b.inicio);
+    const fusionadas: { inicio: number, fin: number }[] = [];
+    for (const franja of franjas) {
+      if (fusionadas.length === 0) {
+        fusionadas.push({ ...franja });
+      } else {
+        const ultima = fusionadas[fusionadas.length - 1];
+        if (ultima.fin === franja.inicio) {
+          ultima.fin = franja.fin;
+        } else {
+          fusionadas.push({ ...franja });
+        }
+      }
+    }
+    resultado.push({
+      dia,
+      intervalos: fusionadas.map(f => `${f.inicio}:00 - ${f.fin}:00`)
+    });
+  });
+  return resultado;
+}
+
+export default function MedicoDashboard() {
+  const [notificacionPassword, setNotificacionPassword] = useState<{ tipo: 'success' | 'error', mensaje: string } | null>(null);
+  // Estados para cambio de contraseña en perfil
+  const [mostrarCambioPassword, setMostrarCambioPassword] = useState(false);
+  const [passwordActual, setPasswordActual] = useState("");
+  const [nuevoPassword, setNuevoPassword] = useState("");
+  const [confirmarPassword, setConfirmarPassword] = useState("");
+  const [mensajePassword, setMensajePassword] = useState("");
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File|null>(null);
+
+  // Función para cambiar la contraseña
+  const cambiarPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+  setMensajePassword("");
+  setNotificacionPassword(null);
+    if (nuevoPassword.length < 6) {
+      setMensajePassword("La contraseña debe tener al menos 6 caracteres.");
+      setNotificacionPassword({ tipo: 'error', mensaje: "La contraseña debe tener al menos 6 caracteres." });
+      setTimeout(() => setNotificacionPassword(null), 3500);
+      return;
+    }
+    if (nuevoPassword !== confirmarPassword) {
+      setMensajePassword("Las contraseñas no coinciden.");
+      setNotificacionPassword({ tipo: 'error', mensaje: "Las contraseñas no coinciden." });
+      setTimeout(() => setNotificacionPassword(null), 3500);
+      return;
+    }
+    if (!passwordActual) {
+      setMensajePassword("Debe ingresar su contraseña actual.");
+      setNotificacionPassword({ tipo: 'error', mensaje: "Debe ingresar su contraseña actual." });
+      setTimeout(() => setNotificacionPassword(null), 3500);
+      return;
+    }
+    setCambiandoPassword(true);
+    try {
+      if (!medicoData) throw new Error("No hay datos de usuario");
+      const resp = await cambiarContrasena(medicoData.email, passwordActual, nuevoPassword);
+      setMensajePassword(resp.message || "¡Contraseña actualizada correctamente!");
+      setNotificacionPassword({ tipo: 'success', mensaje: resp.message || "¡Contraseña actualizada correctamente!" });
+      setMostrarCambioPassword(false);
+      setPasswordActual("");
+      setNuevoPassword("");
+      setConfirmarPassword("");
+    } catch (error: any) {
+      const msg = error?.message || "Error al cambiar la contraseña";
+      setMensajePassword(msg);
+      setNotificacionPassword({ tipo: 'error', mensaje: msg });
+    } finally {
+  setCambiandoPassword(false);
+  setTimeout(() => setMensajePassword(""), 3000);
+  setTimeout(() => setNotificacionPassword(null), 3500);
+    }
+  };
+  const router = useRouter();
+  
+  // Estados para datos del backend
+  const [medicoData, setMedicoData] = useState<Medico | null>(null);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [horarios, setHorarios] = useState<Horario[]>([]);
+  // const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+  
+  // Estados para pagos e ingresos
+  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [totalIngresos, setTotalIngresos] = useState(0);
+  const [loadingPagos, setLoadingPagos] = useState(true);
+  // const [errorPagos, setErrorPagos] = useState<string | null>(null);
+  const [mostrarDetalleIngresos, setMostrarDetalleIngresos] = useState(false);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Estado para mapear IDs de usuario a nombres
+  const [usuariosMap, setUsuariosMap] = useState<Map<string, string>>(new Map());
+  
+  // Estado para la carga de cada sección
+  const [loadingCitas, setLoadingCitas] = useState(true);
+  const [loadingHorarios, setLoadingHorarios] = useState(true);
+  const [errorCitas, setErrorCitas] = useState<string | null>(null);
+  const [errorHorarios, setErrorHorarios] = useState<string | null>(null);
+  const [errorDisponibilidad] = useState<string | null>(null);
+  
+  // Estados de UI
+  const [disponibilidad, setDisponibilidad] = useState([
+    { id: 1, dia: "Lunes", horas: "9:00 - 13:00" },
+    { id: 2, dia: "Miércoles", horas: "14:00 - 18:00" },
+  ]);
+  const [notificacionDisponibilidad, setNotificacionDisponibilidad] = useState<{ tipo: 'success' | 'error', mensaje: string } | null>(null);
+  const [loadingEliminar, setLoadingEliminar] = useState<number | null>(null);
+  const [nuevoDia, setNuevoDia] = useState("");
+  const [nuevasHoras, setNuevasHoras] = useState<string[]>([]);
+  const horasDisponibles = Array.from({length: 14}, (_, i) => {
+    const hour = 7 + i;
+    return `${hour}:00 - ${hour+1}:00`;
+  });
+  const [search, setSearch] = useState("");
+  // const [searchFacturas, setSearchFacturas] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date | null>(null);
+  
+  // Estado de perfil editable
+  const [perfil, setPerfil] = useState({
+    nombre: "",
+    apellido: "",
+    avatar: "https://randomuser.me/api/portraits/men/45.jpg",
+    email: "",
+    especialidad: ""
+  });
+  
+  // Nombre del médico formateado
+  const doctorName = medicoData 
+    ? `Dr. ${medicoData.nombre} ${medicoData.apellido}` 
+    : `Dr. ${perfil.nombre} ${perfil.apellido}`;
+
+  // Edición inline de perfil
+  const [formPerfil, setFormPerfil] = useState({ ...perfil });
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
+  const [mensajePerfil, setMensajePerfil] = useState("");
+  
+  // Efecto para actualizar el formulario cuando cambia el perfil
+  useEffect(() => { 
+    setFormPerfil({ ...perfil }); 
+  }, [perfil, activeTab]);
+  
+  // Cargar datos del médico desde el backend al iniciar
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      // Obtener el email del médico desde localStorage (guardado al hacer login)
+      const session = localStorage.getItem('session');
+      const email = session ? JSON.parse(session).email : null;
+      if (!email || email.trim() === '') {
+        router.push('/login');
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        // Ejecutar llamadas en paralelo para obtener todos los datos necesarios
+  const [medicoData, horariosData, citasData, pagosData] = await Promise.all([
+          getMedicoPerfil(email),
+          getHorarios(email),
+          getCitas(email),
+          getPagosMedico(email).catch(err => {
+            console.error('Error cargando pagos:', err);
+            return { pagos: [], total_ingresos: 0, cantidad_pagos: 0 };
+          })
+        ]);
+
+        setMedicoData(medicoData);
+        // Resolver avatar determinista si el back no lo provee
+        const avatarDet = await resolverAvatarDeterministaMedico(medicoData.email);
+        setPerfil({
+          nombre: medicoData.nombre,
+          apellido: medicoData.apellido,
+          avatar: avatarDet || "https://randomuser.me/api/portraits/men/45.jpg",
+          email: medicoData.email,
+          especialidad: medicoData.especializacion.toString()
+        });
+
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const disponibilidadFormateada = horariosData.map(horario => ({
+          id: horario.id || Date.now(),
+          dia: dias[horario.dia_semana],
+          horas: `${horario.hora_inicio} - ${horario.hora_fin}`
+        }));
+        setDisponibilidad(disponibilidadFormateada);
+        setCitas(citasData);
+  // (opcional) cargar especialidades si se requiere en UI
+
+        // Procesar datos de pagos
+        setPagos(pagosData.pagos);
+        setTotalIngresos(pagosData.total_ingresos);
+        setLoadingPagos(false);
+
+        // Obtener nombres de usuarios para las citas sin saturar el backend
+        const usuariosIds = Array.from(new Set(citasData.map(cita => cita.usuario_id)));
+        const usuariosNombres = new Map<string, string>();
+        usuariosIds.forEach((usuarioId) => {
+          const nombre = usuarioId?.split('@')[0] || 'Usuario';
+          usuariosNombres.set(usuarioId, nombre);
+        });
+        setUsuariosMap(usuariosNombres);
+      } catch (err) {
+        console.error("Error al cargar datos del médico:", err);
+        setError("No se pudieron cargar los datos del perfil del médico.");
+        // Agregamos la asignación a los errores específicos
+        setErrorCitas("No se pudieron cargar las citas.");
+        setErrorHorarios("No se pudieron cargar los horarios.");
+  // Error de pagos ya controlado en catch de la promesa de pagos
+        setPerfil({
+          nombre: "",
+          apellido: "",
+          avatar: "https://randomuser.me/api/portraits/men/45.jpg",
+          email: "",
+          especialidad: ""
+        });
+      } finally {
+        setLoading(false);
+        setLoadingCitas(false);
+        setLoadingHorarios(false);
+        setLoadingPagos(false);
+      }
+    };
+    fetchDashboardData();
+  }, [router]);
+  
+  // Función helper para verificar si una fecha tiene citas
+  const tieneCitasEnFecha = (fecha: Date): boolean => {
+    const fechaString = fecha.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    return citas.some(cita => {
+      // Convertir la fecha de la cita al mismo formato
+      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      return fechaCita === fechaString;
+    });
+  };
+
+  // Función para contar citas en una fecha específica
+  const contarCitasEnFecha = (fecha: Date): number => {
+    const fechaString = fecha.toISOString().split('T')[0];
+    return citas.filter(cita => {
+      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      return fechaCita === fechaString;
+    }).length;
+  };
+
+  // Función para obtener las citas del día seleccionado
+  const getCitasDelDia = (fecha: Date | null): Cita[] => {
+    if (!fecha) return [];
+    const fechaString = fecha.toISOString().split('T')[0];
+    return citas.filter(cita => {
+      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      return fechaCita === fechaString;
+    });
+  };
+
+  // Función para determinar el estilo de la cita según su estado
+  const getEstiloCita = (cita: Cita, fechaCita: Date) => {
+    const ahora = new Date();
+    const fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
+    const estado = cita.estado?.toLowerCase() || 'programada';
+    
+    // Colores según el estado
+    if (estado === 'cancelada') {
+      return {
+        borderColor: 'border-red-500',
+        bgColor: 'bg-red-50',
+        textColor: 'text-red-800',
+        iconColor: 'text-red-600'
+      };
+    } else if (estado === 'completada' || estado === 'exitosa') {
+      return {
+        borderColor: 'border-green-500',
+        bgColor: 'bg-green-50',
+        textColor: 'text-green-800',
+        iconColor: 'text-green-600'
+      };
+    } else if (fechaCitaCompleta < ahora) {
+      // Cita ya pasó
+      return {
+        borderColor: 'border-gray-500',
+        bgColor: 'bg-gray-50',
+        textColor: 'text-gray-700',
+        iconColor: 'text-gray-500'
+      };
+    } else {
+      // Cita próxima (programada/pendiente)
+      return {
+        borderColor: 'border-blue-500',
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-800',
+        iconColor: 'text-blue-600'
+      };
+    }
+  };
+
+  // Contenido personalizado para mostrar en las fechas del calendario
+  const tileContent = ({ date, view }: { date: Date; view: string }) => {
+    if (view === 'month' && tieneCitasEnFecha(date)) {
+      const numCitas = contarCitasEnFecha(date);
+      return (
+        <div className={styles.citaMark}>
+          <div className={styles.citaDot}></div>
+          <span className={styles.citaCount}>{numCitas}</span>
+        </div>
+      );
+    }
+    return null;
+  };
+  
+  // Guardar cambios del perfil (no usado actualmente)
+  // const guardarPerfil = async (e: React.FormEvent) => { /* ... */ };
+
+  // Agregar disponibilidad/horario
+  const agregarDisponibilidad = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (nuevoDia && nuevasHoras.length > 0) {
+      if (medicoData) {
+        try {
+          const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          const diaSemana = dias.indexOf(nuevoDia);
+          if (diaSemana === -1) throw new Error('Día inválido');
+          for (const franja of nuevasHoras) {
+            const [horaInicio, horaFin] = franja.split(' - ');
+            const formatearHora = (hora: string): string => {
+              const [h, m] = hora.split(':');
+              return `${h.padStart(2, '0')}:${m}`;
+            };
+            await agregarHorario(medicoData.email, {
+              dia_semana: diaSemana,
+              hora_inicio: formatearHora(horaInicio),
+              hora_fin: formatearHora(horaFin)
+            });
+          }
+          setNotificacionDisponibilidad({ tipo: 'success', mensaje: 'Horario agregado correctamente.' });
+          setNuevoDia("");
+          setNuevasHoras([]);
+          // Refrescar horarios desde el backend y la tabla de disponibilidad
+          const horariosData = await getHorarios(medicoData.email);
+          setHorarios(horariosData);
+          // Actualizar disponibilidad visual
+          const diasArr = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          const disponibilidadFormateada = horariosData.map(horario => ({
+            id: horario.id || Date.now(),
+            dia: diasArr[horario.dia_semana],
+            horas: `${horario.hora_inicio} - ${horario.hora_fin}`
+          }));
+          setDisponibilidad(disponibilidadFormateada);
+        } catch (error) {
+          setNotificacionDisponibilidad({ tipo: 'error', mensaje: 'Error al agregar horario.' });
+          console.error("Error al guardar horario:", error);
+        } finally {
+          setTimeout(() => setNotificacionDisponibilidad(null), 3000);
+        }
+      }
+    }
+  };
+  
+  // Eliminar disponibilidad/horario
+  const eliminarHorario = async (id: number) => {
+    setLoadingEliminar(id);
+    try {
+      if (medicoData) {
+        // Buscar el horario correspondiente en la lista de horarios del backend
+        const horarioEncontrado = horarios.find(h => h.id === id);
+        if (horarioEncontrado) {
+          await eliminarHorarioService(medicoData.email, id);
+          setNotificacionDisponibilidad({ tipo: 'success', mensaje: 'Horario eliminado correctamente.' });
+          // Refrescar horarios desde el backend y la tabla de disponibilidad
+          const horariosData = await getHorarios(medicoData.email);
+          setHorarios(horariosData);
+          const diasArr = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          const disponibilidadFormateada = horariosData.map(horario => ({
+            id: horario.id || Date.now(),
+            dia: diasArr[horario.dia_semana],
+            horas: `${horario.hora_inicio} - ${horario.hora_fin}`
+          }));
+          setDisponibilidad(disponibilidadFormateada);
+        }
+      }
+    } catch (error) {
+      setNotificacionDisponibilidad({ tipo: 'error', mensaje: 'Error al eliminar el horario.' });
+      console.error("Error al eliminar horario:", error);
+    } finally {
+      setLoadingEliminar(null);
+      setTimeout(() => setNotificacionDisponibilidad(null), 3000);
+    }
+  };
+
+  // Usamos los datos de citas para extraer pacientes únicos (simulación)
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [loadingPacientes, setLoadingPacientes] = useState<boolean>(true);
+  
+  useEffect(() => {
+    // Extraer información real de pacientes usando la API
+    const cargarPacientes = async () => {
+      setLoadingPacientes(true);
+      try {
+        if (citas.length > 0) {
+          const pacientesApi = await extraerPacientes(citas);
+          setPacientes(pacientesApi);
+        } else {
+          setPacientes([]);
+        }
+      } catch (error) {
+        console.error("Error al cargar pacientes:", error);
+      } finally {
+        setLoadingPacientes(false);
+      }
+    };
+    cargarPacientes();
+  }, [citas]);
+  
+  // Filtrar pacientes por nombre o email
+  const pacientesFiltrados = pacientes.filter(p =>
+    p.nombre.toLowerCase().includes(search.toLowerCase()) || 
+    p.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Billing (facturación real)
+  const [billingProfile, setBillingProfile] = useState<BillingProfile | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingProfileEditing, setBillingProfileEditing] = useState(false);
+  const [billingProfileForm, setBillingProfileForm] = useState<{legal_name?: string, tax_id?: string}>({});
+  const [addressForm, setAddressForm] = useState<Address | null>(null);
+  const [addressEditing, setAddressEditing] = useState(false);
+  const [addressFormEdit, setAddressFormEdit] = useState<Partial<Address>>({});
+  const [pmList, setPmList] = useState<PaymentMethod[]>([]);
+  const [pmFormOpen, setPmFormOpen] = useState(false);
+  const [pmForm, setPmForm] = useState<Partial<PaymentMethod>>({ provider: 'manual' });
+  const [pmLoading, setPmLoading] = useState(false);
+  const [pmEditingId, setPmEditingId] = useState<number | null>(null);
+  const [pmEditForm, setPmEditForm] = useState<Partial<PaymentMethod>>({});
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  // const [facturas, setFacturas] = useState<Factura[]>([]); // Para compatibilidad visual
+  // const [loadingFacturas, setLoadingFacturas] = useState(true);
+
+  // Cargar billing al entrar en la pestaña
+  useEffect(() => {
+    const cargarBilling = async () => {
+      if (!medicoData) return;
+      setBillingLoading(true);
+      try {
+        const profile = await getBillingProfileByOwner('medico', medicoData.email);
+        setBillingProfile(profile);
+        if (profile.address) setAddressForm(profile.address);
+        const methods = await listPaymentMethodsByProfile(profile.id);
+        setPmList(methods);
+        const allInvoices = await listInvoices();
+        setInvoices(allInvoices.filter(inv => inv.billing_profile_id === profile.id));
+      } catch {
+        setBillingProfile(null);
+        setPmList([]);
+        setInvoices([]);
+      } finally {
+        setBillingLoading(false);
+      }
+    };
+    if (activeTab === 'billing' && medicoData) cargarBilling();
+  }, [activeTab, medicoData]);
+
+  // Resumen para el grid superior
+  const resumen = [
+    { titulo: "Total Citas", valor: citas.length, icono: "📅", color: "#e3f2fd", bg: "bg-blue-300/40", accent: "bg-gradient-primary-soft" },
+    { titulo: "Total Pacientes", valor: pacientes.length, icono: "👤", color: "#90caf9", bg: "bg-orange-200/40", accent: "bg-gradient-secondary-soft" },
+    { titulo: "Disponibilidad", valor: disponibilidad.length, icono: "🕒", color: "#ececec", bg: "bg-purple-300/40", accent: "bg-gradient-accent-soft" },
+    { 
+      titulo: "Ingresos", 
+      valor: loadingPagos ? "..." : formatearMonto(totalIngresos), 
+      icono: "💰", 
+      color: "#fff0d4ff", 
+      bg: "bg-emerald-300/40", 
+      accent: "bg-gradient-accent-soft" 
+    },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      // Intentar cerrar sesión en el backend
+      const medicoEmail = localStorage.getItem('medicoEmail');
+      if (medicoEmail) {
+        await logout();
+      }
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    } finally {
+      // Limpiar localStorage y redirigir a login
+      localStorage.removeItem('medicoEmail');
+      localStorage.removeItem('medicoToken');
+      localStorage.removeItem('medicoData');
+      window.location.href = "/login";
+    }
+  };
+
+  // Responsive breakpoints
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const isMobileValue = useMediaQuery({ query: '(max-width: 700px)' });
+  const isTabletValue = useMediaQuery({ query: '(min-width: 701px) and (max-width: 1024px)' });
+  const isDesktopValue = useMediaQuery({ query: '(min-width: 1025px)' });
+  const isMobile = mounted ? isMobileValue : false;
+  const isTablet = mounted ? isTabletValue : false;
+  const isDesktop = mounted ? isDesktopValue : false;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    if (isDesktop) {
+      setSidebarOpen(true);
+    } else {
+      setSidebarOpen(false);
+    }
+  }, [isDesktop, isTablet, isMobile]);
+
+  return (
+    <>
+      {loading && <PantallaCarga />}
+      <div className="w-full flex items-center justify-end gap-2 pr-2 pt-2 bg-transparent z-50 absolute top-0 right-0">
+      {/* Botón para mostrar/ocultar el menú en mobile/tablet */}
+        {(!isDesktop && !sidebarOpen) && (
+          <button
+            className="md:hidden fixed top-1.5 left-4 z-50 bg-gradient-to-r from-slate-800 to-blue-800 hover:from-slate-900 hover:to-blue-900 text-white rounded-lg p-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+            onClick={() => setSidebarOpen(v => !v)}
+            aria-label="Abrir menú"
+          >
+            <svg width="24" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        )}
+        <div className="flex items-center h-10"> {/* Más pequeño */}
+          <TopActions />
+        </div>
+        <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg px-3 py-1 text-sm font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all h-8 flex items-center" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
+      </div>
+      <div className="relative flex min-h-screen text-[#1f2937] bg-gradient-to-br from-slate-50/95 via-blue-100/90 to-indigo-50/95">
+        {/* Sidebar */}
+        <aside
+          className={`transition-all duration-200 z-20 bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 backdrop-blur-md border-r border-blue-800/30 text-slate-200 shadow-xl min-h-screen ${
+            isMobile || isTablet
+              ? `fixed top-0 left-0 h-full w-72 ${sidebarOpen ? 'block' : 'hidden'}`
+              : 'relative w-72'
+          }`}
+          style={{ paddingTop: "10px" }}
+        >
+        <nav className="mt-16">
+            <ul className="flex flex-col gap-2">
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'dashboard'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}><span>🏠</span> Dashboard</li>
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'citas'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('citas'); setSidebarOpen(false); }}><span>📅</span> Citas</li>
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'disponibilidad'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('disponibilidad'); setSidebarOpen(false); }}><span>🕒</span> Disponibilidad</li>
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'pacientes'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('pacientes'); setSidebarOpen(false); }}><span>👤</span> Pacientes</li>
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'billing'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('billing'); setSidebarOpen(false); }}><span>💳</span> Billing</li>
+              <li className={`w-full flex items-center gap-3 px-4 py-3 mx-3 rounded-xl font-semibold cursor-pointer transition-all ${
+                activeTab === 'perfil'
+                  ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105 ring-2 ring-cyan-300/50'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-800/60 hover:to-blue-800/60 hover:text-white hover:scale-102 hover:shadow-md'
+              }`} onClick={() => { setActiveTab('perfil'); setSidebarOpen(false); }}><span>⚙️</span> Perfil</li>
+            </ul>
+          </nav>
+        </aside>
+        {/* Main content */}
+        <main className="flex-1 flex flex-col gap-8">
+        <HeaderLogo variant="horizontal" style={{ marginLeft: "1em" }} />
+        <div className="p-8 md:p-10 lg:p-12">
+        <h1 className="text-2xl font-bold text-slate-800 mb-2">Panel del Médico: {doctorName}</h1>
+        {loading && (
+          <div className="w-full bg-primary-100 text-primary-700 p-3 rounded-lg mb-4 text-center">
+            Cargando datos del médico...
+          </div>
+        )}
+        {error && (
+          <div className="w-full bg-red-100 text-red-800 p-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+        {activeTab === 'perfil' && (
+          <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-6 flex flex-col gap-4 max-w-lg mx-auto mt-2 mb-6">
+            {notificacionPassword && (
+              <div className={`w-full p-3 rounded mb-2 text-center font-semibold ${notificacionPassword.tipo === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {notificacionPassword.mensaje}
+              </div>
+            )}
+            <h2 className="font-bold uppercase text-primary-700">Perfil del Médico</h2>
+            <div className="w-full h-1 bg-primary rounded mb-2" />
+            <div className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
+                  <Image src={formPerfil.avatar} alt="avatar" width={80} height={80} className="rounded-full border-2 border-primary-300 bg-white" />
+          <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setCargandoPerfil(true);
+                    setMensajePerfil("");
+                    try {
+                      if (!medicoData) throw new Error("No hay datos de usuario");
+                      if (!avatarFile) throw new Error('Seleccione una imagen');
+            const fd = new FormData();
+            fd.append('archivo', avatarFile);
+            fd.append('tipo', 'medico');
+            fd.append('id', medicoData.email);
+            const res = await fetch('/api/perfil/upload', { method: 'POST', body: fd });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.message || 'Error al subir imagen');
+            const url = data?.url as string | undefined;
+            if (url) {
+              setPerfil((prev) => ({ ...prev, avatar: url }));
+              setFormPerfil((prev) => ({ ...prev, avatar: url }));
+              // Persistir en backend (campo avatar)
+              try { await updateMedicoAvatar(medicoData.email, url); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
+            }
+                      setMensajePerfil("¡Avatar actualizado correctamente!");
+                      setAvatarFile(null);
+                    } catch (error: any) {
+                      setMensajePerfil(error?.message || "Error al actualizar el avatar");
+                    } finally {
+                      setCargandoPerfil(false);
+                      setTimeout(() => setMensajePerfil(""), 3000);
+                    }
+                  }} className="w-full flex flex-col gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="w-full border border-primary-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none ring-primary-shadow text-xs"
+                      onChange={e => {
+                        if (e.target.files && e.target.files[0]) {
+                          setAvatarFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="bg-blue-500 hover:bg-blue-600 text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60 mt-2"
+                      disabled={cargandoPerfil || !avatarFile}
+                    >
+                      Guardar imagen
+                    </button>
+                    {mensajePerfil && <div className="text-green-600 text-center font-semibold mt-2">{mensajePerfil}</div>}
+                  </form>
+                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                <div>
+                  <span className="font-semibold">Nombre:</span>
+                  <div className="text-gray-700">{formPerfil.nombre}</div>
+                </div>
+                <div>
+                  <span className="font-semibold">Apellido:</span>
+                  <div className="text-gray-700">{formPerfil.apellido}</div>
+                </div>
+                <div>
+                  <span className="font-semibold">Especialidad:</span>
+                  <div className="text-gray-700">{formPerfil.especialidad}</div>
+                </div>
+                <div>
+                  <span className="font-semibold">Correo electrónico:</span>
+                  <div className="text-gray-700">{formPerfil.email}</div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 mt-4">
+                <span className="font-semibold">¿Desea cambiar su contraseña?</span>
+                <button
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-6 py-2 font-semibold transition"
+                  onClick={() => setMostrarCambioPassword(true)}
+                  type="button"
+                >
+                  Cambiar contraseña
+                </button>
+              </div>
+              {mostrarCambioPassword && (
+                <form onSubmit={cambiarPassword} className="flex flex-col gap-2 mt-2">
+                  <input
+                    type="password"
+                    className="w-full border border-primary-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none ring-primary-shadow"
+                    placeholder="Contraseña actual"
+                    value={passwordActual}
+                    onChange={e => setPasswordActual(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    className="w-full border border-primary-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none ring-primary-shadow"
+                    placeholder="Nueva contraseña"
+                    value={nuevoPassword}
+                    onChange={e => setNuevoPassword(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    className="w-full border border-primary-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none ring-primary-shadow"
+                    placeholder="Confirmar nueva contraseña"
+                    value={confirmarPassword}
+                    onChange={e => setConfirmarPassword(e.target.value)}
+                    required
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="submit"
+                      className="bg-primary hover:bg-primary-dark text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60"
+                      disabled={cambiandoPassword}
+                    >
+                      Guardar contraseña
+                    </button>
+                    <button
+                      type="button"
+                      className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md px-6 py-2 font-semibold transition"
+                      onClick={() => {
+                        setMostrarCambioPassword(false);
+                        setPasswordActual("");
+                        setNuevoPassword("");
+                        setConfirmarPassword("");
+                        setMensajePassword("");
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  {mensajePassword && <div className="text-green-600 text-center font-semibold mt-2">{mensajePassword}</div>}
+                </form>
+              )}
+            </div>
+          </section>
+        )}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Dashboard con exactamente 4 secciones principales */}
+            <div className="space-y-6">
+              
+              {/* Sección 1: Estadísticas de Hoy */}
+              <section className="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-cyan-700 p-4 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
+                  <div className="relative flex items-center gap-2">
+                    <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                      <span className="text-lg">📊</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-white text-sm uppercase tracking-wide">Resumen de Hoy</h2>
+                      <p className="text-blue-100 text-xs">{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  {(() => {
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const citasHoy = citas.filter(cita => {
+                      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+                      return fechaCita === hoy;
+                    });
+                    const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
+                    const citasPendientes = citasHoy.filter(cita => !cita.estado || cita.estado.toLowerCase() === 'programada').length;
+                    const citasCanceladas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'cancelada').length;
+                    
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-blue-700">{citasHoy.length}</div>
+                          <div className="text-xs text-blue-600">Total</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-green-700">{citasCompletadas}</div>
+                          <div className="text-xs text-green-600">Hechas</div>
+                        </div>
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-orange-700">{citasPendientes}</div>
+                          <div className="text-xs text-orange-600">Pendientes</div>
+                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-red-700">{citasCanceladas}</div>
+                          <div className="text-xs text-red-600">Canceladas</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+
+              {/* Sección 2: Calendario Principal */}
+              <section className="bg-gray-50/70 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200">
+                <div className="bg-gradient-to-r from-blue-700/80 to-blue-500/90 p-5 md:p-6 rounded-t-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <span className="text-xl">📅</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-gray-200 uppercase">Gestión de Citas</h2>
+                      <p className="text-blue-100 text-xs">Calendario y detalles</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 md:p-3">
+                  <div className="w-full h-1 bg-primary rounded mb-4" />
+                  
+                  {/* Contenedor horizontal para calendario y detalles */}
+                  <div className="flex flex-col lg:flex-row gap-6 bg-gray-50/20 rounded-lg p-4">
+                    {/* Calendario */}
+                    <div className="flex-shrink-0 lg:w-80">
+                      <div className={`${styles.calendarContainer}`} style={{ maxWidth: '320px', margin: '0 auto' }}>
+                        <Calendar
+                          className={styles.calendarBox}
+                          onChange={date => setFechaSeleccionada(date instanceof Date ? date : null)}
+                          value={fechaSeleccionada}
+                          minDate={new Date('2024-01-01')}
+                          tileContent={tileContent}
+                          tileDisabled={({ date, view }) => {
+                            if (view === 'month') {
+                              return date.getDay() === 0 || date.getDay() === 6;
+                            }
+                            return false;
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Detalles de citas del día seleccionado */}
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <h3 className="font-semibold text-gray-800 mb-3 text-lg border-b border-gray-200 pb-2">
+                          📋 Citas del{' '}
+                          {fechaSeleccionada ? fechaSeleccionada.toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long'
+                          }) : 'día seleccionado'}
+                        </h3>
+
+                        {fechaSeleccionada ? (
+                          <>
+                            {(() => {
+                              const citasDelDia = getCitasDelDia(fechaSeleccionada);
+                              return citasDelDia.length > 0 ? (
+                                <div className="space-y-3 max-h-64 overflow-y-auto">
+                                  {citasDelDia.map((cita, idx) => (
+                                    <div 
+                                      key={idx} 
+                                      className={`p-3 rounded-lg border-l-4 ${getEstiloCita(cita)} transition-all duration-200 hover:shadow-md`}
+                                    >
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <div className="font-medium text-gray-800 mb-1">
+                                            {usuariosMap.get(cita.usuario_id) || `Usuario ${cita.usuario_id}`}
+                                          </div>
+                                          <div className="text-sm text-gray-600 mb-2">
+                                            🕐 {cita.hora} • 📱 {cita.tipo_consulta || 'Consulta general'}
+                                          </div>
+                                          {cita.notas && (
+                                            <div className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded">
+                                              💬 {cita.notas}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="ml-3">
+                                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                            cita.estado?.toLowerCase() === 'completada' ? 'bg-green-100 text-green-700' :
+                                            cita.estado?.toLowerCase() === 'cancelada' ? 'bg-red-100 text-red-700' :
+                                            new Date(`${cita.fecha}T${cita.hora}`) < new Date() ? 'bg-gray-100 text-gray-700' :
+                                            'bg-blue-100 text-blue-700'
+                                          }`}>
+                                            {cita.estado?.toLowerCase() === 'completada' ? '✅ Completada' :
+                                             cita.estado?.toLowerCase() === 'cancelada' ? '❌ Cancelada' :
+                                             new Date(`${cita.fecha}T${cita.hora}`) < new Date() ? '⏳ Pasada' :
+                                             '🔄 Próxima'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center text-gray-500 py-8">
+                                  <div className="text-4xl mb-2">📅</div>
+                                  <p>No hay citas programadas para este día</p>
+                                </div>
+                              );
+                            })()}
+                          </>
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">
+                            <div className="text-4xl mb-2">👆</div>
+                            <p>Selecciona un día del calendario para ver las citas</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Sección 3: Métricas Mensuales */}
+              <section className="bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200/50">
+                <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 p-4 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-transparent"></div>
+                  <div className="relative flex items-center gap-2">
+                    <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                      <span className="text-lg">📈</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-white text-sm uppercase tracking-wide">Este Mes</h2>
+                      <p className="text-amber-100 text-xs">{new Date().toLocaleDateString('es-ES', { month: 'long' })}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  {(() => {
+                    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                    const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                    
+                    const citasMes = citas.filter(cita => {
+                      const fechaCita = new Date(cita.fecha);
+                      return fechaCita >= inicioMes && fechaCita <= finMes;
+                    });
+                    
+                    const citasCompletadasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'completada').length;
+                    const tasaExito = citasMes.length > 0 ? ((citasCompletadasMes / citasMes.length) * 100).toFixed(0) : 0;
+                    const pacientesUnicos = new Set(citasMes.map(c => c.usuario_id)).size;
+                    
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-amber-700">{citasMes.length}</div>
+                          <div className="text-xs text-amber-600">Citas</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-green-700">{citasCompletadasMes}</div>
+                          <div className="text-xs text-green-600">Completadas</div>
+                        </div>
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-orange-700">{pacientesUnicos}</div>
+                          <div className="text-xs text-orange-600">Pacientes</div>
+                        </div>
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-indigo-700">{tasaExito}%</div>
+                          <div className="text-xs text-indigo-600">Éxito</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+
+              {/* Sección 4: Próxima Cita e Ingresos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <section className="bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-emerald-200/50">
+                  <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-transparent"></div>
+                    <div className="relative flex items-center gap-2">
+                      <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <span className="text-lg">⏰</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white text-sm uppercase tracking-wide">Próxima Cita</h2>
+                        <p className="text-emerald-100 text-xs">Siguiente paciente</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    {(() => {
+                      const ahora = new Date();
+                      const proximasCitas = citas
+                        .filter(cita => {
+                          const fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
+                          return fechaCitaCompleta > ahora && cita.estado?.toLowerCase() !== 'cancelada';
+                        })
+                        .sort((a, b) => {
+                          const fechaA = new Date(`${a.fecha}T${a.hora}`);
+                          const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                          return fechaA.getTime() - fechaB.getTime();
+                        });
+                      
+                      const proximaCita = proximasCitas[0];
+                      
+                      return proximaCita ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                          <div className="font-medium text-emerald-800 mb-2">
+                            {usuariosMap.get(proximaCita.usuario_id) || `Usuario ${proximaCita.usuario_id}`}
+                          </div>
+                          <div className="text-sm text-emerald-600 mb-2">
+                            📅 {new Date(proximaCita.fecha).toLocaleDateString('es-ES')} 
+                          </div>
+                          <div className="text-sm text-emerald-600">
+                            🕐 {proximaCita.hora}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                          <div className="text-gray-500 text-sm">Sin citas próximas</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </section>
+
+                <section className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-purple-200/50">
+                  <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-pink-700 p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-transparent"></div>
+                    <div className="relative flex items-center gap-2">
+                      <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <span className="text-lg">💰</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white text-sm uppercase tracking-wide">Ingresos</h2>
+                        <p className="text-purple-100 text-xs">Este mes</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-purple-700">${pagos.total_ingresos || 0}</div>
+                        <div className="text-xs text-purple-600">Total</div>
+                      </div>
+                      <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-pink-700">{pagos.cantidad_pagos || 0}</div>
+                        <div className="text-xs text-pink-600">Pagos</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+            </div>
+          </>
+        )}
+              {resumen.map((item, idx) => {
+                  // Seleccionar un gradiente diferente para cada tarjeta
+        const grad = resumenGradients[idx % resumenGradients.length];
+                  // Determinar si es el card de ingresos para agregar funcionalidad especial
+                  const esCardIngresos = item.titulo === "Ingresos";
+                  return (
+                    <div
+                    key={idx}
+                    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/50 ${esCardIngresos ? 'cursor-pointer' : ''}`}
+                    onClick={esCardIngresos ? () => setMostrarDetalleIngresos(!mostrarDetalleIngresos) : undefined}
+                    >
+                      {/* Efecto de brillo */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      
+                      {/* Contenido de la tarjeta */}
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className={`p-3 rounded-xl ${item.bg} text-white shadow-lg`}>
+                            <span className="text-2xl">{item.icono}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-3xl font-bold text-gray-200">{item.valor}</div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-200 uppercase tracking-wide">
+                          {item.titulo}
+                        </div>
+                      </div>
+                      
+                      {/* Decoración inferior */}
+                      <div className={`absolute bottom-0 left-0 right-0 h-1 ${item.bg}`}></div>
+                    </div>
+                  );
+              })}
+            </div>
+            
+            {/* Panel de detalle de ingresos */}
+            {mostrarDetalleIngresos && (
+              <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg border border-emerald-200 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-emerald-800">📊 Detalle de Ingresos</h3>
+                  <button 
+                    onClick={() => setMostrarDetalleIngresos(false)}
+                    className="text-emerald-600 hover:text-emerald-800 text-xl font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
+                    <div className="text-sm text-emerald-600 font-semibold">Total del Mes</div>
+                    <div className="text-2xl font-bold text-emerald-800">
+                      {loadingPagos ? "..." : formatearMonto(calcularIngresosPorPeriodo(pagos, 'mes'))}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
+                    <div className="text-sm text-emerald-600 font-semibold">Total General</div>
+                    <div className="text-2xl font-bold text-emerald-800">
+                      {loadingPagos ? "..." : formatearMonto(totalIngresos)}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
+                    <div className="text-sm text-emerald-600 font-semibold">Pagos Completados</div>
+                    <div className="text-2xl font-bold text-emerald-800">{pagos.length}</div>
+                  </div>
+                </div>
+                
+                {/* Lista de pagos recientes */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
+                  <h4 className="font-semibold text-emerald-800 mb-3">Pagos Recientes</h4>
+                  {loadingPagos ? (
+                    <div className="text-center py-4">
+                      <div className="inline-block animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 h-8 w-8"></div>
+                    </div>
+                  ) : pagos.length === 0 ? (
+                    <div className="text-gray-500 text-center py-4">No hay pagos registrados</div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {pagos.slice(0, 5).map((pago) => (
+                        <div key={pago.id} className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-gray-800">
+                              {formatearMonto(pago.monto)}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {new Date(pago.fecha_pago).toLocaleDateString('es-ES')} - {pago.metodo}
+                            </div>
+                          </div>
+                          <div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              pago.estado === 'completado' ? 'bg-green-100 text-green-800' :
+                              pago.estado === 'pagado' ? 'bg-blue-100 text-blue-800' :
+                              pago.estado === 'confirmado' ? 'bg-emerald-100 text-emerald-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {pago.estado}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Grid principal reorganizado para mejor balance visual */}
+            <div className="space-y-6">
+              {/* Fila superior: Estadísticas rápidas (3 columnas compactas) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Panel de Estadísticas de Hoy - Compacto */}
+                <section className="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50 flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-cyan-700 p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
+                    <div className="relative flex items-center gap-2">
+                      <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <span className="text-lg">📊</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white text-sm uppercase tracking-wide">Hoy</h2>
+                        <p className="text-blue-100 text-xs">{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    {(() => {
+                      const hoy = new Date().toISOString().split('T')[0];
+                      const citasHoy = citas.filter(cita => {
+                        const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+                        return fechaCita === hoy;
+                      });
+                      const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
+                      
+                      return (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center">
+                              <div className="text-lg font-bold text-blue-700">{citasHoy.length}</div>
+                              <div className="text-xs text-blue-600">Total</div>
+                            </div>
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+                              <div className="text-lg font-bold text-green-700">{citasCompletadas}</div>
+                              <div className="text-xs text-green-600">Hechas</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </section>
+
+                {/* Panel de Actividad Reciente - Compacto */}
+                <section className="bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 backdrop-blur-sm rounded-xl shadow-lg border border-emerald-200/50 flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-transparent"></div>
+                    <div className="relative flex items-center gap-2">
+                      <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <span className="text-lg">📈</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white text-sm uppercase tracking-wide">Actividad</h2>
+                        <p className="text-emerald-100 text-xs">Últimas citas</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    {(() => {
+                      const citasRecientes = citas
+                        .filter(cita => cita.estado?.toLowerCase() === 'completada')
+                        .sort((a, b) => {
+                          const fechaA = new Date(`${a.fecha}T${a.hora}`);
+                          const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                          return fechaB.getTime() - fechaA.getTime();
+                        })
+                        .slice(0, 2);
+                      
+                      return citasRecientes.length > 0 ? (
+                        <div className="space-y-2">
+                          {citasRecientes.map((cita, idx) => (
+                            <div key={idx} className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                              <div className="text-xs font-medium text-emerald-800">
+                                {usuariosMap.get(cita.usuario_id) || `Usuario ${cita.usuario_id}`}
+                              </div>
+                              <div className="text-xs text-emerald-600">
+                                {new Date(cita.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} • {cita.hora}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                          <div className="text-xs text-gray-500">Sin actividad reciente</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </section>
+
+                {/* Panel de Métricas Mensuales */}
+                <section className="bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200/50 flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 p-5 md:p-6 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-transparent"></div>
+                    <div className="relative flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                        <span className="text-xl">📊</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white uppercase tracking-wide">Métricas Mensuales</h2>
+                        <p className="text-amber-100 text-xs">{new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 md:p-6">
+                    <div className="w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded mb-4" />
+                    {(() => {
+                      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                      const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                      
+                      const citasMes = citas.filter(cita => {
+                        const fechaCita = new Date(cita.fecha);
+                        return fechaCita >= inicioMes && fechaCita <= finMes;
+                      });
+                      
+                      const citasCompletadasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'completada').length;
+                      const tasaExito = citasMes.length > 0 ? ((citasCompletadasMes / citasMes.length) * 100).toFixed(0) : 0;
+                      const pacientesUnicos = new Set(citasMes.map(c => c.usuario_id)).size;
+                      
+                      return (
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-amber-700">{citasMes.length}</div>
+                            <div className="text-sm text-amber-600 font-medium">Citas Totales</div>
+                          </div>
+                          
+                          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-orange-700">{pacientesUnicos}</div>
+                            <div className="text-sm text-orange-600 font-medium">Pacientes Únicos</div>
+                          </div>
+                          
+                          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-green-700">{citasCompletadasMes}</div>
+                            <div className="text-sm text-green-600 font-medium">Completadas</div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-indigo-700">{tasaExito}%</div>
+                            <div className="text-sm text-indigo-600 font-medium">Tasa Éxito</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </section>
+              </div>
+
+              {/* Fila central: Calendario principal */}
+              <div className="w-full">
+                {/* Panel de Citas (Calendario) */}
+                <section className="bg-gray-50/70 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+                  <div className="bg-gradient-to-r from-blue-700/80 to-blue-500/90 p-5 md:p-6 rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                        <span className="text-xl">📅</span>
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-gray-200 uppercase">Gestión de Citas</h2>
+                        <p className="text-blue-100 text-xs">Calendario y detalles</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 md:p-3">
+                    <div className="w-full h-1 bg-primary rounded" />
+                  
+                  {/* Contenedor horizontal para calendario y detalles */}
+                  <div className="flex flex-col lg:flex-row gap-6 bg-gray-50/20 rounded-lg p-4">
+                    {/* Calendario */}
+                    <div className="flex-shrink-0 lg:w-80">
+                      <div className={`${styles.calendarContainer}`} style={{ maxWidth: '320px', margin: '0 auto' }}>
+                        <Calendar
+                          className={styles.calendarBox}
+                          onChange={date => setFechaSeleccionada(date instanceof Date ? date : null)}
+                          value={fechaSeleccionada}
+                          minDate={new Date('2024-01-01')}
+                          tileContent={tileContent}
+                          tileDisabled={({ date, view }) => {
+                            if (view === 'month') {
+                              return date.getDay() === 0 || date.getDay() === 6;
+                            }
+                            return false;
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Panel de detalles de citas del día seleccionado */}
+                    <div className="flex-1 min-h-[300px] lg:min-h-[400px]">
+                      <div className="bg-white rounded-lg p-4 h-full border border-gray-200">
+                        {fechaSeleccionada ? (
+                          <>
+                            <h3 className="font-semibold text-gray-800 mb-3">
+                              Citas para {fechaSeleccionada.toLocaleDateString('es-ES', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </h3>
+                            {getCitasDelDia(fechaSeleccionada).length === 0 ? (
+                              <div className="text-center text-gray-500 py-8">
+                                <div className="text-4xl mb-2">📅</div>
+                                <p>No hay citas programadas para este día</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-3 max-h-[250px] overflow-y-auto">
+                                {getCitasDelDia(fechaSeleccionada).map((cita, idx) => {
+                                  const estilos = getEstiloCita(cita, fechaSeleccionada);
+                                  return (
+                                    <div 
+                                      key={idx} 
+                                      className={`${estilos.bgColor} rounded-lg p-3 border-l-4 ${estilos.borderColor}`}
+                                    >
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <div className={`font-medium ${estilos.textColor}`}>
+                                            {usuariosMap.get(cita.usuario_id) || `Usuario ${cita.usuario_id}`}
+                                          </div>
+                                          <div className={`text-sm ${estilos.textColor} mt-1`}>
+                                            <span className={estilos.iconColor}>🕐</span> {cita.hora}
+                                          </div>
+                                          {cita.motivo && (
+                                            <div className={`text-sm ${estilos.textColor} mt-1`}>
+                                              <span className={estilos.iconColor}>📝</span> {cita.motivo}
+                                            </div>
+                                          )}
+                                          <div className={`text-xs ${estilos.textColor} mt-1 font-medium`}>
+                                            Estado: <span className="capitalize">{cita.estado || 'Programada'}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">
+                            <div className="text-4xl mb-2">👆</div>
+                            <p>Selecciona un día del calendario para ver las citas</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              </div>
+            </div>
+          </>
+        )}
+        {activeTab === 'citas' && (
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1 bg-gray-50/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+              <div className="bg-linear-to-r from-blue-700 to-blue-400 p-6 rounded-t-lg">
+                <h2 className="font-bold text-gray-200 uppercase">Calendario</h2>
+              </div>
+                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-cyan-700 p-5 md:p-6 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <span className="text-xl">�</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-white uppercase tracking-wide">Estadísticas de Hoy</h2>
+                      <p className="text-blue-100 text-xs">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 md:p-6">
+                  <div className="w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-500 rounded mb-4" />
+                  {(() => {
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const citasHoy = citas.filter(cita => {
+                      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+                      return fechaCita === hoy;
+                    });
+                    const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
+                    const citasCanceladas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'cancelada').length;
+                    const citasPendientes = citasHoy.filter(cita => !cita.estado || cita.estado.toLowerCase() === 'programada').length;
+                    
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Total de citas hoy */}
+                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-blue-700 mb-1">{citasHoy.length}</div>
+                          <div className="text-xs text-blue-600 font-medium">Citas Hoy</div>
+                        </div>
+                        
+                        {/* Citas completadas */}
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-green-700 mb-1">{citasCompletadas}</div>
+                          <div className="text-xs text-green-600 font-medium">Completadas</div>
+                        </div>
+                        
+                        {/* Citas pendientes */}
+                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-orange-700 mb-1">{citasPendientes}</div>
+                          <div className="text-xs text-orange-600 font-medium">Pendientes</div>
+                        </div>
+                        
+                        {/* Citas canceladas */}
+                        <div className="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 text-center">
+                          <div className="text-2xl font-bold text-red-700 mb-1">{citasCanceladas}</div>
+                          <div className="text-xs text-red-600 font-medium">Canceladas</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Próxima cita */}
+                  {(() => {
+                    const ahora = new Date();
+                    const proximasCitas = citas
+                      .filter(cita => {
+                        const fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
+                        return fechaCitaCompleta > ahora && cita.estado?.toLowerCase() !== 'cancelada';
+                      })
+                      .sort((a, b) => {
+                        const fechaA = new Date(`${a.fecha}T${a.hora}`);
+                        const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                        return fechaA.getTime() - fechaB.getTime();
+                      });
+                    
+                    const proximaCita = proximasCitas[0];
+                    
+                    return (
+                      <div className="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">⏰</span>
+                          <h3 className="font-semibold text-indigo-800 text-sm">Próxima Cita</h3>
+                        </div>
+                        {proximaCita ? (
+                          <div className="space-y-1">
+                            <div className="font-medium text-indigo-700">
+                              {usuariosMap.get(proximaCita.usuario_id) || `Usuario ${proximaCita.usuario_id}`}
+                            </div>
+                            <div className="text-xs text-indigo-600">
+                              📅 {new Date(proximaCita.fecha).toLocaleDateString('es-ES')} • 🕐 {proximaCita.hora}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">No hay citas próximas programadas</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+              
+              {/* Panel de Actividad Reciente */}
+              <section className="bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-200/50 flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 p-5 md:p-6 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-transparent"></div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <span className="text-xl">📈</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-white uppercase tracking-wide">Actividad Reciente</h2>
+                      <p className="text-emerald-100 text-xs">Últimas acciones</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 md:p-6">
+                  <div className="w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 rounded mb-4" />
+                  {(() => {
+                    const citasRecientes = citas
+                      .filter(cita => cita.estado?.toLowerCase() === 'completada')
+                      .sort((a, b) => {
+                        const fechaA = new Date(`${a.fecha}T${a.hora}`);
+                        const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                        return fechaB.getTime() - fechaA.getTime();
+                      })
+                      .slice(0, 3);
+                    
+                    return citasRecientes.length > 0 ? (
+                      <div className="space-y-3">
+                        {citasRecientes.map((cita, idx) => (
+                          <div key={idx} className="bg-gradient-to-r from-emerald-50/80 to-teal-50/50 border border-emerald-200 rounded-xl p-3 hover:shadow-md transition-all duration-200">
+                            <div className="flex items-center gap-3">
+                              <div className="p-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg">
+                                <span className="text-white text-xs">✅</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-emerald-800 text-sm">
+                                  {usuariosMap.get(cita.usuario_id) || `Usuario ${cita.usuario_id}`}
+                                </div>
+                                <div className="text-xs text-emerald-600">
+                                  {new Date(cita.fecha).toLocaleDateString('es-ES')} • {cita.hora}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Enlace a ver más */}
+                        <div className="bg-gradient-to-r from-emerald-100/50 to-teal-100/50 border border-emerald-200 rounded-xl p-3 text-center">
+                          <div className="text-xs text-emerald-700 font-medium">
+                            📋 {citas.filter(c => c.estado?.toLowerCase() === 'completada').length} citas completadas en total
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-br from-gray-50 to-emerald-50/30 text-gray-600 p-4 rounded-xl text-center border border-gray-200">
+                        <div className="mb-2">
+                          <span className="text-2xl">📝</span>
+                        </div>
+                        <p className="text-sm font-medium">No hay actividad reciente</p>
+                        <p className="text-xs text-gray-500 mt-1">Las citas completadas aparecerán aquí</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+              
+              {/* Panel de Métricas Mensuales */}
+              <section className="bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200/50 flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 p-5 md:p-6 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-transparent"></div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <span className="text-xl">📊</span>
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-white uppercase tracking-wide">Métricas del Mes</h2>
+                      <p className="text-amber-100 text-xs">{new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 md:p-6">
+                  <div className="w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded mb-4" />
+                  {(() => {
+                    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                    const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                    
+                    const citasMes = citas.filter(cita => {
+                      const fechaCita = new Date(cita.fecha);
+                      return fechaCita >= inicioMes && fechaCita <= finMes;
+                    });
+                    
+                    const citasCompletadasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'completada').length;
+                    const citasCanceladasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'cancelada').length;
+                    const tasaExito = citasMes.length > 0 ? ((citasCompletadasMes / citasMes.length) * 100).toFixed(1) : 0;
+                    
+                    const pacientesUnicos = new Set(citasMes.map(c => c.usuario_id)).size;
+                    
+                    return (
+                      <div className="space-y-4">
+                        {/* Métricas principales */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 text-center">
+                            <div className="text-xl font-bold text-blue-700 mb-1">{citasMes.length}</div>
+                            <div className="text-xs text-blue-600 font-medium">Citas Totales</div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 text-center">
+                            <div className="text-xl font-bold text-green-700 mb-1">{citasCompletadasMes}</div>
+                            <div className="text-xs text-green-600 font-medium">Completadas</div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3 text-center">
+                            <div className="text-xl font-bold text-purple-700 mb-1">{pacientesUnicos}</div>
+                            <div className="text-xs text-purple-600 font-medium">Pacientes</div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3 text-center">
+                            <div className="text-xl font-bold text-amber-700 mb-1">{tasaExito}%</div>
+                            <div className="text-xs text-amber-600 font-medium">Tasa Éxito</div>
+                          </div>
+                        </div>
+                        
+                        {/* Progreso visual */}
+                        <div className="bg-white/80 border border-amber-200 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-gray-700">Progreso del mes</span>
+                            <span className="text-xs text-gray-500">{citasCompletadasMes}/{citasMes.length}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="bg-gradient-to-r from-green-400 to-emerald-500 h-2.5 rounded-full transition-all duration-500"
+                              style={{ width: `${citasMes.length > 0 ? (citasCompletadasMes / citasMes.length) * 100 : 0}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        {/* Días más activos */}
+                        {(() => {
+                          const diasActividad = citasMes.reduce((acc: { [key: string]: number }, cita) => {
+                            const dia = new Date(cita.fecha).toLocaleDateString('es-ES', { weekday: 'long' });
+                            acc[dia] = (acc[dia] || 0) + 1;
+                            return acc;
+                          }, {});
+                          
+                          const diasMasActivos = Object.entries(diasActividad)
+                            .sort(([,a], [,b]) => b - a)
+                            .slice(0, 2);
+                          
+                          return diasMasActivos.length > 0 ? (
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3">
+                              <div className="text-xs font-semibold text-amber-800 mb-2">📅 Días más activos:</div>
+                              <div className="space-y-1">
+                                {diasMasActivos.map(([dia, cantidad]) => (
+                                  <div key={dia} className="flex justify-between items-center">
+                                    <span className="text-xs text-amber-700 capitalize">{dia}</span>
+                                    <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                                      {cantidad} citas
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+              </div>
+            </div>
+          </>
+        )}
+        {activeTab === 'citas' && (
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1 bg-gray-50/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+              <div className="bg-linear-to-r from-blue-700 to-blue-400 p-6 rounded-t-lg">
+                <h2 className="font-bold text-gray-200 uppercase">Calendario</h2>
+              </div>
+              <div className="w-full h-1 rounded mb-4" />
+                <div className="w-full overflow-x-auto p-4 ">
+                  <div className={`${styles.calendarContainer} w-full`} style={{ margin: '0 auto' }}>
+                    <Calendar
+                    className={styles.calendarBox}
+                    onChange={date => setFechaSeleccionada(date instanceof Date ? date : null)}
+                    value={fechaSeleccionada}
+                    minDate={new Date('2024-01-01')}
+                    tileContent={tileContent}
+                    tileDisabled={({ date, view }) => {
+                      if (view === 'month') {
+                        return date.getDay() === 0 || date.getDay() === 6;
+                      }
+                      return false;
+                    }}
+                    />
+                  </div>
+                </div>
+              </div>
+            <div className="flex-2 w-full bg-gray-50/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+              <div className="bg-linear-to-r from-blue-700 to-blue-400 p-6 rounded-t-lg">
+                <h2 className="font-bold text-gray-200 uppercase">Citas del Médico</h2>
+              </div>
+              <div className="w-full h-1 bg-primary rounded mb-4" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-slate-200 shadow" style={{overflowX: 'auto'}}>
+                {loadingCitas ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full border-4 border-primary-200 border-t-primary h-12 w-12 mr-2"></div>
+                    <p className="text-primary mt-2">Cargando citas...</p>
+                  </div>
+                ) : errorCitas ? (
+                  <div className="bg-red-50 text-red-700 p-5 rounded-md text-center my-4">
+                    <p className="font-semibold">Error al cargar las citas</p>
+                    <p>{errorCitas}</p>
+                  </div>
+                ) : citas.length === 0 ? (
+                  <div className="bg-gray-50 text-gray-700 p-5 rounded-md text-center my-4">
+                    <p className="font-semibold">No hay citas programadas</p>
+                    <p className="mt-2">Cuando tenga citas programadas, aparecerán aquí.</p>
+                  </div>
+                ) : (
+          <table className="w-full border-collapse text-sm table-fixed">
+                    <thead>
+            <tr className="text-primary-900 font-bold bg-primary-50 border-b border-primary-200"><th className="py-2 max-w-[100px] break-words">Fecha</th><th className="max-w-[80px] break-words">Hora</th><th className="max-w-[120px] break-words">Paciente</th><th className="max-w-[100px] break-words">Estado</th></tr>
+                    </thead>
+                    <tbody>
+                      {citas.map((cita, idx) => (
+                        <tr key={idx} className="border-b border-gray-200 text-center">
+                          <td className="py-1 break-words max-w-[100px]">{cita.fecha}</td>
+                          <td className="break-words max-w-[80px]">{cita.hora}</td>
+                          <td className="break-words max-w-[120px]">{usuariosMap.get(cita.usuario_id) || cita.usuario_id}</td>
+                          <td className="break-words max-w-[100px]">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' : 
+                              cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {cita.estado}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div className="flex justify-center mt-12">
+                <button
+                  className="bg-blue-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-blue-600 transition"
+                  onClick={() => window.location.href = '/reunion'}
+                >
+                  Iniciar Reunion
+                </button>
+              </div>
+            </div>
+          </div>
+          )}
+        {activeTab === 'disponibilidad' && (
+          <section className="bg-gradient-to-br from-white via-gray-50/50 to-purple-50/30 backdrop-blur-sm rounded-3xl shadow-xl border border-slate-200/60 flex flex-col overflow-hidden">
+            {/* Header mejorado */}
+            <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 p-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-transparent"></div>
+              <div className="relative flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <span className="text-2xl">🕒</span>
+                </div>
+                <div>
+                  <h2 className="font-bold text-white text-xl tracking-wide">Mi Disponibilidad</h2>
+                  <p className="text-purple-100 text-sm">Configura tus horarios de atención</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8">
+              {/* Notificaciones */}
+              {notificacionDisponibilidad && (
+                <div className={`w-full p-4 rounded-2xl mb-6 text-center font-semibold border shadow-lg transition-all duration-300 ${
+                  notificacionDisponibilidad.tipo === 'success' 
+                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-200' 
+                    : 'bg-gradient-to-r from-red-50 to-pink-50 text-red-800 border-red-200'
+                }`}>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg">
+                      {notificacionDisponibilidad.tipo === 'success' ? '✅' : '❌'}
+                    </span>
+                    {notificacionDisponibilidad.mensaje}
+                  </div>
+                </div>
+              )}
+
+              {/* Formulario mejorado */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-purple-100 mb-8">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-xl">➕</span>
+                  <h3 className="text-lg font-semibold text-gray-800">Agregar Nuevo Horario</h3>
+                </div>
+                
+                <form onSubmit={agregarDisponibilidad} className="space-y-6">
+                  {/* Selector de día */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <span className="text-base">📅</span>
+                      Día de la semana
+                    </label>
+                    <select
+                      value={nuevoDia}
+                      onChange={e => setNuevoDia(e.target.value)}
+                      className="w-full rounded-xl border-2 border-purple-200 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm font-medium transition-all duration-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none hover:border-purple-300"
+                      required
+                    >
+                      <option value="">✨ Selecciona un día</option>
+                      <option value="Lunes">🌅 Lunes</option>
+                      <option value="Martes">🌄 Martes</option>
+                      <option value="Miércoles">⛅ Miércoles</option>
+                      <option value="Jueves">🌤️ Jueves</option>
+                      <option value="Viernes">🌅 Viernes</option>
+                    </select>
+                  </div>
+
+                  {/* Selector de horarios */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <span className="text-base">⏰</span>
+                      Horarios disponibles
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                      {horasDisponibles.map((franja) => (
+                        <button
+                          type="button"
+                          key={franja}
+                          className={`relative px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 transform hover:scale-105 border-2 shadow-sm hover:shadow-md ${
+                            nuevasHoras.includes(franja)
+                              ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-purple-400 shadow-lg shadow-purple-200'
+                              : 'bg-white/90 text-purple-700 border-purple-200 hover:bg-purple-50 hover:border-purple-400'
+                          }`}
+                          onClick={() => {
+                            setNuevasHoras(prev =>
+                              prev.includes(franja)
+                                ? prev.filter(h => h !== franja)
+                                : [...prev, franja]
+                            );
+                          }}
+                        >
+                          {nuevasHoras.includes(franja) && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          )}
+                          {franja}
+                        </button>
+                      ))}
+                    </div>
+                    {nuevasHoras.length > 0 && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                        <p className="text-sm text-purple-700">
+                          <span className="font-semibold">Seleccionados:</span> {nuevasHoras.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botón de agregar */}
+                  <button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white rounded-2xl px-6 py-4 font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-white/20 backdrop-blur-sm flex items-center justify-center gap-2"
+                  >
+                    <span className="text-xl">💾</span>
+                    Guardar Horario
+                  </button>
+                </form>
+              </div>
+              {/* Estados de carga y error */}
+              {errorDisponibilidad && (
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 text-red-800 p-4 rounded-2xl text-center mb-6 shadow-lg">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <span className="font-semibold">{errorDisponibilidad}</span>
+                  </div>
+                </div>
+              )}
+              
+              {loadingHorarios ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="relative">
+                    <div className="animate-spin rounded-full border-4 border-purple-200 border-t-purple-600 h-16 w-16"></div>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/20 to-indigo-400/20 animate-pulse"></div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-purple-700 font-semibold text-lg">Cargando horarios</p>
+                    <p className="text-purple-500 text-sm">Obteniendo tu disponibilidad...</p>
+                  </div>
+                </div>
+              ) : errorHorarios ? (
+                <div className="bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 p-8 rounded-3xl text-center shadow-lg">
+                  <div className="mb-4">
+                    <span className="text-4xl">❌</span>
+                  </div>
+                  <p className="font-bold text-red-800 text-lg mb-2">Error al cargar disponibilidad</p>
+                  <p className="text-red-600">{errorHorarios}</p>
+                </div>
+              ) : disponibilidad.length === 0 ? (
+                <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 p-8 rounded-3xl text-center shadow-lg">
+                  <div className="mb-6">
+                    <span className="text-6xl">📅</span>
+                  </div>
+                  <p className="font-bold text-gray-800 text-xl mb-2">¡Configura tu primera disponibilidad!</p>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    No tienes horarios configurados aún. Utiliza el formulario de arriba para agregar tus horarios de atención y comenzar a recibir pacientes.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-2xl">📋</span>
+                    <h3 className="text-xl font-bold text-gray-800">Tus Horarios Configurados</h3>
+                    <div className="flex-1 h-px bg-gradient-to-r from-purple-200 to-transparent"></div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {disponibilidad.map((d, idx) => (
+                      <div 
+                        key={idx} 
+                        className="group bg-gradient-to-br from-white via-purple-50/30 to-indigo-50/20 border-2 border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden"
+                      >
+                        {/* Decoración de fondo */}
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-100 to-transparent rounded-full transform translate-x-6 -translate-y-6 opacity-50"></div>
+                        
+                        <div className="relative z-10">
+                          {/* Header del día */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl text-white shadow-lg">
+                                <span className="text-lg font-bold">
+                                  {d.dia.slice(0, 3).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-800 text-lg">{d.dia}</h4>
+                                <p className="text-purple-600 text-sm">Día laboral</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Horarios */}
+                          <div className="mb-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                              <span>⏰</span>
+                              Horarios disponibles:
+                            </p>
+                            <div className="bg-white/80 border border-purple-100 rounded-xl p-3">
+                              <p className="text-sm text-purple-700 font-medium leading-relaxed">
+                                {d.horas}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Botón eliminar */}
+                          <button 
+                            onClick={() => eliminarHorario(d.id)}
+                            disabled={loadingEliminar === d.id}
+                            className="w-full bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl px-4 py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {loadingEliminar === d.id ? (
+                              <>
+                                <div className="animate-spin rounded-full border-2 border-white/30 border-t-white h-4 w-4"></div>
+                                Eliminando...
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-lg">🗑️</span>
+                                Eliminar Horario
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Estadísticas rápidas */}
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6 mt-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-purple-700">{disponibilidad.length}</div>
+                        <div className="text-sm text-purple-600 font-medium">Días configurados</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-indigo-700">
+                          {disponibilidad.reduce((acc, d) => acc + d.horas.split(',').length, 0)}
+                        </div>
+                        <div className="text-sm text-indigo-600 font-medium">Horarios totales</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-cyan-700">
+                          {disponibilidad.length > 0 ? 'Activo' : 'Inactivo'}
+                        </div>
+                        <div className="text-sm text-cyan-600 font-medium">Estado del perfil</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        {activeTab === 'pacientes' && (
+          <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+            <div className="p-6 bg-linear-to-r from-orange-700/80 to-orange-500/70 rounded-t-lg">
+              <h2 className="font-bold text-gray-100 uppercase">Pacientes</h2>
+            </div>
+              <div className="p-6">
+                <div className="w-full h-1 bg-primary rounded mb-2" />
+              <input
+                type="text"
+                placeholder="Buscar paciente por nombre..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm mb-4"
+              />
+              <div style={{overflowX: 'auto'}}>
+                {loadingCitas ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full border-4 border-primary-200 border-t-primary h-12 w-12 mr-2"></div>
+                    <p className="text-primary mt-2">Cargando pacientes...</p>
+                  </div>
+                ) : errorCitas ? (
+                  <div className="bg-red-50 text-red-700 p-5 rounded-md text-center my-4">
+                    <p className="font-semibold">Error al cargar los datos de pacientes</p>
+                    <p>{errorCitas}</p>
+                  </div>
+                ) : pacientes.length === 0 ? (
+                  <div className="bg-gray-50 text-gray-700 p-5 rounded-md text-center my-4">
+                    <p className="font-semibold">No hay datos de pacientes disponibles</p>
+                    <p className="mt-2">Cuando tenga pacientes asignados, aparecerán aquí.</p>
+                  </div>
+                ) : (
+          <table className="w-full border-collapse text-sm table-fixed">
+                    <thead>
+            <tr className="text-primary-900 font-bold bg-primary-50 border-b border-primary-200 alignself-center"><th className="py-2 max-w-[120px] break-words">Imagen</th><th className="py-2 max-w-[120px] break-words">Nombre</th><th className="max-w-[60px] break-words">Edad</th><th className="max-w-[120px] break-words">Motivo</th><th className="max-w-[220px] break-words">Email</th></tr>
+                    </thead>
+                    <tbody className="text-center">
+                      {pacientesFiltrados.map((p, idx) => {
+                        let avatarUrl = p.avatar || '';
+                        if (avatarUrl.startsWith('/perfiles/')) {
+                          // ok
+                        } else if (avatarUrl.startsWith('http')) {
+                          // ok
+                        } else if (avatarUrl) {
+                          avatarUrl = `/storage/${avatarUrl}`;
+                        } else {
+                          avatarUrl = 'https://randomuser.me/api/portraits/lego/1.jpg';
+                        }
+                        return (
+                          <tr key={idx} className="border-b border-gray-200 text-center hover:bg-slate-50/80 transition-colors">
+                            <td className="px-3 py-1 break-words max-w-[60px] flex justify-center items-center">
+                              <Image
+                                src={avatarUrl}
+                                alt={p.nombre}
+                                width={40}
+                                height={40}
+                                className="rounded-full border-2 border-primary-300 bg-white object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://randomuser.me/api/portraits/lego/1.jpg'; }}
+                              />
+                            </td>
+                            <td className="px-3 py-1 break-words max-w-[120px]">{p.nombre}</td>
+                            <td className="px-3 py-1 break-words max-w-[60px]">{p.edad}</td>
+                            <td className="px-3 py-1 break-words max-w-[120px]">{p.motivo}</td>
+                            <td className="px-3 py-1 break-words max-w-[220px]">{p.email}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+        {activeTab === 'billing' && (
+          <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4">
+          <div className=" p-6 bg-linear-to-r from-green-700/80 to-green-500/70 rounded-t-lg">
+            <h2 className="font-bold text-gray-100 uppercase">Facturación</h2>
+          </div>
+          <div className="p-6">
+            <div className="w-full h-1 bg-primary rounded mb-2" />
+            {billingLoading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full border-4 border-primary-200 border-t-primary h-12 w-12 mr-2"></div>
+                <p className="text-primary mt-2">Cargando facturación...</p>
+              </div>
+            ) : !billingProfile ? (
+              <div className="bg-gray-50 text-gray-700 p-5 rounded-md text-center my-4">
+                <p className="font-semibold">No hay perfil de facturación</p>
+                <button className="bg-green-700 text-white rounded-md mt-2 px-4 py-2 font-semibold hover:bg-green-600" onClick={async () => {
+                  if (!medicoData) return;
+                  setBillingLoading(true);
+                  try {
+                    const created = await createOrUpdateBillingProfile({
+                      billable_type: 'App\\Models\\Medico',
+                      billable_id: medicoData.email,
+                      legal_name: `Dr. ${medicoData.nombre} ${medicoData.apellido}`
+                    });
+                    setBillingProfile(created);
+                  } finally {
+                    setBillingLoading(false);
+                  }
+                }}>Crear perfil de facturación</button>
+              </div>
+            ) : (
+              <>
+                {/* Facturas (invoices) */}
+                <div className="mb-8">
+                  <h3 className="font-bold text-lg text-primary-700 mb-2">Facturas</h3>
+                  <div style={{overflowX: 'auto'}}>
+                    {invoices.length === 0 ? (
+                      <div className="bg-gray-200/80 text-gray-700 p-5 rounded-md text-center my-4">
+                        <p className="font-semibold">No hay facturas disponibles</p>
+                        <p className="mt-2">Cuando se generen facturas, aparecerán aquí.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full border-collapse text-sm table-fixed">
+                        <thead>
+                          <tr className="text-primary-900 font-bold bg-primary-50 border-b border-primary-200">
+                            <th className="py-2 max-w-[100px] break-words">ID</th>
+                            <th className="max-w-[100px] break-words">Monto</th>
+                            <th className="max-w-[80px] break-words">Moneda</th>
+                            <th className="max-w-[100px] break-words">Estado</th>
+                            <th className="max-w-[120px] break-words">Pagado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invoices.map(inv => (
+                            <tr key={inv.id} className="border-b border-gray-200 text-center">
+                              <td className="py-1 break-words max-w-[100px]">{inv.id}</td>
+                              <td className="break-words max-w-[100px]">{inv.amount}</td>
+                              <td className="break-words max-w-[80px]">{inv.currency}</td>
+                              <td className="break-words max-w-[100px]">{inv.status}</td>
+                              <td className="break-words max-w-[120px]">{inv.paid_at ? new Date(inv.paid_at).toLocaleString() : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+                {/* Perfil y dirección */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-radial-[at_25%_25%] from-green-700/80 to-emerald-700 to-50% p-5 rounded-xl shadow-lg min-w-0 break-words">
+                    <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+                      <h3 className="font-bold text-lg text-gray-200 break-words">Perfil de facturación</h3>
+                    </div>
+                    <div className="h-px bg-green-100 my-3" />
+                    <div className="text-gray-200 space-y-2 break-words">
+                      <div>
+                        <span className="font-semibold">Nombre legal:</span> {billingProfile.legal_name || '-'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">NIF/CIF:</span> {billingProfile.tax_id || '-'}
+                      </div>
+                      <div className="mt-2">
+                        {billingProfileEditing ? (
+                          <div className="flex flex-col space-y-3 border border-green-50 rounded-lg p-3 bg-gray-50/10">
+                            <div className="flex flex-col">
+                              <label htmlFor="legal_name" className="text-sm font-medium text-green-100 mb-1">Nombre legal</label>
+                              <input
+                                id="legal_name"
+                                type="text"
+                                className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                value={billingProfileForm.legal_name || ''}
+                                onChange={(e) => setBillingProfileForm({...billingProfileForm, legal_name: e.target.value})}
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <label htmlFor="tax_id" className="text-sm font-medium text-green-100 mb-1">NIF/CIF</label>
+                              <input
+                                id="tax_id"
+                                type="text"
+                                className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                value={billingProfileForm.tax_id || ''}
+                                onChange={(e) => setBillingProfileForm({...billingProfileForm, tax_id: e.target.value})}
+                              />
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <button 
+                                className="text-sm bg-gray-100 hover:bg-gray-300 text-gray-800 font-medium py-1 px-3 rounded"
+                                onClick={() => setBillingProfileEditing(false)}
+                              >
+                                Cancelar
+                              </button>
+                              <button 
+                                className="text-sm bg-green-200 hover:bg-green-300 text-green-700 font-medium py-1 px-3 rounded flex items-center"
+                                onClick={async () => {
+                                  setBillingLoading(true);
+                                  try {
+                                    const updated = await createOrUpdateBillingProfile({ 
+                                      id: billingProfile.id, 
+                                      legal_name: billingProfileForm.legal_name, 
+                                      tax_id: billingProfileForm.tax_id
+                                    });
+                                    setBillingProfile(updated);
+                                    setBillingProfileEditing(false);
+                                  } catch (error) {
+                                    console.error("Error al actualizar perfil:", error);
+                                    alert("Error al actualizar la información de facturación");
+                                  } finally {
+                                    setBillingLoading(false);
+                                  }
+                                }}
+                              >
+                                {billingLoading ? (
+                                  <>
+                                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                                    Guardando...
+                                  </>
+                                ) : "Guardar"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button 
+                            className="text-sm bg-green-400 hover:bg-green-500 transition text-gray-700 font-semibold py-1 px-4 rounded-lg"
+                            onClick={() => {
+                              // Inicializar el formulario con los valores actuales
+                              setBillingProfileForm({
+                                legal_name: billingProfile.legal_name || '',
+                                tax_id: billingProfile.tax_id || ''
+                              });
+                              setBillingProfileEditing(true);
+                            }}
+                          >
+                            Editar información
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-px bg-primary-200 my-3" />
+                    <div className="font-semibold text-gray-200 mb-1">Dirección de facturación</div>
+                    {addressForm ? (
+                      <div className="grid grid-cols-1 gap-2">
+                        {addressEditing ? (
+                          <div className="flex flex-col space-y-3 border border-primary-200 rounded-lg p-3 bg-primary-50 mt-2">
+                            <div className="flex flex-col">
+                              <label htmlFor="line1" className="text-sm font-medium text-gray-200 mb-1">Dirección (línea 1)</label>
+                              <input
+                                id="line1"
+                                type="text"
+                                className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                value={addressFormEdit.line1 || ''}
+                                onChange={(e) => setAddressFormEdit({...addressFormEdit, line1: e.target.value})}
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <label htmlFor="line2" className="text-sm font-medium text-gray-200 mb-1">Dirección (línea 2)</label>
+                              <input
+                                id="line2"
+                                type="text"
+                                className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                value={addressFormEdit.line2 || ''}
+                                onChange={(e) => setAddressFormEdit({...addressFormEdit, line2: e.target.value})}
+                                placeholder="Opcional"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="flex flex-col">
+                                <label htmlFor="city" className="text-sm font-medium text-gray-200 mb-1">Ciudad</label>
+                                <input
+                                  id="city"
+                                  type="text"
+                                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                  value={addressFormEdit.city || ''}
+                                  onChange={(e) => setAddressFormEdit({...addressFormEdit, city: e.target.value})}
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <label htmlFor="region" className="text-sm font-medium text-gray-200 mb-1">Región/Provincia</label>
+                                <input
+                                  id="region"
+                                  type="text"
+                                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                  value={addressFormEdit.region || ''}
+                                  onChange={(e) => setAddressFormEdit({...addressFormEdit, region: e.target.value})}
+                                  placeholder="Opcional"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="flex flex-col">
+                                <label htmlFor="postal_code" className="text-sm font-medium text-gray-200 mb-1">Código Postal</label>
+                                <input
+                                  id="postal_code"
+                                  type="text"
+                                  className="border border-green-100 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                  value={addressFormEdit.postal_code || ''}
+                                  onChange={(e) => setAddressFormEdit({...addressFormEdit, postal_code: e.target.value})}
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <label htmlFor="country" className="text-sm font-medium text-gray-600 mb-1">País (ISO)</label>
+                                <input
+                                  id="country"
+                                  type="text"
+                                  className="border border-green-100 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                                  value={addressFormEdit.country || ''}
+                                  onChange={(e) => setAddressFormEdit({...addressFormEdit, country: e.target.value})}
+                                  placeholder="ES, US, etc."
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <button 
+                                className="text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-1 px-3 rounded"
+                                onClick={() => setAddressEditing(false)}
+                              >
+                                Cancelar
+                              </button>
+                              <button 
+                                className="text-sm bg-green-200 hover:bg-green-300 text-green-700 font-medium py-1 px-3 rounded flex items-center"
+                                onClick={async () => {
+                                  if (!addressForm?.id) return;
+                                  setBillingLoading(true);
+                                  try {
+                                    const updated = await updateAddress(addressForm.id, {
+                                      ...addressFormEdit,
+                                      is_billing: true
+                                    });
+                                    setAddressForm(updated);
+                                    setAddressEditing(false);
+                                  } catch (error) {
+                                    console.error("Error al actualizar dirección:", error);
+                                    alert("Error al actualizar la dirección de facturación");
+                                  } finally {
+                                    setBillingLoading(false);
+                                  }
+                                }}
+                              >
+                                {billingLoading ? (
+                                  <>
+                                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                                    Guardando...
+                                  </>
+                                ) : "Guardar"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div>{addressForm.line1}</div>
+                            {addressForm.line2 && <div>{addressForm.line2}</div>}
+                            <div>{addressForm.city}, {addressForm.region} {addressForm.postal_code}</div>
+                            <div>{addressForm.country}</div>
+                            <button 
+                              className="text-sm bg-green-200 hover:bg-green-300 text-green-900 font-semibold py-1 px-4 rounded-lg mt-2"
+                              onClick={() => {
+                                setAddressFormEdit({
+                                  line1: addressForm.line1 || '',
+                                  line2: addressForm.line2 || '',
+                                  city: addressForm.city || '',
+                                  region: addressForm.region || '',
+                                  postal_code: addressForm.postal_code || '',
+                                  country: addressForm.country || '',
+                                  is_billing: true
+                                });
+                                setAddressEditing(true);
+                              }}
+                            >
+                              Editar dirección
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : addressEditing ? (
+                      <div className="flex flex-col space-y-3 border border-green-100 rounded-lg text-gray-200 p-3 bg-gray-50/30 mt-2">
+                        <div className="flex flex-col">
+                          <label htmlFor="new_line1" className="text-sm font-medium text-gray-200 mb-1">Dirección (línea 1)</label>
+                          <input
+                            id="new_line1"
+                            type="text"
+                            className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                            value={addressFormEdit.line1 || ''}
+                            onChange={(e) => setAddressFormEdit({...addressFormEdit, line1: e.target.value})}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <label htmlFor="new_line2" className="text-sm font-medium text-gray-200 mb-1">Dirección (línea 2)</label>
+                          <input
+                            id="new_line2"
+                            type="text"
+                            className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                            value={addressFormEdit.line2 || ''}
+                            onChange={(e) => setAddressFormEdit({...addressFormEdit, line2: e.target.value})}
+                            placeholder="Opcional"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col">
+                            <label htmlFor="new_city" className="text-sm font-medium text-gray-200 mb-1">Ciudad</label>
+                            <input
+                              id="new_city"
+                              type="text"
+                              className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                              value={addressFormEdit.city || ''}
+                              onChange={(e) => setAddressFormEdit({...addressFormEdit, city: e.target.value})}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <label htmlFor="new_region" className="text-sm font-medium text-gray-200 mb-1">Región/Provincia</label>
+                            <input
+                              id="new_region"
+                              type="text"
+                              className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                              value={addressFormEdit.region || ''}
+                              onChange={(e) => setAddressFormEdit({...addressFormEdit, region: e.target.value})}
+                              placeholder="Opcional"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col">
+                            <label htmlFor="new_postal_code" className="text-sm font-medium text-gray-200 mb-1">Código Postal</label>
+                            <input
+                              id="new_postal_code"
+                              type="text"
+                              className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                              value={addressFormEdit.postal_code || ''}
+                              onChange={(e) => setAddressFormEdit({...addressFormEdit, postal_code: e.target.value})}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <label htmlFor="new_country" className="text-sm font-medium text-gray-200 mb-1">País (ISO)</label>
+                            <input
+                              id="new_country"
+                              type="text"
+                              className="border border-gray-300 rounded px-3 py-2 focus:outline-none ring-primary-shadow"
+                              value={addressFormEdit.country || ''}
+                              onChange={(e) => setAddressFormEdit({...addressFormEdit, country: e.target.value})}
+                              placeholder="ES, US, etc."
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-1 px-3 rounded"
+                            onClick={() => setAddressEditing(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button 
+                            className="text-sm bg-green-200 hover:bg-green-300 text-green-700 font-medium py-1 px-3 border border-green rounded flex items-center"
+                            onClick={async () => {
+                              setBillingLoading(true);
+                              try {
+                                const created = await createAddress({
+                                  ...addressFormEdit,
+                                  is_billing: true
+                                });
+                                setAddressForm(created);
+                                await createOrUpdateBillingProfile({ id: billingProfile.id, address_id: created.id });
+                                setAddressEditing(false);
+                              } catch (error) {
+                                console.error("Error al crear dirección:", error);
+                                alert("Error al agregar la dirección de facturación");
+                              } finally {
+                                setBillingLoading(false);
+                              }
+                            }}
+                          >
+                            {billingLoading ? (
+                              <>
+                                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                                Guardando...
+                              </>
+                            ) : "Guardar"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button 
+                        className="text-sm bg-green-400 hover:bg-green-500 text-gray-700 font-semibold py-1 px-4 rounded-lg mt-2" 
+                        onClick={() => {
+                          setAddressFormEdit({
+                            line1: '',
+                            line2: '',
+                            city: '',
+                            region: '',
+                            postal_code: '',
+                            country: 'ES',
+                            is_billing: true
+                          });
+                          setAddressEditing(true);
+                        }}
+                      >
+                        Añadir dirección
+                      </button>
+                    )}
+                  </div>
+                  {/* Métodos de pago */}
+                  <div className="bg-radial-[at_75%_25%] from-green-400 to-green-200 p-5 border border-green-700 rounded-xl shadow-lg min-w-0 break-words">
+                    <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+                      <h3 className="font-bold text-lg text-green-800 break-words">Métodos de pago</h3>
+                      <button className="text-sm bg-green-300 border border-green-900 hover:bg-green-400 text-green-900 font-semibold py-1 px-4 rounded-lg" onClick={() => setPmFormOpen(v => !v)}>{pmFormOpen ? 'Cerrar' : 'Añadir método'}</button>
+                    </div>
+                    <div className="h-px bg-green-900 my-3"></div>
+                    {pmFormOpen && (
+                      <div className="bg-white/70 border border-green-200 rounded-xl p-3 mb-3">
+                        <div className="grid grid-cols-1 gap-2 text-gray-700">
+                          <select className="border border-green-200 rounded-lg px-3 py-2" value={pmForm.provider} onChange={e => setPmForm(f => ({ ...f, provider: e.target.value }))}>
+                            <option value="manual">Manual</option>
+                            <option value="stripe">Stripe</option>
+                            <option value="paypal">PayPal</option>
+                          </select>
+                          {pmForm.provider === 'paypal' ? (
+                            <input className="border border-green-200 rounded-lg px-3 py-2" placeholder="Email de PayPal" value={pmForm.token || ''} onChange={e => setPmForm(f => ({ ...f, token: e.target.value }))} />
+                          ) : (
+                            <>
+                              <input className="border border-green-200 rounded-lg px-3 py-2" placeholder="Marca (ej. Visa)" value={pmForm.brand || ''} onChange={e => setPmForm(f => ({ ...f, brand: e.target.value }))} />
+                              <input className="border border-green-200 rounded-lg px-3 py-2" placeholder="Últimos 4" value={pmForm.last4 || ''} onChange={e => setPmForm(f => ({ ...f, last4: e.target.value }))} />
+                              <div className="grid grid-cols-2 gap-2">
+                                <input type="number" className="border border-green-200 rounded-lg px-3 py-2" placeholder="Mes exp." value={pmForm.exp_month || ''} onChange={e => setPmForm(f => ({ ...f, exp_month: Number(e.target.value) }))} />
+                                <input type="number" className="border border-green-200 rounded-lg px-3 py-2" placeholder="Año exp." value={pmForm.exp_year || ''} onChange={e => setPmForm(f => ({ ...f, exp_year: Number(e.target.value) }))} />
+                              </div>
+                              <input className="border border-green-200 rounded-lg px-3 py-2" placeholder="Token/Referencia (seguro)" value={pmForm.token || ''} onChange={e => setPmForm(f => ({ ...f, token: e.target.value }))} />
+                            </>
+                          )}
+                          <button
+                            className="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg disabled:opacity-60"
+                            disabled={pmLoading || (pmForm.provider === 'paypal' ? !pmForm.token : !(pmForm.brand && pmForm.last4 && pmForm.exp_month && pmForm.exp_year))}
+                            onClick={async () => {
+                              if (!billingProfile) return;
+                              try {
+                                setPmLoading(true);
+                                await createPaymentMethod({
+                                  billing_profile_id: billingProfile.id,
+                                  provider: pmForm.provider,
+                                  token: pmForm.token,
+                                  brand: pmForm.provider === 'paypal' ? 'PayPal' : pmForm.brand,
+                                  last4: pmForm.provider === 'paypal' ? undefined : pmForm.last4,
+                                  exp_month: pmForm.provider === 'paypal' ? undefined : pmForm.exp_month,
+                                  exp_year: pmForm.provider === 'paypal' ? undefined : pmForm.exp_year,
+                                  is_default: pmList.length === 0,
+                                  status: 'active',
+                                });
+                                const methods = await listPaymentMethodsByProfile(billingProfile.id);
+                                setPmList(methods);
+                                setPmFormOpen(false);
+                                setPmForm({ provider: 'manual' });
+                              } finally {
+                                setPmLoading(false);
+                              }
+                            }}
+                          >Guardar método</button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-gray-800 space-y-2">
+                      {pmList.length === 0 ? (
+                        <div className="text-green-900">No hay métodos de pago.</div>
+                      ) : (
+                        pmList.map(pm => (
+                          <div key={pm.id} className="flex items-center justify-between bg-white/70 border border-green-200 rounded-xl p-3">
+                            <div className="flex-1 pr-3">
+                              {pmEditingId === pm.id ? (
+                                pm.provider === 'paypal' ? (
+                                  <div className="grid grid-cols-1 gap-2 items-center">
+                                    <div>
+                                      <div className="text-xs text-gray-600">Email/Referencia PayPal</div>
+                                      <input className="w-full border border-green-200 rounded px-2 py-1" value={pmEditForm.token ?? pm.token ?? ''} onChange={e => setPmEditForm(f => ({ ...f, token: e.target.value }))} />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                                    <div className="md:col-span-2">
+                                      <div className="text-xs text-gray-600">Marca</div>
+                                      <input className="w-full border border-green-200 rounded px-2 py-1" value={pmEditForm.brand ?? pm.brand ?? ''} onChange={e => setPmEditForm(f => ({ ...f, brand: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-600">Últimos 4</div>
+                                      <input className="w-full border border-green-200 rounded px-2 py-1" value={pmEditForm.last4 ?? pm.last4 ?? ''} onChange={e => setPmEditForm(f => ({ ...f, last4: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-600">Mes</div>
+                                      <input type="number" className="w-full border border-green-200 rounded px-2 py-1" value={pmEditForm.exp_month ?? pm.exp_month ?? ''} onChange={e => setPmEditForm(f => ({ ...f, exp_month: Number(e.target.value) }))} />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-600">Año</div>
+                                      <input type="number" className="w-full border border-green-200 rounded px-2 py-1" value={pmEditForm.exp_year ?? pm.exp_year ?? ''} onChange={e => setPmEditForm(f => ({ ...f, exp_year: Number(e.target.value) }))} />
+                                    </div>
+                                  </div>
+                                )
+                              ) : (
+                                <>
+                                  <div className="font-semibold">{pm.provider} — {pm.brand || (pm.provider === 'paypal' ? 'PayPal' : '—')} {pm.last4 ? `•••• ${pm.last4}` : ''}</div>
+                                  <div className="text-xs text-gray-600">{pm.status} {pm.is_default ? '· Predeterminado' : ''}</div>
+                                </>
+                              )}
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              {pmEditingId === pm.id ? (
+                                <>
+                                  <button className="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-lg" onClick={async () => {
+                                    try {
+                                      if (pm.provider === 'paypal') {
+                                        await updatePaymentMethod(pm.id, {
+                                          token: pmEditForm.token ?? pm.token,
+                                        });
+                                      } else {
+                                        await updatePaymentMethod(pm.id, {
+                                          brand: pmEditForm.brand ?? pm.brand,
+                                          last4: pmEditForm.last4 ?? pm.last4,
+                                          exp_month: pmEditForm.exp_month ?? pm.exp_month,
+                                          exp_year: pmEditForm.exp_year ?? pm.exp_year,
+                                        });
+                                      }
+                                      const methods = await listPaymentMethodsByProfile(pm.billing_profile_id);
+                                      setPmList(methods);
+                                      setPmEditingId(null);
+                                      setPmEditForm({});
+                                    } catch (error) {
+                                      console.error("Error al crear dirección:", error);
+                                      // Manejo de error opcional
+                                    }
+                                  }}>Guardar</button>
+                                  <button className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-1 px-3 rounded-lg" onClick={() => { setPmEditingId(null); setPmEditForm({}); }}>Cancelar</button>
+                                </>
+                              ) : (
+                                <>
+                                  {!pm.is_default && (
+                                    <button className="text-xs bg-green-200 hover:bg-green-300 text-green-900 font-semibold py-1 px-3 rounded-lg" onClick={async () => {
+                                      await updatePaymentMethod(pm.id, { is_default: true });
+                                      setPmList(list => list.map(x => ({ ...x, is_default: x.id === pm.id })));
+                                    }}>Predeterminar</button>
+                                  )}
+                                  <button className="text-xs bg-green-300 hover:bg-green-400 text-primary-900 font-semibold py-1 px-3 rounded-lg" onClick={() => { setPmEditingId(pm.id); setPmEditForm({ brand: pm.brand, last4: pm.last4, exp_month: pm.exp_month ?? undefined, exp_year: pm.exp_year ?? undefined }); }}>Editar</button>
+                                  <button className="text-xs bg-red-200 hover:bg-red-300 text-red-900 font-semibold py-1 px-3 rounded-lg" onClick={async () => {
+                                    await deletePaymentMethod(pm.id);
+                                    setPmList(list => list.filter(x => x.id !== pm.id));
+                                  }}>Eliminar</button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  {/* Coupon */}
+                  <div className="bg-radial-[at_25%_75%] from-amber-400 to-amber-200 to-50% p-5 border border-amber-800 rounded-xl shadow-lg min-w-0 break-words">
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <div>
+                        <h3 className="font-bold text-lg text-yellow-800 break-words">Cupón</h3>
+                        <p className="text-gray-800 break-words">No tienes un cupón activo.</p>
+                      </div>
+                      <button className="text-sm bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold py-2 px-4 rounded-lg transition-colors">Canjear cupón</button>
+                    </div>
+                  </div>
+                  {/* Información adicional */}
+                  <div className="bg-radial-[at_25%_25%] from-gray-600/50 to-gray-300 to-50% border border-slate-200 p-5 rounded-xl shadow-lg min-w-0 break-words">
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-800 break-words">Información adicional</h3>
+                        <p className="text-gray-600 break-words">No se ha añadido información.</p>
+                      </div>
+                      <button className="text-sm bg-gray-400 hover:bg-gray-500 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">Añadir</button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+            </div>
+          </section>
+        )}
+        <Footer color="oklch(12.9% 0.042 264.695)" background="transparent" />
+        </div>
+      </main>
+    </div>
+    </>
+  );
+}

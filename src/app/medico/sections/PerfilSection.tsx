@@ -1,0 +1,177 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+import React from 'react';
+import Image from 'next/image';
+
+export default function PerfilSection({ ctx }: { ctx: any }) {
+  const [editing, setEditing] = React.useState(false);
+
+  const nombreCompleto = (ctx?.formPerfil?.nombre || 'Nombre') + (ctx?.formPerfil?.apellido ? ` ${ctx.formPerfil.apellido}` : '');
+
+  const handleSaveProfile = async () => {
+    // Guardamos los cambios en el contexto local (persistencia la maneja el backend si está implementado)
+    try {
+      ctx.setCargandoPerfil(true);
+      ctx.setMensajePerfil('');
+      // Actualizar perfil localmente
+      ctx.setPerfil((prev: any) => ({ ...prev, ...ctx.formPerfil }));
+      setEditing(false);
+      ctx.setMensajePerfil('¡Perfil actualizado!');
+      setTimeout(() => ctx.setMensajePerfil(''), 3000);
+    } catch (e) {
+      ctx.setMensajePerfil('Error al guardar perfil');
+      setTimeout(() => ctx.setMensajePerfil(''), 3000);
+    } finally {
+      ctx.setCargandoPerfil(false);
+    }
+  };
+
+  return (
+    <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200 p-0 max-w-4xl mx-auto mt-6 mb-8 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-teal-500 via-blue-600 to-indigo-600 px-4 md:px-6 py-4 md:py-6 text-white">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 p-0.5 shadow-lg">
+              <div className="rounded-full overflow-hidden bg-white w-full h-full">
+                <Image src={ctx.formPerfil.avatar} alt="avatar" width={96} height={96} className="object-cover w-full h-full" />
+              </div>
+            </div>
+            {ctx?.perfil?.activo && <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 rounded-full border-2 border-white" />}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold leading-tight">{ctx.formPerfil?.nombre ? `Dr. ${nombreCompleto}` : 'Dr. Nombre Apellido'}</h2>
+            <p className="text-sm mt-1 opacity-90">{ctx.formPerfil?.especialidad || 'Especialidad no especificada'}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-semibold">Panel Médico</span>
+              <span className="text-xs bg-white/10 px-3 py-1 rounded-full">{ctx.formPerfil?.email}</span>
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row gap-2">
+            <button className="w-full md:w-auto bg-amber-400 text-white font-semibold px-4 py-2 rounded-lg shadow hover:scale-105 transition flex items-center justify-center gap-2 cursor-pointer" onClick={() => ctx.setMostrarCambioPassword(true)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 8a5 5 0 1110 0v2a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2V8zm5-3a3 3 0 00-3 3v2h6V8a3 3 0 00-3-3z" clipRule="evenodd"/></svg>
+              <span className="text-sm">Cambiar contraseña</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+  {/* Left column: avatar upload + quick stats */}
+  <div className="md:col-span-1 flex flex-col gap-4 items-center">
+          <div className="w-full bg-white rounded-xl p-4 text-center shadow">
+            <div className="mx-auto w-28 h-28 rounded-full overflow-hidden mb-3">
+              <Image src={ctx.formPerfil.avatar} alt="avatar" width={112} height={112} className="object-cover" />
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              ctx.setCargandoPerfil(true);
+              ctx.setMensajePerfil("");
+              try {
+                if (!ctx.medicoData) throw new Error("No hay datos de usuario");
+                if (!ctx.avatarFile) throw new Error('Seleccione una imagen');
+                const fd = new FormData();
+                fd.append('archivo', ctx.avatarFile);
+                fd.append('tipo', 'medico');
+                fd.append('id', ctx.medicoData.email);
+                const res = await fetch('/api/perfil/upload', { method: 'POST', body: fd });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data?.message || 'Error al subir imagen');
+                const url = data?.url as string | undefined;
+                if (url) {
+                  ctx.setPerfil((prev: any) => ({ ...prev, avatar: url }));
+                  ctx.setFormPerfil((prev: any) => ({ ...prev, avatar: url }));
+                  try { await ctx.updateMedicoAvatar(ctx.medicoData.email, url); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
+                }
+                ctx.setMensajePerfil("¡Avatar actualizado correctamente!");
+                ctx.setAvatarFile(null);
+              } catch (error: any) {
+                ctx.setMensajePerfil(error?.message || "Error al actualizar el avatar");
+              } finally {
+                ctx.setCargandoPerfil(false);
+                setTimeout(() => ctx.setMensajePerfil(""), 3000);
+              }
+            }} className="w-full flex flex-col gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full border border-slate-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none text-sm"
+                onChange={e => { if (e.target.files && e.target.files[0]) { ctx.setAvatarFile(e.target.files[0]); } }}
+              />
+              <button type="submit" disabled={ctx.cargandoPerfil || !ctx.avatarFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 font-semibold transition disabled:opacity-60">Subir foto</button>
+              {ctx.mensajePerfil && <div className="text-green-600 text-center font-semibold mt-1 text-sm">{ctx.mensajePerfil}</div>}
+            </form>
+          </div>
+
+          <div className="w-full bg-white rounded-xl p-4 shadow hidden sm:block">
+            <h3 className="font-semibold mb-2">Estadísticas</h3>
+            <div className="flex flex-col gap-2 text-sm text-slate-700">
+              <div className="flex justify-between"><span>Citas hoy</span><strong>4</strong></div>
+              <div className="flex justify-between"><span>Pacientes</span><strong>128</strong></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column: details and actions */}
+        <div className="md:col-span-2 flex flex-col gap-4">
+          <div className="bg-white rounded-xl p-4 shadow grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {editing ? (
+              <>
+                <div>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>Nombre</label>
+                  <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.nombre || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, nombre: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>Apellido</label>
+                  <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.apellido || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, apellido: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>Especialidad</label>
+                  <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.especialidad || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, especialidad: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>Correo electrónico</label>
+                  <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.email || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, email: e.target.value }))} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>Nombre</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.nombre || '-'}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>Apellido</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.apellido || '-'}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>Especialidad</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.especialidad || '-'}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>Correo</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.email || '-'}</div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Cambio de contraseña (mantener lógica existente) */}
+          {ctx.mostrarCambioPassword && (
+            <form onSubmit={ctx.cambiarPassword} className="flex flex-col gap-3 mt-2 bg-white p-4 rounded-xl shadow">
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Contraseña actual" value={ctx.passwordActual} onChange={(e) => ctx.setPasswordActual(e.target.value)} required />
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Nueva contraseña" value={ctx.nuevoPassword} onChange={(e) => ctx.setNuevoPassword(e.target.value)} required />
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Confirmar nueva contraseña" value={ctx.confirmarPassword} onChange={(e) => ctx.setConfirmarPassword(e.target.value)} required />
+              <div className="flex gap-2">
+                <button type="submit" className="bg-primary hover:bg-primary-dark text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60" disabled={ctx.cambiandoPassword}>Guardar contraseña</button>
+                <button type="button" className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md px-6 py-2 font-semibold" onClick={() => { ctx.setMostrarCambioPassword(false); ctx.setPasswordActual(''); ctx.setNuevoPassword(''); ctx.setConfirmarPassword(''); ctx.setMensajePassword(''); }}>Cancelar</button>
+              </div>
+              {ctx.mensajePassword && <div className="text-green-600 text-center font-semibold mt-2">{ctx.mensajePassword}</div>}
+            </form>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
