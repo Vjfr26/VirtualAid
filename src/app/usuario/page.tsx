@@ -16,7 +16,7 @@ interface BillingInvoice { id: string; amount: number; currency: string; status:
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
 import { getHorarios, type Horario } from '../medico/services/horarios';
 import { useToast } from '../components/Toast';
-import { fillEmailJsForm, EMAILJS_USER_ID, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID } from './notify';
+import { enviarRecordatorio } from './services/recordatorios';
 
 // Componentes modularizados del dashboard
 import { 
@@ -39,25 +39,10 @@ import type { MedicoResumen } from './services/medicos';
 
 const especialistasEjemplo: MedicoResumen[] = [];
 
-type EmailJSGlobal = {
-  init: (userId: string) => void;
-  sendForm: (serviceId: string, templateId: string, form: HTMLFormElement) => Promise<unknown>;
-};
-
-declare global {
-  interface Window {
-    emailjs?: EmailJSGlobal;
-    emailjsInitialized?: boolean;
-  }
-}
+// EmailJS ya no se usa, se envían correos desde el backend
 
 export default function DashboardPaciente() {
   const { t, i18n: i18nHook } = useTranslation('common');
-
-  const [emailJsReady, setEmailJsReady] = useState(false);
-  const contactoFormRef = useRef<HTMLFormElement | null>(null);
-  const contactSubmitRef = useRef<HTMLInputElement | null>(null);
-  const submitResolveRef = useRef<((result: boolean) => void) | null>(null);
   
   // Citas reales
   const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string; tokenSala?: string; idRoom?: string; token?: string }[]>([]);
@@ -138,16 +123,7 @@ export default function DashboardPaciente() {
     }
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.emailjs && !window.emailjsInitialized) {
-      window.emailjs.init(EMAILJS_USER_ID);
-      window.emailjsInitialized = true;
-      setEmailJsReady(true);
-    } else if (window.emailjsInitialized) {
-      setEmailJsReady(true);
-    }
-  }, []);
+  // EmailJS eliminado - ahora se envían correos desde el backend
 
   // Limpiar overflow cuando el componente se desmonte
   useEffect(() => {
@@ -484,44 +460,7 @@ export default function DashboardPaciente() {
     return recordatoriosActivos.has(key);
   };
 
-  const handleEmailJsLoad = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (window.emailjs && !window.emailjsInitialized) {
-      window.emailjs.init(EMAILJS_USER_ID);
-      window.emailjsInitialized = true;
-      setEmailJsReady(true);
-    } else if (window.emailjsInitialized) {
-      setEmailJsReady(true);
-    }
-  }, []);
-
-  const handleContactFormSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const submitBtn = contactSubmitRef.current ?? (form.querySelector('#submitButton') as HTMLInputElement | null);
-    if (submitBtn) submitBtn.value = 'Sending...';
-
-    try {
-      if (typeof window === 'undefined' || !window.emailjs) {
-        console.log('FAILED...', new Error('EmailJS no disponible'));
-        if (submitBtn) submitBtn.value = 'Send Email';
-        submitResolveRef.current?.(false);
-        return;
-      }
-
-      await window.emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, form);
-
-      if (submitBtn) submitBtn.value = 'Send Email';
-      form.reset();
-      submitResolveRef.current?.(true);
-    } catch (err) {
-      if (submitBtn) submitBtn.value = 'Send Email';
-      console.log('FAILED...', err);
-      submitResolveRef.current?.(false);
-    } finally {
-      submitResolveRef.current = null;
-    }
-  }, []);
+  // Funciones de EmailJS eliminadas - ahora se usa API del backend
 
   const toggleRecordatorio = useCallback(async (c: { id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }) => {
     const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
@@ -537,79 +476,32 @@ export default function DashboardPaciente() {
       return;
     }
 
-    const form = contactoFormRef.current;
-    if (!form) {
-      addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
+    // Validar que la cita tenga ID
+    if (!c.id) {
+      addToast('❌ No se puede enviar el recordatorio: ID de cita no disponible', 'error');
       return;
     }
 
+    // Marcar como activado inmediatamente
     setRecordatoriosActivos(prev => {
       const next = new Set(prev);
       next.add(key);
       return next;
     });
 
-    const nombreCompleto = [usuario.nombre, usuario.apellido].filter(Boolean).join(' ').trim() || usuario.nombre || 'Paciente';
-    const fechaTexto = c.fecha.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-    const especialidadTexto = c.especialidad ?? 'Consulta general';
-    const descripcion = [
-      `Hola ${nombreCompleto},`,
-      '',
-      `Te recordamos que tienes una cita en VirtualAid con ${c.medico} (${especialidadTexto}).`,
-      '',
-      'Detalles de tu cita:',
-      `• Fecha: ${fechaTexto}`,
-      `• Hora: ${c.hora}`,
-      `• Especialidad: ${especialidadTexto}`,
-      '',
-      'Por favor, conéctate unos minutos antes para comprobar tu conexión y preparar la consulta.',
-      'Si necesitas reprogramar o cancelar, accede a tu panel de usuario o contáctanos lo antes posible.',
-      '',
-      'Gracias por confiar en VirtualAid.',
-    ].join('\n');
-
-    fillEmailJsForm(form, {
-      subject: `Recordatorio de cita: ${fechaTexto} a las ${c.hora}`,
-      name: nombreCompleto,
-      email: usuario.email || '',
-      phone: usuario.telefono || '',
-      description: descripcion,
-    });
-
-    if (contactSubmitRef.current) {
-      contactSubmitRef.current.value = 'Send Email';
-    }
-
-    if (typeof window !== 'undefined' && window.emailjs && !window.emailjsInitialized) {
-      window.emailjs.init(EMAILJS_USER_ID);
-      window.emailjsInitialized = true;
-      setEmailJsReady(true);
-    }
-
-    if (!emailJsReady && typeof window !== 'undefined' && window.emailjs) {
-      setEmailJsReady(true);
-    }
-
     try {
-      const success = await new Promise<boolean>((resolve) => {
-        submitResolveRef.current = resolve;
-        form.requestSubmit();
-      });
+      // Enviar recordatorio mediante API del backend (solo necesita el ID de la cita)
+      const resultado = await enviarRecordatorio(c.id);
 
-      if (success) {
-        addToast('✅ Recordatorio activado y confirmación enviada por correo electrónico', 'success');
+      if (resultado.success && resultado.data) {
+        addToast(`✅ Recordatorio enviado a ${resultado.data.email}`, 'success');
       } else {
         setRecordatoriosActivos(prev => {
           const next = new Set(prev);
           next.delete(key);
           return next;
         });
-        addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
+        addToast(`❌ ${resultado.message}`, 'error');
       }
     } catch (error) {
       setRecordatoriosActivos(prev => {
@@ -618,10 +510,9 @@ export default function DashboardPaciente() {
         return next;
       });
       addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
-    } finally {
-      submitResolveRef.current = null;
+      console.error('Error en toggleRecordatorio:', error);
     }
-  }, [addToast, emailJsReady, recordatoriosActivos, usuario.nombre, usuario.apellido, usuario.email, usuario.telefono]);
+  }, [addToast, recordatoriosActivos]);
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
     const especialidadMatch = !especialidadFiltro || (m.especialidad && m.especialidad.toLowerCase() === especialidadFiltro.toLowerCase());
@@ -1173,11 +1064,7 @@ const loadPaypalSdk = useCallback(() => {
 
   return (
     <>
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
-        strategy="afterInteractive"
-        onLoad={handleEmailJsLoad}
-      />
+      {/* EmailJS Script eliminado - ahora se envían correos desde el backend */}
 
       <div
         className="min-h-screen flex flex-col items-center relative"
@@ -1425,6 +1312,7 @@ const loadPaypalSdk = useCallback(() => {
                               className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
                               placeholder={t('your_country')}
                               value={formPerfil.pais}
+                              disabled
                               onChange={e => setFormPerfil(f => ({ ...f, pais: e.target.value }))}
                             />
                             <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2211,20 +2099,7 @@ const loadPaypalSdk = useCallback(() => {
           </div>
         </div>
       )}
-        <form
-          id="ContactoForm"
-          ref={contactoFormRef}
-          onSubmit={handleContactFormSubmit}
-          className="hidden"
-          aria-hidden="true"
-        >
-          <input type="text" name="emailjs_asunto" id="emailjs_asunto4" defaultValue="" />
-          <input type="text" name="emailjs_nombre" id="emailjs_nombre4" defaultValue="" />
-          <input type="email" name="emailjs_correo" id="emailjs_correo4" defaultValue="" />
-          <input type="tel" name="emailjs_phone" id="emailjs_phone4" defaultValue="" />
-          <textarea name="emailjs_Descripcion" id="emailjs_Descripcion4" defaultValue="" />
-          <input type="submit" id="submitButton" ref={contactSubmitRef} value="Send Email" />
-        </form>
+        {/* Formulario de EmailJS eliminado - ahora se envían correos desde el backend */}
       </div>
     </div>
     </>

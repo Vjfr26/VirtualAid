@@ -1633,7 +1633,7 @@ export default function MedicoDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="p-5 md:p-6">
+                <div className="p-5 md:p-6 @container">
                   <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded mb-4" />
 
                   <div className="space-y-4">
@@ -1693,28 +1693,28 @@ export default function MedicoDashboard() {
                       </div>
                     </div>
 
-                    {/* Grid de 2 columnas para ingresos y retención en md+ */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Grid de 2 columnas para ingresos y retención basado en tamaño del contenedor */}
+                    <div className="grid grid-cols-1 @lg:grid-cols-2 gap-4">
                       {/* Comparativa de Ingresos */}
-                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 flex flex-col h-full shadow-sm">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl bg-emerald-100 rounded-full p-2 shadow-inner">💰</span>
-                          <h3 className="text-base font-bold text-emerald-900">Ingresos Semanales</h3>
+                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 sm:p-4 flex flex-col h-full shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl sm:text-2xl bg-emerald-100 rounded-full p-1.5 sm:p-2 shadow-inner">💰</span>
+                          <h3 className="text-sm sm:text-base font-bold text-emerald-900 leading-tight">Ingresos Semanales</h3>
                         </div>
                         <div className="flex-1 flex flex-col justify-center">
                           <div className="text-xs text-emerald-700 mb-1">Últimos 7 días</div>
-                          <div className="text-3xl font-extrabold text-emerald-700 mb-1 tracking-tight">
+                          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mb-1 tracking-tight break-words">
                             {formatearMonto(tendenciasDashboard.ingresosActuales)}
                           </div>
-                          <div className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                            <span>{tendenciasDashboard.ingresosComparativa}</span>
+                          <div className="text-xs text-emerald-600 font-medium flex items-center gap-1 flex-wrap">
+                            <span className="break-words">{tendenciasDashboard.ingresosComparativa}</span>
                           </div>
                           {/* Indicador comparativo */}
                           {tendenciasDashboard.ingresosPrevios > 0 && (
                             <div className="mt-2 pt-2 border-t border-emerald-200">
-                              <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">Período anterior:</span>
-                                <span className="text-gray-700 font-medium">
+                              <div className="flex justify-between text-xs gap-2">
+                                <span className="text-gray-600 flex-shrink-0">Período anterior:</span>
+                                <span className="text-gray-700 font-medium text-right break-words">
                                   {formatearMonto(tendenciasDashboard.ingresosPrevios)}
                                 </span>
                               </div>
@@ -1724,14 +1724,14 @@ export default function MedicoDashboard() {
                       </div>
 
                       {/* Tasa de Retención */}
-                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-4 flex flex-col h-full shadow-sm">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl bg-purple-100 rounded-full p-2 shadow-inner">🔄</span>
-                          <h3 className="text-base font-bold text-purple-900">Tasa de Retención</h3>
+                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 sm:p-4 flex flex-col h-full shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl sm:text-2xl bg-purple-100 rounded-full p-1.5 sm:p-2 shadow-inner">🔄</span>
+                          <h3 className="text-sm sm:text-base font-bold text-purple-900 leading-tight">Tasa de Retención</h3>
                         </div>
                         <div className="flex-1 flex flex-col justify-center">
                           <div className="text-xs text-purple-700 mb-1">Pacientes recurrentes</div>
-                          <div className="text-2xl font-extrabold text-purple-700 mb-2 tracking-tight">
+                          <div className="text-2xl sm:text-3xl font-extrabold text-purple-700 mb-2 tracking-tight break-words">
                             {tendenciasDashboard.retencionLabel}
                           </div>
                           <div className="text-xs text-purple-600">

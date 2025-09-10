@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📧 Ejemplo: Plantilla de Correo - Recordatorio de Cita</title>
+    <style>
+        /* Estilos del correo electrónico */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        
+        .reminder-box {
+            background-color: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        
+        .reminder-box h2 {
+            margin: 0 0 15px 0;
+            color: #667eea;
+            font-size: 20px;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555555;
+            min-width: 120px;
+        }
+        
+        .info-value {
+            color: #333333;
+            font-size: 16px;
+        }
+        
+        .highlight {
+            background-color: #fff9e6;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #ffd700;
+        }
+        
+        .highlight p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 13px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 25px 0;
+        }
+        
+        /* Nota de ejemplo */
+        .example-note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        
+        .example-note h2 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        
+        .example-note p {
+            margin: 5px 0;
+            color: #856404;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+            }
+            
+            .content {
+                padding: 25px 20px;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .info-label {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NOTA IMPORTANTE: ESTO ES SOLO UN EJEMPLO VISUAL -->
+    <div class="example-note">
+        <h2>⚠️ Archivo de Ejemplo Visual</h2>
+        <p><strong>Este archivo muestra cómo se ve la plantilla HTML del correo.</strong></p>
+        <p>Esta plantilla debe ser enviada <strong>SOLO al servidor de correo</strong>, NO al frontend.</p>
+        <p>El backend debe devolver JSON al frontend, como se documenta en: <code>DEBUG_RECORDATORIOS_HTML_ERROR.md</code></p>
+    </div>
+
+    <!-- INICIO DE LA PLANTILLA DE CORREO -->
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="icon">📅</div>
+            <h1>Recordatorio de Cita</h1>
+            <p>VirtualAid - Tu salud es nuestra prioridad</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Hola <strong>Pedro</strong>,
+            </div>
+
+            <p style="color: #555555; line-height: 1.6; font-size: 15px;">
+                Este es un recordatorio amigable de tu próxima cita médica. 
+                Por favor, asegúrate de estar disponible en la fecha y hora indicadas.
+            </p>
+
+            <!-- Reminder Box -->
+            <div class="reminder-box">
+                <h2>📋 Detalles de tu Cita</h2>
+                
+                <div class="info-row">
+                    <span class="info-label">🩺 Médico:</span>
+                    <span class="info-value">Dr. Alex</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">🏥 Especialidad:</span>
+                    <span class="info-value">Gynecology</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">📆 Fecha:</span>
+                    <span class="info-value">jueves 2 de octubre de 2025</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">🕐 Hora:</span>
+                    <span class="info-value">16:00</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">🔢 ID de Cita:</span>
+                    <span class="info-value">#2</span>
+                </div>
+            </div>
+
+            <!-- Important Note -->
+            <div class="highlight">
+                <p>
+                    ⏰ <strong>Importante:</strong> Te recomendamos llegar 10-15 minutos antes de tu cita. 
+                    Si necesitas cancelar o reprogramar, por favor contacta con nosotros con al menos 24 horas de anticipación.
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <p style="color: #555555; line-height: 1.6; font-size: 14px;">
+                Si tienes alguna pregunta o necesitas realizar cambios en tu cita, no dudes en contactarnos.
+            </p>
+
+            <p style="color: #555555; line-height: 1.6; font-size: 14px; margin-top: 20px;">
+                Gracias por confiar en <strong>VirtualAid</strong> para el cuidado de tu salud.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>VirtualAid</strong></p>
+            <p>Sistema de Gestión de Citas Médicas</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                Este es un correo automático, por favor no respondas a este mensaje.
+            </p>
+        </div>
+    </div>
+
+    <!-- NOTA FINAL -->
+    <div class="example-note" style="margin-top: 30px;">
+        <h2>📊 Flujo Correcto</h2>
+        <p><strong>1. Frontend:</strong> Envía POST a <code>/api/cita/2/recordatorio</code></p>
+        <p><strong>2. Backend:</strong> Genera este HTML y lo envía al servidor de correo</p>
+        <p><strong>3. Backend:</strong> Devuelve JSON al frontend:</p>
+        <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">
+{
+  "message": "Recordatorio enviado correctamente",
+  "cita_id": 2,
+  "email": "pedro@example.com",
+  "fecha": "2025-10-02",
+  "hora": "16:00"
+}</pre>
+        <p><strong>4. Frontend:</strong> Muestra toast de éxito con el email</p>
+    </div>
+</body>
+</html>
