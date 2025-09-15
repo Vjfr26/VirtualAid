@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useMediaQuery } from 'react-responsive';
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
+import HeaderLogo from '../components/HeaderLogo';
 import i18n from '../../i18n';
 import Footer from '../components/Footer';
 
@@ -471,6 +472,35 @@ export default function DashboardPaciente() {
     pasadas.sort((a,b) => b.fecha.getTime() - a.fecha.getTime()); // la más reciente (menos lejana) primero
     return [...futuras, ...pasadas];
   };
+  
+  // --- Manejo consistente de fechas/hora (evitar sesgos de zona horaria) ---
+  // El backend envía fecha (YYYY-MM-DD) y hora (HH:mm) sin zona. Interpretaremos que representan un día y hora "local" del usuario/servidor
+  // y construiremos un Date usando la zona local del navegador SIN aplicar conversiones extra (no usar Date con sólo la fecha, que asume UTC en algunos navegadores).
+  // Además generamos una representación ISO local (sin Z) para mostrar y ordenar.
+  type FechaHoraParse = { date: Date; isoLocal: string };
+  function combinarFechaHoraLocal(fechaStr: string, horaStr?: string | null): FechaHoraParse {
+    // fechaStr esperado: YYYY-MM-DD ; horaStr: HH:mm opcional
+    if (!fechaStr) {
+      const now = new Date();
+      return { date: now, isoLocal: now.toISOString().slice(0,16).replace('T',' ') };
+    }
+    const [y,m,d] = fechaStr.split('-').map(Number);
+    let hh = 0, mm = 0;
+    if (horaStr && /^(\d{2}):(\d{2})$/.test(horaStr)) {
+      const parts = horaStr.split(':');
+      hh = Number(parts[0]);
+      mm = Number(parts[1]);
+    }
+    // Construir Date en la zona local del cliente
+    const dt = new Date(y, (m||1)-1, d||1, hh, mm, 0, 0);
+    const isoLocal = `${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')} ${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`;
+    return { date: dt, isoLocal };
+  }
+  // Formateadores consistentes (pueden luego centralizarse o internacionalizarse)
+  function formatearFechaDisplay(date: Date, locale?: string) {
+    try { return date.toLocaleDateString(locale || undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }); } catch { return ''; }
+  }
+
   // Estado local de recordatorios activados (por id de cita)
   const [recordatoriosActivos, setRecordatoriosActivos] = useState<Set<string>>(new Set());
   const isRecordatorioOn = (c: { id?: number|string; fecha: Date; hora: string; medico: string }) => {
@@ -568,15 +598,18 @@ export default function DashboardPaciente() {
   const citasFmtRaw = citas.map((c: TCita) => {
         const m = map.get(c.medico_id);
         const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
-        return { id: c.id, fecha: new Date(c.fecha), hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
+        const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
+        return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
       });
   setCitasAgendadas(ordenarCitas(citasFmtRaw));
     setPagos(pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string }; cita: TCita | null }) => {
-        const iso = cita?.fecha || pago.fecha_pago || '';
+        const baseFecha = cita?.fecha || pago.fecha_pago || '';
+        const baseHora = cita?.hora || null;
+        const parsed = combinarFechaHoraLocal(baseFecha, baseHora);
         return {
           id: pago.id,
-          fecha: iso ? new Date(iso).toLocaleDateString() : '',
-          fechaRaw: iso,
+          fecha: baseFecha ? formatearFechaDisplay(parsed.date) : '',
+          fechaRaw: parsed.isoLocal,
           medico: (() => {
             if (!cita) return '-';
             const m = map.get(cita.medico_id);
@@ -787,7 +820,9 @@ const loadPaypalSdk = useCallback(() => {
       onApprove: async (data: { orderID: string }) => {
         setCapturing(true);
         try {
-          const cap = await paypalCaptureOrder(data.orderID, undefined);
+          // Pasamos tambien el pagoId (prop del componente) para correlacion en backend
+          const cap = await paypalCaptureOrder(data.orderID, pagoId);
+          console.log('Capture result:', cap);
           if (cap?.status && cap.status.toLowerCase() === 'completed') {
             addToast('Pago completado', 'success');
             await refreshPagos();
@@ -956,7 +991,8 @@ const loadPaypalSdk = useCallback(() => {
           const citasFmt = citas.map((c: TCita) => {
             const m = map.get(c.medico_id);
             const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
-            return { id: c.id, fecha: new Date(c.fecha), hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
+            const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
+            return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
           });
           setCitasAgendadas(ordenarCitas(citasFmt));
           setLoadingCitas(false);
@@ -964,11 +1000,13 @@ const loadPaypalSdk = useCallback(() => {
           setLoadingPagos(true);
           const pagosUsuario = await getPagosDeUsuario(usuario.email);
       setPagos(pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string }; cita: TCita | null }) => {
-            const iso = cita?.fecha || pago.fecha_pago || '';
+            const baseFecha = cita?.fecha || pago.fecha_pago || '';
+            const baseHora = cita?.hora || null;
+            const parsed = combinarFechaHoraLocal(baseFecha, baseHora);
             return {
               id: pago.id,
-              fecha: iso ? new Date(iso).toLocaleDateString() : '',
-              fechaRaw: iso,
+              fecha: baseFecha ? formatearFechaDisplay(parsed.date) : '',
+              fechaRaw: parsed.isoLocal,
               medico: (() => {
                 if (!cita) return '-';
                 const m = map.get(cita.medico_id);
@@ -1043,14 +1081,8 @@ const loadPaypalSdk = useCallback(() => {
         <div className="flex items-center justify-between h-16 bg-white/70 rounded-t-xl shadow-sm px-4">
         <div className="flex flex-row items-center">
           <div className="flex items-center justify-center ml-2">
-            <Image 
-              src="/imagenes/Logo/Logo Transparente/Logo sin fondo Horizontal.png" 
-              alt="VirtualAid Logo" 
-              className="object-contain h-auto w-[150px]"
-              width={150} 
-              height={40}
-              priority
-            />
+            {/* Uso de componente reutilizable para evitar warnings de aspecto */}
+            <HeaderLogo variant="horizontal" className="object-contain w-[150px] h-auto" />
           </div>
         </div>
           <div className="flex items-center gap-2">

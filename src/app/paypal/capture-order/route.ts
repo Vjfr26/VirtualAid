@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 const CLIENT_ID = process.env.PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
@@ -26,10 +27,22 @@ async function getAccessToken() {
   return json.access_token as string;
 }
 
+// Simulación de guardado (idéntica a la ruta api/paypal para consistencia)
+async function guardarPagoSimulado(orderID: string, status: string) {
+  const id = `PAGO_${Date.now()}_${randomUUID().slice(0,8)}`;
+  console.log('[capture-order][alt] 💾 Guardando pago simulado', { id, orderID, status });
+  return id;
+}
+
+function generarTokenSala() {
+  return `SALA_${Date.now()}_${randomUUID()}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { orderID } = body;
+    const { orderID, pagoId: pagoIdInput } = body as { orderID?: string; pagoId?: string | number };
+    console.log('[capture-order][alt] POST body ->', { orderID, pagoId: pagoIdInput });
     if (!orderID) return NextResponse.json({ error: 'Falta orderID' }, { status: 400 });
 
     const accessToken = await getAccessToken();
@@ -45,6 +58,13 @@ export async function POST(req: NextRequest) {
     let data: unknown;
     try { data = JSON.parse(text); } catch { data = text; }
 
+    // Log PayPal response for debugging (raw response may include buyer/payer info)
+    try {
+      console.log('[capture-order] PayPal capture response for orderID', orderID, '->', typeof data === 'string' ? data.slice(0, 1000) : data);
+    } catch {
+      // swallowing logging errors to avoid breaking response
+    }
+
     if (!capRes.ok) {
       return NextResponse.json({ error: 'Error capturando orden PayPal', details: data }, { status: capRes.status });
     }
@@ -56,7 +76,18 @@ export async function POST(req: NextRequest) {
       if (typeof record.status === 'string') status = record.status;
     }
 
-    return NextResponse.json({ status: status || 'COMPLETED', raw: data });
+    const finalStatus = status || 'COMPLETED';
+    let pagoIdFinal: string | number | undefined = pagoIdInput;
+    if (!pagoIdFinal) {
+      pagoIdFinal = await guardarPagoSimulado(orderID, finalStatus);
+    }
+    let tokenSala: string | undefined;
+    if (finalStatus === 'COMPLETED') {
+      tokenSala = generarTokenSala();
+    }
+    const resp = { status: finalStatus, raw: data, pagoId: pagoIdFinal, tokenSala };
+    console.log('[capture-order][alt] Responding ->', { orderID, pagoId: resp.pagoId, status: resp.status, tokenSala });
+    return NextResponse.json(resp);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error desconocido';
     return NextResponse.json({ error: msg }, { status: 500 });

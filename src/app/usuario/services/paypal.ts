@@ -99,18 +99,54 @@ export async function createOrder(pagoId: number | string, userEmail?: string): 
   throw buildError('Error creando orden (HTTP 404) - Verifica ruta backend. Intentos: ' + attempts.join(' | '), 404);
 }
 
-export async function captureOrder(orderID: string, userEmail?: string): Promise<CaptureOrderResponse> {
+export async function captureOrder(orderID: string, pagoIdOrEmail?: number | string, maybeEmail?: string): Promise<CaptureOrderResponse> {
+  // Soportar retrocompatibilidad: antes la firma era (orderID, userEmail?)
+  let pagoId: number | string | undefined;
+  let userEmail: string | undefined;
+  if (typeof pagoIdOrEmail === 'number') {
+    pagoId = pagoIdOrEmail;
+    userEmail = maybeEmail;
+  } else if (typeof pagoIdOrEmail === 'string') {
+    // Heurística: si parece email (contiene '@' y un punto) lo tratamos como userEmail legado
+    if (pagoIdOrEmail.includes('@') && !maybeEmail) {
+      userEmail = pagoIdOrEmail;
+    } else {
+      pagoId = pagoIdOrEmail; // puede ser string id
+      userEmail = maybeEmail;
+    }
+  }
+
   // Intento directo a ruta local Next primero
   try {
     const directRes = await fetch('/api/paypal/capture-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderID, userEmail })
+      body: JSON.stringify({ orderID, pagoId, userEmail })
     });
+    console.log('directRes', directRes);
     const dj = await directRes.json().catch(() => ({}));
+    console.log('dj', dj);
     if (directRes.ok && dj && typeof dj.status === 'string') {
       if (process.env.NODE_ENV !== 'production') console.info('[PayPal][captureOrder] usando ruta local Next /api/paypal/capture-order');
-      return { status: dj.status, pagoId: (typeof dj.pagoId === 'number' ? dj.pagoId : undefined), tokenSala: (typeof dj.tokenSala === 'string' ? dj.tokenSala : undefined) };
+      const result: CaptureOrderResponse = { status: dj.status, pagoId: (typeof dj.pagoId === 'number' || typeof dj.pagoId === 'string' ? Number(dj.pagoId) || undefined : undefined), tokenSala: (typeof dj.tokenSala === 'string' ? dj.tokenSala : undefined) };
+      // Si el estado es COMPLETED intentamos marcar el pago como pagado
+      if (result.status.toUpperCase() === 'COMPLETED' && result.pagoId != null) {
+        try {
+          const putRes = await fetch(`/api/pagos/${encodeURIComponent(String(result.pagoId))}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'pagado', metodo: 'paypal' })
+          });
+            if (!putRes.ok) {
+              if (process.env.NODE_ENV !== 'production') console.warn('[PayPal][captureOrder] PUT estado pagado falló', putRes.status, await (async () => { try { return (await putRes.text()).slice(0,120); } catch { return 'no-body'; } })());
+            } else if (process.env.NODE_ENV !== 'production') {
+              console.info('[PayPal][captureOrder] Pago actualizado a pagado (PUT local)');
+            }
+        } catch (e) {
+          if (process.env.NODE_ENV !== 'production') console.warn('[PayPal][captureOrder] Error intentando PUT pago pagado:', e);
+        }
+      }
+      return result;
     }
     if (!directRes.ok && directRes.status !== 404) {
       const msg = dj?.error || 'Error ruta local PayPal';
@@ -136,10 +172,10 @@ export async function captureOrder(orderID: string, userEmail?: string): Promise
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const variants: { url: string; body: Record<string, unknown>; note: string }[] = [];
   for (const p of possiblePrefixes) {
-    variants.push({ url: `${p}/capture-order`, body: { orderID, userEmail }, note: `POST ${p}/capture-order` });
-    variants.push({ url: `${p}/capture-order`, body: { orderId: orderID, userEmail }, note: `POST ${p}/capture-order orderId` });
-    variants.push({ url: `${p}/orders/capture`, body: { orderID, userEmail }, note: `POST ${p}/orders/capture` });
-    variants.push({ url: `${p}/capture/${encodeURIComponent(orderID)}`, body: { userEmail }, note: `POST ${p}/capture/:id` });
+    variants.push({ url: `${p}/capture-order`, body: { orderID, pagoId, userEmail }, note: `POST ${p}/capture-order` });
+    variants.push({ url: `${p}/capture-order`, body: { orderId: orderID, pagoId, userEmail }, note: `POST ${p}/capture-order orderId` });
+    variants.push({ url: `${p}/orders/capture`, body: { orderID, pagoId, userEmail }, note: `POST ${p}/orders/capture` });
+    variants.push({ url: `${p}/capture/${encodeURIComponent(orderID)}`, body: { pagoId, userEmail }, note: `POST ${p}/capture/:id` });
   }
   if (backendBase) {
     const extra: { url: string; body: Record<string, unknown>; note: string }[] = [];
@@ -161,9 +197,26 @@ export async function captureOrder(orderID: string, userEmail?: string): Promise
         continue;
       }
       if (parsed && typeof parsed === 'object' && 'status' in parsed) {
-        const d = parsed as { status: string; pagoId?: number; tokenSala?: string };
+        const d = parsed as { status: string; pagoId?: number | string; tokenSala?: string };
         if (process.env.NODE_ENV !== 'production') console.info('[PayPal][captureOrder] OK variante', v.note, d.status);
-        return { status: d.status, pagoId: d.pagoId, tokenSala: d.tokenSala };
+        const result: CaptureOrderResponse = { status: d.status, pagoId: typeof d.pagoId === 'string' ? Number(d.pagoId) || undefined : d.pagoId, tokenSala: d.tokenSala };
+        if (result.status.toUpperCase() === 'COMPLETED' && result.pagoId != null) {
+          try {
+            const putRes = await fetch(`/api/pagos/${encodeURIComponent(String(result.pagoId))}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ estado: 'pagado' })
+            });
+            if (!putRes.ok) {
+              if (process.env.NODE_ENV !== 'production') console.warn('[PayPal][captureOrder] PUT estado pagado falló (variante)', putRes.status);
+            } else if (process.env.NODE_ENV !== 'production') {
+              console.info('[PayPal][captureOrder] Pago actualizado a pagado (PUT variante)');
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV !== 'production') console.warn('[PayPal][captureOrder] Error PUT pago pagado (variante):', e);
+          }
+        }
+        return result;
       }
       attempts.push(`${v.url} (${v.note}) -> sin status válido (${text.slice(0,120)})`);
     } catch (e) {

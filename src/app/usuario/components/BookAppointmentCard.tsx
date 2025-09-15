@@ -118,14 +118,15 @@ export default function BookAppointmentCard({
                   <option value="" className="text-gray-500">{t('choose_health_professional_placeholder')}</option>
                   {especialistas
                     .filter(medico => !!medico.email)
-                    .map((medico, idx) => (
-                    <option key={idx} value={medico.email!}>
-                      🩺 <span className="truncate max-w-[160px] inline-block" title={`${t('doctor_short')} ${medico.nombre}`}>
-                        {t('doctor_short')} {medico.nombre}
-                      </span>
-                      <span className="text-gray-500 ml-1 hidden sm:inline">- {medico.especialidad}</span>
-                    </option>
-                  ))}
+                    .map((medico, idx) => {
+                      // Construimos la etiqueta plana porque dentro de <option> no se permiten elementos anidados.
+                      const label = `🩺 ${t('doctor_short')} ${medico.nombre}${medico.especialidad ? ' - ' + medico.especialidad : ''}`;
+                      return (
+                        <option key={idx} value={medico.email!} title={label}>
+                          {label}
+                        </option>
+                      );
+                    })}
                 </select>
                 
                 {/* Flecha personalizada para el select */}

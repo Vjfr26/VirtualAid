@@ -1,21 +1,20 @@
 import { fetchJSON } from './api';
 
-const ALLOWED_EXTS = ['png', 'jpg', 'jpeg', 'webp'] as const;
+const avatarCache: Record<string, string | null> = {};
+const AVATAR_FALLBACK = 'https://randomuser.me/api/portraits/lego/1.jpg';
+
 async function resolverAvatarDeterministaUsuario(email: string): Promise<string | null> {
+  if (email in avatarCache) return avatarCache[email];
   const base = `/perfiles/usuario/${encodeURIComponent(email)}/perfil`;
-  // Intentar primero la ruta sin extensión (App Route sirve el archivo correcto)
   try {
     const head = await fetch(base, { method: 'HEAD', cache: 'no-store' });
-    if (head.ok) return base;
+    if (head.ok) {
+      avatarCache[email] = base;
+      return base;
+    }
   } catch {}
-  // Fallback a extensiones comunes por si la App Route no está disponible
-  for (const ext of ALLOWED_EXTS) {
-    const url = `${base}.${ext}`;
-    try {
-      const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-      if (res.ok) return url;
-    } catch {}
-  }
+  // No más iteraciones sobre extensiones para evitar spam de 404 visibles.
+  avatarCache[email] = null;
   return null;
 }
 
@@ -51,7 +50,7 @@ export async function getUsuarioPerfil(email: string): Promise<UsuarioPerfil> {
   } else {
     // Intentar resolver determinísticamente si no viene del backend
     const resolved = await resolverAvatarDeterministaUsuario(email);
-    if (resolved) avatar = resolved;
+    if (resolved) avatar = resolved; else avatar = AVATAR_FALLBACK;
   }
   return {
     nombre: raw?.nombre,
