@@ -11,8 +11,11 @@ interface MeetingItemProps {
     medico: string;
     especialidad?: string;
     archivo?: string | null;
+    tokenSala?: string;
+    idRoom?: string;
+    token?: string;
   };
-  reuniones: Array<{ fecha: string; medico: string; hora: string; archivo?: string | null }>;
+  reuniones: Array<{ fecha: string; medico: string; hora: string; archivo?: string | null; tokenSala?: string; idRoom?: string }>;
   pagos: Array<{ 
     id: number;
     fecha: string;
@@ -45,8 +48,14 @@ export default function MeetingItem({
     const getRoomToken = (obj: unknown): string | undefined => {
       if (!obj || typeof obj !== 'object') return undefined;
       const o = obj as Record<string, unknown>;
-      if (typeof o.idRoom === 'string') return o.idRoom;
-      if (typeof o.tokenSala === 'string') return o.tokenSala;
+      // aceptar variantes y limpiar espacios
+      const val = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined);
+      const token = val(o.token);
+      const idRoom = val(o.idRoom) || val((o as Record<string, unknown>)['id_room']);
+      const tokenSala = val(o.tokenSala) || val((o as Record<string, unknown>)['token_sala']);
+      if (token) return token; // prioridad al campo 'token' de la cita
+      if (idRoom) return idRoom;
+      if (tokenSala) return tokenSala;
       return undefined;
     };
     
@@ -57,7 +66,29 @@ export default function MeetingItem({
     );
     
     const pagoCoincidente = pagos.find(p => p.medico === reunion.medico);
-    const tokenSala = getRoomToken(reunionCoincidente) || getRoomToken(pagoCoincidente) || getRoomToken(reunion);
+    // Resolver tokens desde cada posible fuente para loguear su origen
+    const tokenFromCita = getRoomToken(reunion);
+    const tokenFromReunion = getRoomToken(reunionCoincidente);
+    const tokenFromPago = getRoomToken(pagoCoincidente);
+    // Priorizar: token/idRoom/tokenSala de la cita (reunion), luego reuniónCoincidente y pago
+    const tokenSala = tokenFromCita || tokenFromReunion || tokenFromPago;
+
+    // Logs de diagnóstico solicitados
+    try {
+      // Info breve
+      console.log('[Reunión] Solicitando token', {
+        medico: reunion.medico,
+        fecha: reunion.fecha,
+        hora: reunion.hora,
+      });
+      // Detalle de fuentes
+      console.log('[Reunión] Tokens encontrados', {
+        tokenFromCita,
+        tokenFromReunion,
+        tokenFromPago,
+        tokenUsado: tokenSala,
+      });
+    } catch {}
     const startAtISO = new Date(reunion.fecha).toISOString();
     const url = new URL('/reunion', window.location.origin);
     
@@ -67,6 +98,9 @@ export default function MeetingItem({
     
     // Abrir en nueva pestaña
     if (typeof window !== 'undefined') {
+      try {
+        console.log('[Reunión] URL de unión construida', url.toString());
+      } catch {}
       window.open(url.toString(), '_blank');
     }
   };

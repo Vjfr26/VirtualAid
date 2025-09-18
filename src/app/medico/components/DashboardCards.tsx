@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { resumenGradients } from '../utils';
 import { formatearMonto, calcularIngresosPorPeriodo, type Pago } from '../services';

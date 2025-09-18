@@ -7,6 +7,11 @@ export type Cita = {
   fecha: string;
   hora: string;
   archivo?: string | null;
+  // Campo 'token' generado al pagar la cita (origen del id de sala)
+  token?: string;
+  // Campos de reunión provenientes del backend (tabla cita)
+  tokenSala?: string;
+  idRoom?: string;
 };
 
 export async function getCitasDeUsuario(email: string): Promise<Cita[]> {

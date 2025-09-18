@@ -1,8 +1,16 @@
 export type RoomState = { roomId: string; hasOffer: boolean; hasAnswer: boolean };
 export type RoomInfo = { roomId: string; createdAt: string; hasOffer: boolean; hasAnswer: boolean };
 
+// Separamos las rutas de WebRTC (backend) de las rutas de perfil (backend también)
+const backendBase = 'http://13.60.223.37';
+
 const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const res = await fetch(`/api/${path}`, {
+  // Para rutas de reunión, usar directamente el backend
+  const url = path.startsWith('reunion/') 
+    ? `${backendBase}/api/${path}`
+    : `/api/${path}`; // Otras rutas van por el proxy de next.config.js
+    
+  const res = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
     ...init,
@@ -19,6 +27,7 @@ export const getOffer = (roomId: string) => api<{ offer: string | null }>(`reuni
 export const postAnswer = (roomId: string, sdp: string) => api<{ ok: true }>(`reunion/${roomId}/answer`, { method: 'POST', body: JSON.stringify({ sdp }) });
 export const getAnswer = (roomId: string) => api<{ answer: string | null }>(`reunion/${roomId}/answer`);
 export const postCandidate = (roomId: string, from: 'caller'|'callee', candidate: RTCIceCandidateInit) =>
+  // Compatibilidad con backend: POST singular /candidate
   api<{ ok: true }>(`reunion/${roomId}/candidate`, { method: 'POST', body: JSON.stringify({ from, candidate }) });
 export const getCandidates = (roomId: string, _for: 'caller'|'callee') => api<{ candidates: RTCIceCandidateInit[] }>(`reunion/${roomId}/candidates?for=${_for}`);
 export type ChatMessage = {

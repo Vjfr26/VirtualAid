@@ -223,7 +223,66 @@ export default function CitasSection({ ctx }: { ctx: any }) {
                                           ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
                                           : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
                                       }`}
-                                      onClick={() => !citaPasada && (window.location.href = '/reunion')}
+                                      onClick={async () => {
+                                        if (citaPasada) return;
+                                        // Extraer token de sala con variantes compatibles
+                                        const getRoomToken = (obj: unknown): string | undefined => {
+                                          if (!obj || typeof obj !== 'object') return undefined;
+                                          const o = obj as Record<string, unknown>;
+                                          const val = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined);
+                                          const token = val(o.token);
+                                          const idRoom = val(o.idRoom) || val((o as Record<string, unknown>)['id_room']);
+                                          const tokenSala = val(o.tokenSala) || val((o as Record<string, unknown>)['token_sala']);
+                                          if (token) return token; // prioridad
+                                          if (idRoom) return idRoom;
+                                          if (tokenSala) return tokenSala;
+                                          return undefined;
+                                        };
+
+                                        let tokenSala = getRoomToken(cita);
+
+                                        // Fallback: si no hay token en la cita, consultar el backend para acceso a sala
+                                        if (!tokenSala && cita?.id != null) {
+                                          try {
+                                            const resp = await fetch(`/api/cita/${encodeURIComponent(String(cita.id))}/room`);
+                                            if (resp.ok) {
+                                              const data = await resp.json();
+                                              if (data?.roomId) tokenSala = String(data.roomId);
+                                            } else if (resp.status === 403) {
+                                              const data = await resp.json().catch(() => ({} as any));
+                                              const minutes = data?.minutes ?? data?.minutos ?? undefined;
+                                              alert(minutes != null 
+                                                ? `La sala se habilitará en aproximadamente ${minutes} minuto(s).`
+                                                : 'La sala aún no está disponible. Intenta más cerca de la hora de la cita.');
+                                              return;
+                                            }
+                                          } catch (e) {
+                                            console.warn('No se pudo obtener acceso a la sala desde el backend', e);
+                                          }
+                                        }
+                                        try {
+                                          console.log('[Medico/Reunión] Tokens encontrados', {
+                                            citaId: cita.id,
+                                            usuario: cita.usuario_id,
+                                            tokenFromCita: tokenSala,
+                                          });
+                                        } catch {}
+
+                                        // Calcular startAt ISO usando fecha y hora de la cita
+                                        let startAtISO = '';
+                                        try {
+                                          const start = new Date(`${cita.fecha}T${cita.hora}`);
+                                          if (!isNaN(start.getTime())) startAtISO = start.toISOString();
+                                        } catch {}
+
+                                        const url = new URL('/reunion', window.location.origin);
+                                        if (tokenSala) url.searchParams.set('room', tokenSala);
+                                        if (startAtISO) url.searchParams.set('startAt', startAtISO);
+                                        url.searchParams.set('who', 'doctor');
+
+                                        try { console.log('[Medico/Reunión] URL de unión', url.toString()); } catch {}
+                                        window.open(url.toString(), '_blank');
+                                      }}
                                       disabled={citaPasada}
                                       title={citaPasada ? 'Esta cita ya ha finalizado' : 'Iniciar reunión con este paciente'}
                                     >

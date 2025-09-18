@@ -12,6 +12,9 @@ interface ReunionViewProps {
     hora: string; 
     especialidad?: string; 
     archivo?: string | null;
+    tokenSala?: string;
+    idRoom?: string;
+    token?: string;
   }>;
   citasAgendadas: Array<{
     id?: string | number;
@@ -19,6 +22,9 @@ interface ReunionViewProps {
     hora: string;
     medico: string;
     especialidad?: string;
+    tokenSala?: string;
+    idRoom?: string;
+    token?: string;
   }>;
   pagos: Array<{ 
     id: number;

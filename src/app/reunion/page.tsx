@@ -439,6 +439,38 @@ export default function ReunionPage() {
     }, 1000);
   }, [setupPeer, ensureLocalStream]);
 
+  // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
+  const startAsCaller = useCallback(async (rid: string) => {
+    setRoomId(rid);
+    roleRef.current = 'caller';
+    const pc = setupPeer(rid, 'caller');
+    const stream = localStreamRef.current || await ensureLocalStream();
+    if (stream) {
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+    }
+    const dc = pc.createDataChannel('chat');
+    dataChannelRef.current = dc;
+    dc.onopen = () => { setDcState('open'); try { console.log('[RTC] DataChannel abierto (caller)'); } catch{} sendPresence(); };
+    dc.onclose = () => setDcState('closed');
+    dc.onerror = () => setDcState('error');
+    dc.onmessage = (e) => { try { const m = JSON.parse(e.data); if (m?.meta === 'presence') sendPresence(); else if (m?.type) setMessages((p)=>[...p,m]); } catch {} };
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await postOffer(rid, JSON.stringify(offer));
+    // Polling de answer y candidates del callee
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const ans = await getAnswer(rid);
+        if (ans.answer && pc.signalingState !== 'stable') {
+          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(ans.answer)));
+        }
+        const cands = await getCandidates(rid, 'caller');
+        for (const c of cands.candidates) { try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {} }
+      } catch {}
+    }, 1000);
+  }, [setupPeer, ensureLocalStream, sendPresence]);
+
   // Reconectar en la misma sala reintentando la negociación
   const reconnect = useCallback(async () => {
     if (!roomId || reconnecting) return;
@@ -497,13 +529,24 @@ export default function ReunionPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const rid = params.get('room') || undefined;
+  const rid = params.get('room') || params.get('rid') || params.get('roomId') || undefined;
     const startAtStr = params.get('startAt') || undefined; // ISO
     const whoParam = (params.get('who') as 'patient'|'doctor'|null) || undefined;
     const uid = params.get('uid') || undefined;
     const did = params.get('did') || undefined;
     const autostart = params.get('autostart') === '1' || params.get('autostart') === 'true';
     const name = params.get('name');
+    try {
+      console.log('[Reunión] Parámetros recibidos', {
+        room: rid,
+        startAt: startAtStr,
+        who: whoParam,
+        uid,
+        did,
+        autostart,
+        name,
+      });
+    } catch {}
     if (name && name.trim()) setDisplayName(name.trim());
     setAutoParams({ rid, who: whoParam, uid, did, autostart });
     // ACL básica por parámetros (mejorar con backend más adelante)
@@ -516,7 +559,8 @@ export default function ReunionPage() {
       const start = new Date(startAtStr);
       if (!isNaN(start.getTime())) {
         setAppointmentStartAt(start);
-        const joinFrom = new Date(start.getTime() - 10 * 60 * 1000);
+        // Backend abre a falta de <= 5 minutos
+        const joinFrom = new Date(start.getTime() - 5 * 60 * 1000);
         setAllowedJoinFrom(joinFrom);
         const updateCountdown = () => {
           const now = new Date();
@@ -923,11 +967,17 @@ export default function ReunionPage() {
                     if (!rid) return;
                     // Si es temprano, no permitir
                     if (allowedJoinFrom && new Date() < allowedJoinFrom) return;
-                    const off = await getOffer(rid);
-                    if (off.offer) {
-                      await joinAndAnswer(rid);
+                    // Si es doctor, actúa como caller y publica la oferta
+                    if (autoParams?.who === 'doctor') {
+                      await startAsCaller(rid);
                     } else {
-                      setJoinError('La sala aún no está abierta. Intenta en unos minutos.');
+                      // paciente (callee): requiere que exista la oferta
+                      const off = await getOffer(rid);
+                      if (off.offer) {
+                        await joinAndAnswer(rid);
+                      } else {
+                        setJoinError('La sala aún no está abierta por el médico. Intenta en unos minutos.');
+                      }
                     }
                   } catch {
                     setJoinError('No se pudo conectar. Reintenta en unos segundos.');

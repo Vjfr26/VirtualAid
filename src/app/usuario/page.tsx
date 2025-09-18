@@ -10,8 +10,8 @@ import Footer from '../components/Footer';
 import 'react-calendar/dist/Calendar.css';
 import styles from './calendar.module.css';
 import { getEspecialistas, getUsuarioPerfil, getCitasDeUsuario, getPagosDeUsuario, getSession, fetchJSON, type Cita as TCita, createOrUpdateBillingProfile, type BillingProfile, createAddress, updateAddress, type Address, listPaymentMethodsByProfile, createPaymentMethod, updatePaymentMethod, deletePaymentMethod, type PaymentMethod, crearCita, changeUsuarioPassword, updateUsuarioAvatar, getCitasDeMedico, marcarPagoGratis, descargarRecibo } from './services';
-import Invoice from '../usuario/components/billing/BillingView';
-type InvoiceType = unknown; // Remove or replace with the actual type if available
+// Definimos un tipo compatible con el requerido por BillingView (structural typing)
+interface BillingInvoice { id: string; amount: number; currency: string; status: string; created_at: string; paid_at?: string }
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
 import { getHorarios, type Horario } from '../medico/services/horarios';
 import { useToast } from '../components/Toast';
@@ -59,7 +59,7 @@ export default function DashboardPaciente() {
   const [showLangMenu, setShowLangMenu] = useState(false);
   
   // Citas reales
-  const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }[]>([]);
+  const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string; tokenSala?: string; idRoom?: string; token?: string }[]>([]);
   // Estados para la mejora del apartado de citas
   const [filtroCitas, setFiltroCitas] = useState<'todas' | 'proximas' | 'pasadas'>('todas');
   const [fechaSeleccionadaCalendario, setFechaSeleccionadaCalendario] = useState<Date | null>(null);
@@ -368,7 +368,7 @@ export default function DashboardPaciente() {
   const [pmFormOpen, setPmFormOpen] = useState(false);
   const [pmForm, setPmForm] = useState<{ provider: string; token?: string; brand?: string; last4?: string; exp_month?: number; exp_year?: number; is_default?: boolean }>({ provider: 'manual' });
   const [pmLoading, setPmLoading] = useState(false);
-  const [invoices] = useState<InvoiceType[]>([]);
+  const [invoices] = useState<BillingInvoice[]>([]);
   const [pmEditForm, setPmEditForm] = useState<{ brand?: string | null; last4?: string | null; exp_month?: number | null; exp_year?: number | null; token?: string | null; status?: string; is_default?: boolean }>({});
   const [pmEditingId, setPmEditingId] = useState<number | null>(null);
   // Orden pagos
@@ -598,8 +598,8 @@ export default function DashboardPaciente() {
   const citasFmtRaw = citas.map((c: TCita) => {
         const m = map.get(c.medico_id);
         const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
-        const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
-        return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
+      const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
+          return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad, tokenSala: c.tokenSala, idRoom: c.idRoom, token: c.token };
       });
   setCitasAgendadas(ordenarCitas(citasFmtRaw));
     setPagos(pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string }; cita: TCita | null }) => {
@@ -678,7 +678,7 @@ export default function DashboardPaciente() {
   const isTabletOrMobileValue = useMediaQuery({ query: '(max-width: 1024px)' });
   const isMobileValue = useMediaQuery({ query: '(max-width: 700px)' });
   const isTabletOrMobile = mounted ? isTabletOrMobileValue : false;
-  const isMobile = mounted ? isMobileValue : false; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const isMobile = mounted ? isMobileValue : false;
   // Cargas iniciales desde backend
   const [loadingEspecialistas, setLoadingEspecialistas] = useState(true);
   const [loadingPagos, setLoadingPagos] = useState(true);
@@ -992,7 +992,7 @@ const loadPaypalSdk = useCallback(() => {
             const m = map.get(c.medico_id);
             const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
             const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
-            return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad };
+            return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad, tokenSala: c.tokenSala, idRoom: c.idRoom, token: c.token };
           });
           setCitasAgendadas(ordenarCitas(citasFmt));
           setLoadingCitas(false);

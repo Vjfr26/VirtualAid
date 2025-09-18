@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 export const runtime = 'nodejs';
 
 // Genera un PDF mínimo (1 página) en bytes base64
@@ -9,8 +7,8 @@ function generarPDFBasico(id: string): Uint8Array {
   return new TextEncoder().encode(pdfString);
 }
 
-export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
-  const { id } = ctx.params;
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const pdfBytes = generarPDFBasico(id);
   const buf = Buffer.from(pdfBytes);

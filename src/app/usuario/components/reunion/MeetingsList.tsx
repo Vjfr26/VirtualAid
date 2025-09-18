@@ -11,12 +11,18 @@ interface MeetingsListProps {
     hora: string;
     medico: string;
     especialidad?: string;
+    tokenSala?: string;
+    idRoom?: string;
+    token?: string;
   }>;
   reuniones: Array<{ 
     fecha: string; 
     medico: string; 
     hora: string; 
     archivo?: string | null;
+    tokenSala?: string;
+    idRoom?: string;
+    token?: string;
   }>;
   pagos: Array<{ 
     id: number;
@@ -29,7 +35,7 @@ interface MeetingsListProps {
     idRoom?: string;
     tokenSala?: string;
   }>;
-  setVista: (vista: string) => void;
+  setVista: (vista: 'inicio' | 'citas' | 'especialistas' | 'pagos' | 'billing' | 'Reunion') => void;
 }
 
 export default function MeetingsList({ 
@@ -68,7 +74,11 @@ export default function MeetingsList({
       hora: string; 
       medico: string; 
       especialidad?: string; 
-      archivo?: string|null 
+      archivo?: string|null;
+      // Propagar identificadores de sala desde la cita
+      token?: string;
+      tokenSala?: string;
+      idRoom?: string;
     };
 
     const items: Item[] = (citasAgendadas || []).map((c) => {
@@ -91,6 +101,9 @@ export default function MeetingsList({
         medico: c.medico,
         especialidad: c.especialidad,
         archivo: reunionCoincidente?.archivo ?? null,
+        token: c.token,
+        tokenSala: c.tokenSala,
+        idRoom: c.idRoom,
       };
     });
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import HeaderLogo from '../../components/HeaderLogo';
 import TopActions from '../../components/TopActions';
