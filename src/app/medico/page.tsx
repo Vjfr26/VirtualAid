@@ -49,6 +49,12 @@ import {
   createAgregarHorariosHandler
 } from './utils';
 
+// Constantes
+const DIAS_IDX_MAP: Record<string, number> = { 
+  'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 
+  'Jueves': 4, 'Viernes': 5, 'Sábado': 6 
+};
+
 // Componente de carga
 function PantallaCarga() {
   return (
@@ -146,12 +152,10 @@ export default function MedicoDashboard() {
     const end = String(hour + 1).padStart(2, '0');
     return `${start}:00 - ${end}:00`;
   });
-  // Índice de días para mapear nombre->número
-  const diasIdxMap: Record<string, number> = { 'Domingo':0,'Lunes':1,'Martes':2,'Miércoles':3,'Jueves':4,'Viernes':5,'Sábado':6 };
-
+  
   // Conjunto de horas ya agregadas para el día seleccionado (para deshabilitar)
   const horasAgregadasForDia = React.useMemo(() => {
-    const diaIdx = diasIdxMap[nuevoDia as string];
+    const diaIdx = DIAS_IDX_MAP[nuevoDia as string];
     if (typeof diaIdx === 'undefined') return new Set<string>();
     const set = new Set<string>();
     horarios.forEach(hr => {
@@ -225,13 +229,11 @@ export default function MedicoDashboard() {
 
   let citasFiltradas: Cita[] = [];
   if (filtroCitas === 'hoy') {
-    // Mostrar solo las citas del día que aún no han pasado y que no estén canceladas
-    const ahora = new Date();
+    // Mostrar todas las citas del día (sin importar la hora), excepto canceladas
+    const hoyString = hoy.toISOString().split('T')[0];
     citasFiltradas = citas.filter(cita => {
-      const fechaCitaDia = new Date(cita.fecha);
-      fechaCitaDia.setHours(0,0,0,0);
-      const fechaCompleta = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
-      return fechaCitaDia.getTime() === hoy.getTime() && fechaCompleta.getTime() >= ahora.getTime() && (cita.estado || '').toLowerCase() !== 'cancelada';
+      const fechaCitaString = new Date(cita.fecha).toISOString().split('T')[0];
+      return fechaCitaString === hoyString && (cita.estado || '').toLowerCase() !== 'cancelada';
     }).sort((a, b) => {
       const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
       const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
@@ -257,7 +259,7 @@ export default function MedicoDashboard() {
         return fb.getTime() - fa.getTime();
       });
   } else if (filtroCitas === 'finalizadas') {
-    // Mostrar sólo las citas que ya pasaron respecto a la hora actual (más recientes primero)
+    // Mostrar solo las citas cuya fecha y hora ya pasaron (más recientes primero)
     const ahora = new Date();
     citasFiltradas = citas.filter(cita => {
       const fechaCompleta = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
@@ -298,8 +300,17 @@ export default function MedicoDashboard() {
   }
   // Paginación visual (solo para 'todas')
   const [mostrarTodasLasCitas, setMostrarTodasLasCitas] = useState(false);
+  // Para 'todas', mostrar todas las citas ordenadas por fecha y hora ascendente
   const citasAMostrar = filtroCitas === 'todas'
-    ? (mostrarTodasLasCitas ? citasFiltradas : citasFiltradas.slice(0, 4))
+    ? (mostrarTodasLasCitas ? [...citas].sort((a, b) => {
+        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        return fa.getTime() - fb.getTime();
+      }) : [...citas].sort((a, b) => {
+        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        return fa.getTime() - fb.getTime();
+      }).slice(0, 4))
     : citasFiltradas;
   
   // Estado de perfil editable

@@ -1,16 +1,8 @@
 export type RoomState = { roomId: string; hasOffer: boolean; hasAnswer: boolean };
 export type RoomInfo = { roomId: string; createdAt: string; hasOffer: boolean; hasAnswer: boolean };
 
-// Separamos las rutas de WebRTC (backend) de las rutas de perfil (backend también)
-const backendBase = 'http://13.60.223.37';
-
 const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  // Para rutas de reunión, usar directamente el backend
-  const url = path.startsWith('reunion/') 
-    ? `${backendBase}/api/${path}`
-    : `/api/${path}`; // Otras rutas van por el proxy de next.config.js
-    
-  const res = await fetch(url, {
+  const res = await fetch(`/api/${path}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
     ...init,

@@ -479,21 +479,25 @@ export default function DashboardPaciente() {
   // Además generamos una representación ISO local (sin Z) para mostrar y ordenar.
   type FechaHoraParse = { date: Date; isoLocal: string };
   function combinarFechaHoraLocal(fechaStr: string, horaStr?: string | null): FechaHoraParse {
-    // fechaStr esperado: YYYY-MM-DD ; horaStr: HH:mm opcional
+    // fechaStr esperado: YYYY-MM-DDTHH:mm:ss(.SSS)Z ; horaStr: HH:mm(:ss) opcional
     if (!fechaStr) {
       const now = new Date();
       return { date: now, isoLocal: now.toISOString().slice(0,16).replace('T',' ') };
     }
-    const [y,m,d] = fechaStr.split('-').map(Number);
-    let hh = 0, mm = 0;
-    if (horaStr && /^(\d{2}):(\d{2})$/.test(horaStr)) {
-      const parts = horaStr.split(':');
-      hh = Number(parts[0]);
-      mm = Number(parts[1]);
+    let fechaIso = fechaStr;
+    // Si la hora viene aparte y es válida, reemplazar la hora en el string ISO
+    if (horaStr && /^\d{2}:\d{2}(:\d{2})?$/.test(horaStr)) {
+      // Extraer solo la parte de fecha y la zona (Z o +...)
+      const match = fechaStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/);
+      if (match) {
+        const [ , ymd, , , zone ] = match;
+        // Si horaStr no tiene segundos, añadir :00
+        const horaFull = horaStr.length === 5 ? horaStr + ':00' : horaStr;
+        fechaIso = `${ymd}T${horaFull}${zone || 'Z'}`;
+      }
     }
-    // Construir Date en la zona local del cliente
-    const dt = new Date(y, (m||1)-1, d||1, hh, mm, 0, 0);
-    const isoLocal = `${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')} ${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`;
+    const dt = new Date(fechaIso);
+    const isoLocal = fechaIso.replace('T', ' ');
     return { date: dt, isoLocal };
   }
   // Formateadores consistentes (pueden luego centralizarse o internacionalizarse)

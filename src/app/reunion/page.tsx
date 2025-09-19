@@ -5,6 +5,7 @@ import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneMissed, FiMessageSquare, F
 import { postOffer, getOffer, postAnswer, getAnswer, postCandidate, getCandidates, finalizarChat, listRooms, roomLink, roomLinkWithName, getUsuario, getMedico, extractDisplayName } from './services';
 import Footer from '../components/Footer';
 
+
 interface ParticipantProps {
   name: string;
   avatar: string;
@@ -72,6 +73,7 @@ export default function ReunionPage() {
   const [roomId, setRoomId] = useState<string | null>(null);
   const roleRef = useRef<null | 'caller' | 'callee'>(null);
   const [reconnecting, setReconnecting] = useState<boolean>(false);
+  const [isJoining, setIsJoining] = useState<boolean>(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Screen share
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
@@ -96,22 +98,122 @@ export default function ReunionPage() {
   const [autoParams, setAutoParams] = useState<{ rid?: string; who?: 'patient'|'doctor'; uid?: string; did?: string; autostart?: boolean } | null>(null);
 
   const toggleMic = () => {
-    setMicOn((prev) => {
+    setMicOn((prev: boolean) => {
       const next = !prev;
       const s = localStreamRef.current;
-      if (s) s.getAudioTracks().forEach((t) => (t.enabled = next));
+      if (s) s.getAudioTracks().forEach((t: MediaStreamTrack) => (t.enabled = next));
       return next;
     });
   };
   const toggleCamera = () => {
-    setCameraOn((prev) => {
+    setCameraOn((prev: boolean) => {
       const next = !prev;
       const s = localStreamRef.current;
-      if (s) s.getVideoTracks().forEach((t) => (t.enabled = next));
+      if (s) s.getVideoTracks().forEach((t: MediaStreamTrack) => (t.enabled = next));
       return next;
     });
   };
 
+  // Función robusta para autoasignar rol y conectar
+  const autoJoinRoom = async (rid: string) => {
+    console.log(`[AutoJoin] Iniciando autoJoinRoom para sala: ${rid}`);
+    
+    // Prevenir múltiples ejecuciones concurrentes
+    if (isJoining) {
+      console.log(`[AutoJoin] ⚠️ Ya hay una conexión en progreso, cancelando...`);
+      return;
+    }
+    
+    setIsJoining(true);
+    setJoinError("");
+    setRoomId(rid);
+    
+    // Omitir limpieza que falla y usar lógica más robusta
+    console.log(`[AutoJoin] Saltando limpieza de sesión (problemática)`);
+    
+    try {
+      // Generar un ID único para esta sesión y usar localStorage para coordinación
+      const sessionId = Date.now().toString();
+      const storageKey = `webrtc_caller_${rid}`;
+      console.log(`[AutoJoin] 🆔 Session ID: ${sessionId}`);
+      console.log(`[AutoJoin] 🔑 Storage Key: ${storageKey}`);
+      
+      // Verificar si ya hay un caller registrado en localStorage
+      let existingCaller = null;
+      try {
+        const stored = localStorage.getItem(storageKey);
+        console.log(`[AutoJoin] 📦 Raw localStorage content:`, stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const age = Date.now() - parsed.timestamp;
+          console.log(`[AutoJoin] ⏰ Parsed data:`, parsed, `Age: ${age}ms`);
+          if (age < 10000) { // Válido por 10 segundos
+            existingCaller = parsed;
+            console.log(`[AutoJoin] ✅ Caller existente válido en localStorage:`, existingCaller);
+          } else {
+            console.log(`[AutoJoin] ⏰ Caller en localStorage demasiado antiguo (${age}ms), limpiando`);
+            localStorage.removeItem(storageKey);
+          }
+        } else {
+          console.log(`[AutoJoin] 📭 No hay datos en localStorage para esta sala`);
+        }
+      } catch (err) {
+        console.log(`[AutoJoin] ❌ Error leyendo localStorage:`, err);
+      }
+      
+      
+      // Lógica de asignación de rol con coordinación localStorage
+      let shouldBeCallee = false;
+      let hasValidOffer = false;
+      
+      console.log(`[AutoJoin] 🤔 Evaluando asignación de rol...`);
+      console.log(`[AutoJoin] - existingCaller:`, existingCaller);
+      console.log(`[AutoJoin] - sessionId actual:`, sessionId);
+      
+      if (existingCaller && existingCaller.sessionId !== sessionId) {
+        // Hay otro caller registrado, ser callee
+        console.log(`[AutoJoin] ✅ Hay caller registrado (${existingCaller.sessionId}) diferente al nuestro (${sessionId}). Asignando rol: CALLEE`);
+        shouldBeCallee = true;
+        hasValidOffer = true;
+      } else {
+        // No hay caller o somos nosotros, registrarse como caller
+        console.log(`[AutoJoin] ❌ No hay caller registrado o somos nosotros. Asignando rol: CALLER`);
+        try {
+          const callerData = {
+            sessionId: sessionId,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(storageKey, JSON.stringify(callerData));
+          console.log(`[AutoJoin] 💾 Registrado como CALLER en localStorage:`, callerData);
+        } catch (err) {
+          console.log(`[AutoJoin] ❌ Error guardando en localStorage:`, err);
+        }
+      }
+      
+      // Consultar oferta existente solo como información adicional
+      console.log(`[AutoJoin] Consultando oferta existente para sala ${rid}...`);
+      try {
+        const state = await getOffer(rid);
+        console.log(`[AutoJoin] Respuesta de getOffer:`, state);
+      } catch (e) {
+        console.log(`[AutoJoin] Error al consultar oferta:`, e);
+      }
+      
+      if (hasValidOffer && shouldBeCallee) {
+        await joinAndAnswer(rid);
+      } else {
+        // Ser caller por defecto
+        console.log(`[AutoJoin] ➡️ Siendo CALLER (por defecto o no hay caller activo)`);
+        await startAsCaller(rid);
+      }
+    } catch (e) {
+      console.error(`[AutoJoin] Error en autoJoinRoom:`, e);
+      setJoinError('No se pudo conectar. Intenta de nuevo.');
+    } finally {
+      setIsJoining(false);
+      console.log(`[AutoJoin] ✅ autoJoinRoom completado, liberando flag`);
+    }
+  };
   const handleSidebarToggle = (panel: 'chat' | 'participants') => {
     setSidebarVisible(true);
     if (panel === 'chat') {
@@ -266,43 +368,103 @@ export default function ReunionPage() {
       setMessages([...messages, newFileMessage]);
   };
 
-  // --- WebRTC minimal (solo chat por datachannel en MVP) ---
+  // --- WebRTC robusto: ICE deduplicado, logs, polling seguro ---
   const setupPeer = useCallback((rid: string, fromRole: 'caller'|'callee') => {
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    });
-    pc.onconnectionstatechange = () => {
-      // Logs mínimos de diagnóstico
-      setConnState(pc.connectionState);
-      console.log('[RTC] connectionState:', pc.connectionState);
-    };
-    pc.onicecandidate = (e) => {
-      if (e.candidate) {
-        postCandidate(rid, fromRole, e.candidate.toJSON()).catch(() => {});
+    console.log(`[SetupPeer] Configurando peer para sala ${rid} como ${fromRole}`);
+    
+    // Protección contra múltiples llamadas simultáneas
+    if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
+      console.log(`[SetupPeer] ⚠️ Ya existe un peer activo (${pcRef.current.connectionState}), cancelando setup duplicado`);
+      return {
+        pc: pcRef.current,
+        setRemote: () => {
+          console.log(`[SetupPeer] setRemote llamado en peer existente`);
+        }
+      };
+    }
+    
+    // Cerrar peer anterior si existe
+    if (pcRef.current) {
+      console.log(`[SetupPeer] Cerrando peer anterior (${pcRef.current.connectionState})`);
+      try {
+        pcRef.current.close();
+      } catch (err) {
+        console.warn(`[SetupPeer] Error cerrando peer anterior:`, err);
       }
-    };
-    pc.ontrack = (ev) => {
-      const [stream] = ev.streams;
-      if (stream) {
-        remoteStreamRef.current = stream;
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = stream;
+    }
+    
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    pcRef.current = pc;
+    console.log(`[SetupPeer] RTCPeerConnection creada`);
+    
+    // ICE deduplicado
+    const addedCandidates = new Set<string>();
+    // Buffer para candidates que llegan antes de setRemoteDescription
+    const candidateBuffer: RTCIceCandidateInit[] = [];
+    let remoteSet = fromRole === 'caller';
+    console.log(`[SetupPeer] remoteSet inicial: ${remoteSet} (porque es ${fromRole})`);
+    
+    pc.onconnectionstatechange = () => {
+      setConnState(pc.connectionState);
+      console.log(`[SetupPeer] 🔄 connectionState cambió a: ${pc.connectionState}`);
+      if (["connected","failed","disconnected","closed"].includes(pc.connectionState)) {
+        if (pollingRef.current) { 
+          console.log(`[SetupPeer] Deteniendo polling por estado: ${pc.connectionState}`);
+          clearInterval(pollingRef.current); 
+          pollingRef.current = null; 
         }
       }
     };
+    
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        console.log(`[SetupPeer] 📡 ICE candidate generada (${fromRole}):`, e.candidate);
+        postCandidate(rid, fromRole, e.candidate.toJSON()).catch((err) => {
+          console.error(`[SetupPeer] Error enviando ICE candidate:`, err);
+        });
+      } else {
+        console.log(`[SetupPeer] ICE gathering completado (${fromRole})`);
+      }
+    };
+    
+    pc.ontrack = (ev) => {
+      console.log(`[SetupPeer] 📹 Track recibido (${fromRole}):`, ev.track.kind);
+      const [stream] = ev.streams;
+      if (stream) {
+        remoteStreamRef.current = stream;
+        console.log(`[SetupPeer] Stream remoto configurado`);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = stream;
+          console.log(`[SetupPeer] Video remoto asignado al elemento`);
+        }
+      }
+    };
+    
     pc.ondatachannel = (ev) => {
-    const ch = ev.channel;
-    dataChannelRef.current = ch;
-  ch.onopen = () => { setDcState('open'); console.log('[RTC] DataChannel abierto (callee)'); sendPresence(); };
-    ch.onclose = () => { setDcState('closed'); };
-    ch.onerror = () => { setDcState('error'); };
+      console.log(`[SetupPeer] 💬 DataChannel recibido (${fromRole})`);
+      const ch = ev.channel;
+      dataChannelRef.current = ch;
+      ch.onopen = () => { 
+        console.log(`[SetupPeer] ✅ DataChannel abierto (${fromRole})`);
+        setDcState('open'); 
+        sendPresence(); 
+      };
+      ch.onclose = () => { 
+        console.log(`[SetupPeer] ❌ DataChannel cerrado (${fromRole})`);
+        setDcState('closed'); 
+      };
+      ch.onerror = () => { 
+        console.log(`[SetupPeer] ⚠️ DataChannel error (${fromRole})`);
+        setDcState('error'); 
+      };
       ch.onmessage = (msgEvt) => {
+        console.log(`[SetupPeer] Mensaje en DataChannel (${fromRole}):`, msgEvt.data);
         try {
           const incoming = JSON.parse(msgEvt.data);
           if (incoming && incoming.meta === 'presence' && incoming.participant) {
-            setParticipants((prev) => {
+            setParticipants((prev: ParticipantData[]) => {
               const pIn = incoming.participant;
-              const idxById = pIn.id ? prev.findIndex(p => p.id === pIn.id) : -1;
+              const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
               if (idxById >= 0) {
                 const copy = [...prev];
                 const prevItem = copy[idxById];
@@ -310,7 +472,7 @@ export default function ReunionPage() {
                 return copy;
               }
               if (!pIn.id) {
-                const idxByName = prev.findIndex(p => p.name === pIn.name);
+                const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
                 if (idxByName >= 0) {
                   const copy = [...prev];
                   const prevItem = copy[idxByName];
@@ -320,44 +482,154 @@ export default function ReunionPage() {
               }
               return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
             });
-            // Responder con nuestra presencia para asegurar bi-direccionalidad
             sendPresence();
           } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
-            setMessages((prev) => [...prev, incoming]);
-            setParticipants((prev) => prev.some(p => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
+            setMessages((prev: Message[]) => [...prev, incoming]);
+            setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
           }
         } catch {}
       };
     };
-    pcRef.current = pc;
-    return pc;
+    // Para el callee, candidates pueden llegar antes de setRemoteDescription
+    if (fromRole === 'callee') {
+      console.log(`[SetupPeer] Iniciando polling de ICE candidates (callee)`);
+      // Polling de candidates del caller (bufferiza si no está remoteSet)
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      pollingRef.current = setInterval(async () => {
+        try {
+          const cands = await getCandidates(rid, 'callee');
+          if (cands.candidates.length > 0) {
+            console.log(`[SetupPeer] Recibidos ${cands.candidates.length} ICE candidates (callee)`);
+          }
+          for (const c of cands.candidates) {
+            const key = JSON.stringify(c);
+            if (!addedCandidates.has(key)) {
+              if (remoteSet) {
+                try { 
+                  await pc.addIceCandidate(new RTCIceCandidate(c)); 
+                  console.log('[SetupPeer] ✅ ICE candidate agregada (callee)', c); 
+                } catch (err) { 
+                  console.warn('[SetupPeer] ❌ Error agregando candidate (callee)', err, c); 
+                }
+              } else {
+                candidateBuffer.push(c);
+                console.log('[SetupPeer] 📦 ICE candidate bufferizada (callee)', c);
+              }
+              addedCandidates.add(key);
+            }
+          }
+        } catch (err) {
+          console.error(`[SetupPeer] Error en polling de candidates (callee):`, err);
+        }
+      }, 1000);
+    }
+    
+    // Para el caller, polling de candidates del callee
+    if (fromRole === 'caller') {
+      console.log(`[SetupPeer] Iniciando polling de ICE candidates (caller)`);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      pollingRef.current = setInterval(async () => {
+        try {
+          const cands = await getCandidates(rid, 'caller');
+          if (cands.candidates.length > 0) {
+            console.log(`[SetupPeer] Recibidos ${cands.candidates.length} ICE candidates (caller)`);
+          }
+          for (const c of cands.candidates) {
+            const key = JSON.stringify(c);
+            if (!addedCandidates.has(key)) {
+              try { 
+                await pc.addIceCandidate(new RTCIceCandidate(c)); 
+                console.log('[SetupPeer] ✅ ICE candidate agregada (caller)', c); 
+              } catch (err) { 
+                console.warn('[SetupPeer] ❌ Error agregando candidate (caller)', err, c); 
+              }
+              addedCandidates.add(key);
+            }
+          }
+        } catch (err) {
+          console.error(`[SetupPeer] Error en polling de candidates (caller):`, err);
+        }
+      }, 1000);
+    }
+    
+    return {
+      pc,
+      setRemote: () => { 
+        console.log(`[SetupPeer] setRemote llamado - flushing ${candidateBuffer.length} candidates del buffer`);
+        remoteSet = true; 
+        /* flush buffer */ 
+        candidateBuffer.splice(0).forEach(async c => { 
+          try { 
+            await pc.addIceCandidate(new RTCIceCandidate(c)); 
+            console.log('[SetupPeer] ✅ ICE candidate del buffer agregada', c); 
+          } catch (err) { 
+            console.warn('[SetupPeer] ❌ Error agregando candidate del buffer', err, c); 
+          } 
+        }); 
+      },
+    };
   }, [sendPresence, localId]);
 
   const ensureLocalStream = useCallback(async () => {
     if (!localStreamRef.current) {
       try {
-        const constraints: MediaStreamConstraints = {
+        console.log(`[Media] Intentando obtener stream con dispositivos específicos...`);
+        let constraints: MediaStreamConstraints = {
           audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true,
           video: selectedVideoId ? { deviceId: { exact: selectedVideoId } } : true,
         };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        // aplicar estado inicial de toggles
-        stream.getAudioTracks().forEach((t) => (t.enabled = micOn));
-        stream.getVideoTracks().forEach((t) => (t.enabled = cameraOn));
-        localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+        
+        let stream: MediaStream | null = null;
+        
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log(`[Media] ✅ Stream obtenido con dispositivos específicos`);
+        } catch (specificErr) {
+          console.warn(`[Media] ⚠️ Error con dispositivos específicos, intentando valores por defecto:`, specificErr);
+          // Fallback a dispositivos por defecto
+          constraints = { audio: true, video: true };
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log(`[Media] ✅ Stream obtenido con dispositivos por defecto`);
+          } catch (defaultErr) {
+            console.warn(`[Media] ⚠️ Error con dispositivos por defecto, intentando solo audio:`, defaultErr);
+            // Fallback a solo audio
+            constraints = { audio: true, video: false };
+            try {
+              stream = await navigator.mediaDevices.getUserMedia(constraints);
+              console.log(`[Media] ✅ Stream obtenido solo con audio`);
+            } catch (audioErr) {
+              console.error(`[Media] ❌ No se pudo obtener ningún stream:`, audioErr);
+              // Crear stream vacío para continuar con la conexión
+              stream = new MediaStream();
+              console.log(`[Media] 📦 Usando stream vacío para continuar`);
+            }
+          }
         }
-        // cargar dispositivos con labels
-        await loadDevices();
+        
+        if (stream) {
+          // aplicar estado inicial de toggles
+          stream.getAudioTracks().forEach((t: MediaStreamTrack) => (t.enabled = micOn));
+          stream.getVideoTracks().forEach((t: MediaStreamTrack) => (t.enabled = cameraOn));
+          localStreamRef.current = stream;
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+          }
+          console.log(`[Media] Stream configurado. Audio tracks: ${stream.getAudioTracks().length}, Video tracks: ${stream.getVideoTracks().length}`);
+          // cargar dispositivos con labels
+          await loadDevices();
+        }
       } catch (err) {
-        console.warn('[Media] No se pudo obtener cámara/micrófono:', err);
+        console.warn('[Media] Error general obteniendo stream:', err);
+        // Asegurar que siempre tengamos un stream, aunque esté vacío
+        localStreamRef.current = new MediaStream();
+        console.log(`[Media] 📦 Stream vacío asignado como fallback`);
       }
     } else {
       // actualizar estado de pistas según toggles
       const s = localStreamRef.current;
-      s.getAudioTracks().forEach((t) => (t.enabled = micOn));
-      s.getVideoTracks().forEach((t) => (t.enabled = cameraOn));
+  s.getAudioTracks().forEach((t: MediaStreamTrack) => (t.enabled = micOn));
+  s.getVideoTracks().forEach((t: MediaStreamTrack) => (t.enabled = cameraOn));
     }
     return localStreamRef.current;
   }, [micOn, cameraOn, selectedAudioId, selectedVideoId, loadDevices]);
@@ -365,7 +637,12 @@ export default function ReunionPage() {
   // Cambiar dispositivos en caliente si ya tenemos permisos/stream
   useEffect(() => {
     const switchDevices = async () => {
-      if (!localStreamRef.current) return; // aún no hay permisos/stream
+      // No cambiar dispositivos durante conexión inicial
+      if (!localStreamRef.current || isJoining) {
+        console.log(`[Media] 🛡️ Saltando cambio de dispositivos - joining: ${isJoining}`);
+        return;
+      }
+      
       try {
         const constraints: MediaStreamConstraints = {
           audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true,
@@ -380,21 +657,21 @@ export default function ReunionPage() {
           const senders = pc.getSenders();
           const newAudio = newStream.getAudioTracks()[0];
           const newVideo = newStream.getVideoTracks()[0];
-          const audioSender = senders.find((s) => s.track && s.track.kind === 'audio');
-          const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+          const audioSender = senders.find((s: RTCRtpSender) => s.track && s.track.kind === 'audio');
+          const videoSender = senders.find((s: RTCRtpSender) => s.track && s.track.kind === 'video');
           if (audioSender && newAudio) await audioSender.replaceTrack(newAudio);
           if (videoSender && newVideo) await videoSender.replaceTrack(newVideo);
         }
         const old = localStreamRef.current;
         localStreamRef.current = newStream;
         if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
-        old?.getTracks().forEach((t) => t.stop());
+  old?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       } catch (e) {
         console.warn('[Media] No se pudo cambiar dispositivos:', e);
       }
     };
     switchDevices();
-  }, [selectedAudioId, selectedVideoId, micOn, cameraOn]);
+  }, [selectedAudioId, selectedVideoId, micOn, cameraOn, isJoining]);
 
   // Eliminado: creación manual de sala no permitida
 
@@ -402,78 +679,169 @@ export default function ReunionPage() {
   // Eliminado flujo de creación local: las salas se crean en backend
 
   const joinAndAnswer = useCallback(async (rid: string) => {
-  setRoomId(rid);
-  // rol 'callee'
-  roleRef.current = 'callee';
-  const pc = setupPeer(rid, 'callee');
+    console.log(`[CALLEE] Iniciando joinAndAnswer para sala: ${rid}`);
+    setRoomId(rid);
+    roleRef.current = 'callee';
+    console.log(`[CALLEE] Configurando peer como callee...`);
+    const peerObj = setupPeer(rid, 'callee');
+    const pc = peerObj.pc;
+    const setRemote = peerObj.setRemote;
+    console.log(`[CALLEE] Peer configurado. Estado inicial: ${pc.connectionState}`);
+    
     // Adjuntar medios locales
+    console.log(`[CALLEE] Obteniendo stream local...`);
     const stream = await ensureLocalStream();
     if (stream) {
-      stream.getTracks().forEach((trk) => pc.addTrack(trk, stream));
+      console.log(`[CALLEE] Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      stream.getTracks().forEach((trk: MediaStreamTrack) => pc.addTrack(trk, stream));
+      console.log(`[CALLEE] Tracks agregados al peer`);
     }
+    
     // Esperar la oferta del caller con reintentos (hasta 15s)
+    console.log(`[CALLEE] Esperando oferta del caller...`);
     let offerStr: string | null = null;
     const start = Date.now();
     while (Date.now() - start < 15000) {
       try {
         const off = await getOffer(rid);
-        if (off.offer) { offerStr = off.offer; break; }
-      } catch {}
+        console.log(`[CALLEE] Polling offer - Tiempo transcurrido: ${Date.now() - start}ms, offer presente: ${!!off.offer}`);
+        if (off.offer) { 
+          offerStr = off.offer; 
+          console.log(`[CALLEE] ✅ Oferta recibida después de ${Date.now() - start}ms`);
+          break; 
+        }
+      } catch (err) {
+        console.log(`[CALLEE] Error en polling de offer:`, err);
+      }
       await new Promise(r => setTimeout(r, 500));
     }
     if (!offerStr) {
-      console.warn('[RTC] No se encontró oferta para la sala en el tiempo esperado');
-      return; // aborta unión silenciosamente
+      console.warn('[CALLEE] ❌ No se encontró oferta para la sala en el tiempo esperado');
+      return;
     }
+    
+    console.log(`[CALLEE] Configurando remote description...`);
     await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(offerStr)));
+    console.log(`[CALLEE] Remote description configurada. Estado: ${pc.connectionState}`);
+    
+    setRemote(); // flush candidates buffer
+    console.log(`[CALLEE] Creando answer...`);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
+    console.log(`[CALLEE] Local description (answer) configurada`);
+    
+    console.log(`[CALLEE] Enviando answer al servidor...`);
     await postAnswer(rid, JSON.stringify(answer));
-    // poll por candidatos del caller
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(async () => {
-      const cands = await getCandidates(rid, 'callee');
-      for (const c of cands.candidates) {
-        try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {}
-      }
-    }, 1000);
+    console.log(`[CALLEE] ✅ Answer enviada exitosamente`);
+    
+    // Pequeña pausa para asegurar propagación y iniciar ICE exchange
+    console.log(`[CALLEE] Esperando propagación de answer e inicio de ICE...`);
+    await new Promise(r => setTimeout(r, 1000));
+    
+    // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream]);
 
   // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
   const startAsCaller = useCallback(async (rid: string) => {
+    console.log(`[CALLER] Iniciando startAsCaller para sala: ${rid}`);
+    
+    // Protección contra múltiples llamadas
+    if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
+      console.log(`[CALLER] ⚠️ Ya hay un peer activo (${pcRef.current.connectionState}), cancelando startAsCaller duplicado`);
+      return;
+    }
+    
     setRoomId(rid);
     roleRef.current = 'caller';
-    const pc = setupPeer(rid, 'caller');
+    console.log(`[CALLER] Configurando peer como caller...`);
+    const peerObj = setupPeer(rid, 'caller');
+    const pc = peerObj.pc;
+    console.log(`[CALLER] Peer configurado. Estado inicial: ${pc.connectionState}`);
+    
+    console.log(`[CALLER] Obteniendo stream local...`);
     const stream = localStreamRef.current || await ensureLocalStream();
     if (stream) {
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      console.log(`[CALLER] Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
+      console.log(`[CALLER] Tracks agregados al peer`);
     }
+    
+    console.log(`[CALLER] Creando DataChannel...`);
     const dc = pc.createDataChannel('chat');
     dataChannelRef.current = dc;
-    dc.onopen = () => { setDcState('open'); try { console.log('[RTC] DataChannel abierto (caller)'); } catch{} sendPresence(); };
-    dc.onclose = () => setDcState('closed');
-    dc.onerror = () => setDcState('error');
-    dc.onmessage = (e) => { try { const m = JSON.parse(e.data); if (m?.meta === 'presence') sendPresence(); else if (m?.type) setMessages((p)=>[...p,m]); } catch {} };
+    dc.onopen = () => { 
+      console.log(`[CALLER] ✅ DataChannel abierto`);
+      setDcState('open'); 
+      sendPresence(); 
+    };
+    dc.onclose = () => {
+      console.log(`[CALLER] ❌ DataChannel cerrado`);
+      setDcState('closed');
+    };
+    dc.onerror = () => {
+      console.log(`[CALLER] ⚠️ DataChannel error`);
+      setDcState('error');
+    };
+    dc.onmessage = (e: MessageEvent) => { 
+      console.log(`[CALLER] Mensaje recibido en DataChannel:`, e.data);
+      try { 
+        const m = JSON.parse(e.data); 
+        if (m?.meta === 'presence') sendPresence(); 
+        else if (m?.type) setMessages((p: Message[])=>[...p,m]); 
+      } catch {} 
+    };
+    
+    console.log(`[CALLER] Creando oferta...`);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    console.log(`[CALLER] Local description (offer) configurada`);
+    
+    console.log(`[CALLER] Enviando oferta al servidor...`);
     await postOffer(rid, JSON.stringify(offer));
-    // Polling de answer y candidates del callee
+    console.log(`[CALLER] ✅ Oferta enviada exitosamente`);
+    
+    // Pequeña pausa para asegurar que la oferta esté disponible en el backend
+    console.log(`[CALLER] Esperando propagación de oferta...`);
+    await new Promise(r => setTimeout(r, 500));
+    
+    // Polling de answer
+    console.log(`[CALLER] Iniciando polling para answer...`);
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
         const ans = await getAnswer(rid);
+        console.log(`[CALLER] Polling answer - Estado signaling: ${pc.signalingState}, answer presente: ${!!ans.answer}`);
         if (ans.answer && pc.signalingState !== 'stable') {
-          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(ans.answer)));
+          console.log(`[CALLER] ✅ Answer recibida, configurando remote description...`);
+          const answerDesc = JSON.parse(ans.answer);
+          console.log(`[CALLER] Answer parseada:`, answerDesc);
+          await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
+          console.log(`[CALLER] Remote description configurada. Estado signaling: ${pc.signalingState}, Estado conexión: ${pc.connectionState}`);
+          
+          // Detener polling de answer una vez configurada
+          if (pc.signalingState === 'have-remote-offer' || pc.connectionState === 'connected') {
+            console.log(`[CALLER] 🎯 Negociación avanzando, deteniendo polling de answer`);
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = null;
+            }
+          }
         }
-        const cands = await getCandidates(rid, 'caller');
-        for (const c of cands.candidates) { try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {} }
-      } catch {}
+      } catch (err) {
+        console.error(`[CALLER] Error en polling de answer:`, err);
+      }
     }, 1000);
+    // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream, sendPresence]);
 
   // Reconectar en la misma sala reintentando la negociación
   const reconnect = useCallback(async () => {
-    if (!roomId || reconnecting) return;
+    if (!roomId || reconnecting || isJoining) {
+      console.log(`[Reconnect] ⚠️ Cancelando reconexión - roomId: ${!!roomId}, reconnecting: ${reconnecting}, isJoining: ${isJoining}`);
+      return;
+    }
+    
+    console.log(`[Reconnect] 🔄 Iniciando reconexión para sala: ${roomId}`);
     setReconnecting(true);
     try {
       // limpiar polling y conexiones actuales
@@ -487,15 +855,16 @@ export default function ReunionPage() {
       const role = roleRef.current;
       if (role === 'caller') {
         // como caller: crear nueva oferta en la misma sala
-        const pc = setupPeer(roomId, 'caller');
+        const peerObj = setupPeer(roomId, 'caller');
+        const pc = peerObj.pc;
         const stream = localStreamRef.current || await ensureLocalStream();
-        if (stream) stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      if (stream) stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
         const dc = pc.createDataChannel('chat');
         dataChannelRef.current = dc;
         dc.onopen = () => { setDcState('open'); sendPresence(); };
         dc.onclose = () => setDcState('closed');
         dc.onerror = () => setDcState('error');
-        dc.onmessage = (e) => { try { const m = JSON.parse(e.data); if (m?.meta === 'presence') sendPresence(); else if (m?.type) setMessages((p)=>[...p,m]); } catch {} };
+  dc.onmessage = (e: MessageEvent) => { try { const m = JSON.parse(e.data); if (m?.meta === 'presence') sendPresence(); else if (m?.type) setMessages((p: Message[])=>[...p,m]); } catch {} };
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await postOffer(roomId, JSON.stringify(offer));
@@ -518,7 +887,7 @@ export default function ReunionPage() {
     } finally {
       setReconnecting(false);
     }
-  }, [roomId, reconnecting, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer]);
+  }, [roomId, reconnecting, isJoining, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer]);
 
   useEffect(() => () => {
     if (pollingRef.current) clearInterval(pollingRef.current);
@@ -589,13 +958,13 @@ export default function ReunionPage() {
     // detener compartir pantalla si está activo
     try {
       if (isScreenSharing) {
-        screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+  screenStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
         screenStreamRef.current = null;
         setIsScreenSharing(false);
       }
     } catch {}
     // detener medios
-  try { localStreamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+  try { localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch {}
   localStreamRef.current = null;
   try { if (localVideoRef.current) localVideoRef.current.srcObject = null; } catch {}
   try { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null; } catch {}
@@ -604,11 +973,11 @@ export default function ReunionPage() {
   // Abordar cambios de toggles en pistas ya capturadas
   useEffect(() => {
     const s = localStreamRef.current;
-    if (s) s.getAudioTracks().forEach((t) => (t.enabled = micOn));
+  if (s) s.getAudioTracks().forEach((t: MediaStreamTrack) => (t.enabled = micOn));
   }, [micOn]);
   useEffect(() => {
     const s = localStreamRef.current;
-    if (s) s.getVideoTracks().forEach((t) => (t.enabled = cameraOn));
+  if (s) s.getVideoTracks().forEach((t: MediaStreamTrack) => (t.enabled = cameraOn));
   }, [cameraOn]);
 
   // Abandonar sala sin guardar chat
@@ -625,13 +994,13 @@ export default function ReunionPage() {
     // detener compartir pantalla si está activo
     try {
       if (isScreenSharing) {
-        screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+  screenStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
         screenStreamRef.current = null;
         setIsScreenSharing(false);
       }
     } catch {}
   // detener medios y liberar cámara
-  try { localStreamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+  try { localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch {}
   localStreamRef.current = null;
   try { if (localVideoRef.current) localVideoRef.current.srcObject = null; } catch {}
   try { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null; } catch {}
@@ -683,7 +1052,7 @@ export default function ReunionPage() {
     try {
       const pc = pcRef.current;
       const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
-      const sender = videoSenderRef.current || pc?.getSenders().find((s) => s.track && s.track.kind === 'video') || null;
+  const sender = videoSenderRef.current || pc?.getSenders().find((s: RTCRtpSender) => s.track && s.track.kind === 'video') || null;
       if (sender && camTrack) await sender.replaceTrack(camTrack);
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
@@ -710,7 +1079,7 @@ export default function ReunionPage() {
         stopScreenShare();
       };
       const pc = pcRef.current;
-      const sender = pc?.getSenders().find((s) => s.track && s.track.kind === 'video') || null;
+  const sender = pc?.getSenders().find((s: RTCRtpSender) => s.track && s.track.kind === 'video') || null;
       videoSenderRef.current = sender;
       if (sender) await sender.replaceTrack(track);
       screenStreamRef.current = ds;
@@ -723,9 +1092,9 @@ export default function ReunionPage() {
 
   // Actualizar presencia local (nombre/mute) y reflejar en la lista
   useEffect(() => {
-    setParticipants((prev) => {
-      const idx = prev.findIndex(p => p.isYou);
-  const me: ParticipantData = { id: localId, name: displayName, avatar: avatarFor(displayName), isMuted: !micOn, isYou: true };
+    setParticipants((prev: ParticipantData[]) => {
+      const idx = prev.findIndex((p: ParticipantData) => p.isYou);
+      const me: ParticipantData = { id: localId, name: displayName, avatar: avatarFor(displayName), isMuted: !micOn, isYou: true };
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = me;
@@ -820,7 +1189,7 @@ export default function ReunionPage() {
                     className="flex-1 bg-gray-800 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
-                    onClick={() => joinCode.trim() && joinAndAnswer(joinCode.trim())}
+                    onClick={() => joinCode.trim() && autoJoinRoom(joinCode.trim())}
                     className="px-3 py-2 text-sm rounded bg-green-600 hover:bg-green-700"
                   >Unirse</button>
                   </div>
@@ -845,7 +1214,7 @@ export default function ReunionPage() {
                             >Copiar enlace</button>
                             <a href={roomLinkWithName(r.roomId, displayName)} className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700">Abrir</a>
                             <button
-                              onClick={() => joinAndAnswer(r.roomId)}
+                              onClick={() => autoJoinRoom(r.roomId)}
                               className="px-2 py-1 text-xs rounded bg-green-600 hover:bg-green-700"
                             >Unirse</button>
                           </div>
@@ -967,18 +1336,25 @@ export default function ReunionPage() {
                     if (!rid) return;
                     // Si es temprano, no permitir
                     if (allowedJoinFrom && new Date() < allowedJoinFrom) return;
-                    // Si es doctor, actúa como caller y publica la oferta
-                    if (autoParams?.who === 'doctor') {
-                      await startAsCaller(rid);
-                    } else {
-                      // paciente (callee): requiere que exista la oferta
-                      const off = await getOffer(rid);
-                      if (off.offer) {
-                        await joinAndAnswer(rid);
-                      } else {
-                        setJoinError('La sala aún no está abierta por el médico. Intenta en unos minutos.');
-                      }
+                    // Nuevo flujo: ambos roles intentan unirse, si no hay oferta la crean automáticamente
+                    let off;
+                    try {
+                      off = await getOffer(rid);
+                    } catch {}
+                    if (!off?.offer) {
+                      // Crear oferta mínima para habilitar la sala
+                      try {
+                        const pc = new RTCPeerConnection();
+                        pc.createDataChannel('auto');
+                        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+                        await pc.setLocalDescription(offer);
+                        await postOffer(rid, JSON.stringify(offer));
+                        pc.close();
+                      } catch {}
                     }
+                    // Esperar brevemente a que la oferta esté disponible
+                    await new Promise(r => setTimeout(r, 300));
+                    await autoJoinRoom(rid);
                   } catch {
                     setJoinError('No se pudo conectar. Reintenta en unos segundos.');
                   }
@@ -1040,7 +1416,7 @@ export default function ReunionPage() {
                 className="flex-1 bg-gray-800 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
-                onClick={() => joinCode.trim() && joinAndAnswer(joinCode.trim())}
+                onClick={() => joinCode.trim() && autoJoinRoom(joinCode.trim())}
                 className="px-3 py-2 text-sm rounded bg-green-600 hover:bg-green-700"
               >Unirse</button>
             </div>
@@ -1073,7 +1449,7 @@ export default function ReunionPage() {
                         className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600"
                       >Copiar</button>
                       <button
-                        onClick={() => joinAndAnswer(r.roomId)}
+                        onClick={() => autoJoinRoom(r.roomId)}
                         className="px-2 py-1 text-xs rounded bg-green-600 hover:bg-green-700"
                       >Unirse</button>
                     </div>
@@ -1097,7 +1473,7 @@ export default function ReunionPage() {
       <span className="text-xs text-gray-400">RTC: {connState} | DC: {dcState}</span>
     </div>
         <div className="flex items-center gap-4">
-          {roomId && (connState === 'failed' || connState === 'disconnected' || connState === 'closed' || dcState === 'closed' || dcState === 'error') && (
+          {roomId && !isJoining && (connState === 'failed' || connState === 'disconnected' || connState === 'closed' || dcState === 'closed' || dcState === 'error') && (
             <button onClick={reconnect} disabled={reconnecting} className={`px-3 py-2 rounded ${reconnecting ? 'bg-gray-700 text-gray-400' : 'bg-amber-600 hover:bg-amber-700'} text-sm`}>
               {reconnecting ? 'Reconectando…' : 'Reconectar'}
             </button>
