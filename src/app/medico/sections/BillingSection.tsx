@@ -14,7 +14,8 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
     setBillingProfile,
     createOrUpdateBillingProfile,
     medicoData,
-    invoices
+    invoices,
+    billingNotImplemented
   } = ctx;
 
   return (
@@ -28,6 +29,28 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full border-4 border-primary-200 border-t-primary h-12 w-12 mr-2"></div>
             <p className="text-primary mt-2">Cargando facturación...</p>
+          </div>
+        ) : billingNotImplemented ? (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-6 rounded-lg text-center my-4">
+            <div className="mb-3">
+              <svg className="mx-auto h-12 w-12 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Sistema de Facturación en Desarrollo</h3>
+            <p className="mb-4">El sistema de facturación está actualmente en desarrollo y no está disponible en el backend.</p>
+            <div className="text-sm text-amber-700 bg-amber-100 p-3 rounded border">
+              <p className="font-medium mb-1">Estado del desarrollo:</p>
+              <ul className="text-left space-y-1">
+                <li>• Interfaz de usuario: Completada ✅</li>
+                <li>• Integración con frontend: Completada ✅</li>
+                <li>• API del backend: En desarrollo 🚧</li>
+                <li>• Base de datos: En desarrollo 🚧</li>
+              </ul>
+            </div>
+            <p className="mt-4 text-sm">
+              Una vez implementado, podrás gestionar perfiles de facturación, métodos de pago e invoices desde aquí.
+            </p>
           </div>
         ) : !billingProfile ? (
           <div className="bg-gray-50 text-gray-700 p-5 rounded-md text-center my-4">

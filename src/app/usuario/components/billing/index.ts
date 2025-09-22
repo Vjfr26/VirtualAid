@@ -1,9 +1,0 @@
-export { default as BillingView } from './BillingView';
-export { default as BillingHeader } from './BillingHeader';
-export { default as BillingProfileSection } from './BillingProfileSection';
-export { default as AddressSection } from './AddressSection';
-export { default as PaymentMethodsSection } from './PaymentMethodsSection';
-export { default as PaymentMethodItem } from './PaymentMethodItem';
-export { default as PaymentMethodForm } from './PaymentMethodForm';
-export { default as InvoicesSection } from './InvoicesSection';
-export { default as CouponSection } from './CouponSection';

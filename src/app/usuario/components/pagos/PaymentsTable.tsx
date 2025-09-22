@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import PaymentsTableHeader from './PaymentsTableHeader';
 import PaymentsTableColumns from './PaymentsTableColumns';
 import PaymentRow from './PaymentRow';
+import PDFPreviewModal from './PDFPreviewModal';
 
 interface PaymentsTableProps {
   pagos: Array<{
@@ -56,6 +57,42 @@ export default function PaymentsTable({
   setVista,
 }: PaymentsTableProps) {
   const { t } = useTranslation('common');
+  
+  // Estado para el modal de vista previa
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewPagoId, setPreviewPagoId] = useState<number | null>(null);
+
+  // Función para abrir la vista previa
+  const handleAbrirPreview = (pagoId: number) => {
+    setPreviewPagoId(pagoId);
+    setShowPreview(true);
+  };
+
+  // Función para cerrar la vista previa
+  const handleCerrarPreview = () => {
+    setShowPreview(false);
+    setPreviewPagoId(null);
+  };
+
+  // Función para manejar la descarga desde el modal
+  const handleDescargarDesdeModal = async () => {
+    if (previewPagoId) {
+      try {
+        const blob = await descargarRecibo(previewPagoId);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recibo-virtualaid-${previewPagoId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        addToast('Recibo descargado', 'success');
+      } catch (e) {
+        addToast(e instanceof Error ? e.message : 'No se pudo descargar el recibo', 'error');
+      }
+    }
+  };
 
   const EmptyState = () => (
     <tr>
@@ -141,6 +178,7 @@ export default function PaymentsTable({
                     descargarRecibo={descargarRecibo}
                     addToast={addToast}
                     refreshPagos={refreshPagos}
+                    onAbrirPreview={handleAbrirPreview}
                   />
                 ))
               )}
@@ -150,6 +188,16 @@ export default function PaymentsTable({
       </div>
 
       <Footer />
+
+      {/* Modal de Vista Previa - Renderizado fuera de la tabla para evitar errores de hidratación */}
+      {previewPagoId && (
+        <PDFPreviewModal
+          isOpen={showPreview}
+          onClose={handleCerrarPreview}
+          pagoId={previewPagoId}
+          onDownload={handleDescargarDesdeModal}
+        />
+      )}
     </div>
   );
 }

@@ -709,6 +709,7 @@ export default function MedicoDashboard() {
   // Billing (facturación real)
   const [billingProfile, setBillingProfile] = useState<BillingProfile | null>(null);
   const [billingLoading, setBillingLoading] = useState(false);
+  const [billingNotImplemented, setBillingNotImplemented] = useState(false);
   const [billingProfileEditing, setBillingProfileEditing] = useState(false);
   const [billingProfileForm, setBillingProfileForm] = useState<{legal_name?: string, tax_id?: string}>({});
   const [addressForm, setAddressForm] = useState<Address | null>(null);
@@ -729,6 +730,7 @@ export default function MedicoDashboard() {
     const cargarBilling = async () => {
       if (!medicoData) return;
       setBillingLoading(true);
+      setBillingNotImplemented(false);
       try {
         const profile = await getBillingProfileByOwner('medico', medicoData.email);
         setBillingProfile(profile);
@@ -737,7 +739,13 @@ export default function MedicoDashboard() {
         setPmList(methods);
         const allInvoices = await listInvoices();
         setInvoices(allInvoices.filter(inv => inv.billing_profile_id === profile.id));
-      } catch {
+      } catch (error: any) {
+        if (error.message === 'BILLING_NOT_IMPLEMENTED') {
+          setBillingNotImplemented(true);
+          console.warn('Sistema de billing no implementado en el backend');
+        } else {
+          console.error('Error cargando billing:', error);
+        }
         setBillingProfile(null);
         setPmList([]);
         setInvoices([]);
@@ -858,6 +866,8 @@ export default function MedicoDashboard() {
     setBillingProfile,
     billingLoading,
     setBillingLoading,
+    billingNotImplemented,
+    setBillingNotImplemented,
     billingProfileEditing,
     setBillingProfileEditing,
     billingProfileForm,

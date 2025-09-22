@@ -53,15 +53,40 @@ export interface Invoice {
 }
 
 export async function getBillingProfileByOwner(type: 'medico'|'usuario', id: string): Promise<BillingProfile> {
-  return fetchJSON<BillingProfile>(`${API_URL}/api/billing/profile/owner/${type}/${encodeURIComponent(id)}`);
+  try {
+    return await fetchJSON<BillingProfile>(`${API_URL}/api/billing/profile/owner/${type}/${encodeURIComponent(id)}`);
+  } catch (error: any) {
+    // Si el endpoint no existe o devuelve error del servidor, indicar que no está implementado
+    if (error.message?.includes('404') || error.message?.includes('500') || error.message?.includes('Error 404') || error.message?.includes('Error 500')) {
+      throw new Error('BILLING_NOT_IMPLEMENTED');
+    }
+    console.error('Error en getBillingProfileByOwner:', error);
+    throw error;
+  }
 }
 
 export async function listPaymentMethodsByProfile(profileId: number): Promise<PaymentMethod[]> {
-  return fetchJSON<PaymentMethod[]>(`${API_URL}/api/billing/payment-methods/profile/${profileId}`);
+  try {
+    return await fetchJSON<PaymentMethod[]>(`${API_URL}/api/billing/payment-methods/profile/${profileId}`);
+  } catch (error: any) {
+    // Si el endpoint no existe, devolver array vacío
+    if (error.message?.includes('404') || error.message?.includes('500')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function listInvoices(): Promise<Invoice[]> {
-  return fetchJSON<Invoice[]>(`${API_URL}/api/billing/invoices`);
+  try {
+    return await fetchJSON<Invoice[]>(`${API_URL}/api/billing/invoices`);
+  } catch (error: any) {
+    // Si el endpoint no existe, devolver array vacío
+    if (error.message?.includes('404') || error.message?.includes('500')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function createOrUpdateBillingProfile(data: Partial<BillingProfile>): Promise<BillingProfile> {

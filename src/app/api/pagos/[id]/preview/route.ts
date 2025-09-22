@@ -85,8 +85,8 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
       paciente_email: pacienteInfo?.email || 'N/A',
       medico_nombre: medicoInfo ? `Dr. ${medicoInfo.nombre || ''} ${medicoInfo.apellido || ''}`.trim() : 'N/A',
       medico_especialidad: medicoInfo?.especialidad || 'N/A',
-      fecha_cita: citaInfo?.fecha || null,
-      hora_cita: citaInfo?.hora || null
+      fecha_cita: citaInfo?.fecha || undefined,
+      hora_cita: citaInfo?.hora || undefined
     };
 
     return pagoInfo;
@@ -127,7 +127,7 @@ function formatearFecha(fecha: string): string {
 }
 
 // Función para generar el PDF del recibo
-function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
+function generarReciboPDF(pagoInfo: PagoInfo): string {
   const doc = new jsPDF();
   
   // Configuración de colores corporativos
@@ -158,7 +158,7 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Servicios Médicos Online', 70, 28);
+    doc.text('Servicios Médicos Online', 80, 28);
     
   } catch (error) {
     console.warn('No se pudo cargar el logo:', error);
@@ -328,7 +328,8 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
   doc.text('Email: contacto@virtualaid.com | Web: www.virtualaid.com', 25, yPos + 5);
   doc.text(`Generado el ${formatearFecha(new Date().toISOString().split('T')[0])}`, 25, yPos + 10);
   
-  return new Uint8Array(doc.output('arraybuffer'));
+  // Retornar PDF como base64 para preview
+  return doc.output('datauristring');
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -338,20 +339,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     // Obtener información completa del pago
     const pagoInfo = await obtenerInfoPago(id);
     
-    // Generar el PDF del recibo
-    const pdfBytes = generarReciboPDF(pagoInfo);
-    const buf = Buffer.from(pdfBytes);
+    // Generar el PDF del recibo como base64
+    const pdfBase64 = generarReciboPDF(pagoInfo);
     
-    return new Response(buf, {
+    return new Response(JSON.stringify({ 
+      pdfBase64,
+      pagoInfo 
+    }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=recibo-virtualaid-${id}.pdf`,
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-store'
       }
     });
   } catch (error) {
-    console.error('Error generando recibo:', error);
-    return new Response('Error generando recibo', { status: 500 });
+    console.error('Error generando preview:', error);
+    return new Response(JSON.stringify({ error: 'Error generando preview' }), { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }

@@ -30,7 +30,6 @@ import {
   SpecialistsList,
   ReunionView,
   PaymentsView,
-  BillingView
 } from './components';
 
 // Datos iniciales mínimos para evitar layout shift mientras carga
@@ -1744,7 +1743,6 @@ const loadPaypalSdk = useCallback(() => {
               <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'especialistas' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => setVista('especialistas')}>{t('nav_specialists')}</button>
               <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'Reunion' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => setVista('Reunion')}>{t('nav_meetings')}</button>
               <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'pagos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => setVista('pagos')}>{t('nav_payments')}</button>
-              <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'billing' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => setVista('billing')}>{t('nav_billing')}</button>
             </nav>
           </div>
           <div className="flex-1 min-w-0">
@@ -1769,7 +1767,6 @@ const loadPaypalSdk = useCallback(() => {
                     <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'especialistas' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => { setVista('especialistas'); setMenuAbierto(false); }}>{t('nav_specialists')}</button>
                     <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'Reunion' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => { setVista('Reunion'); setMenuAbierto(false); }}>{t('nav_meetings')}</button>
                     <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'pagos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => { setVista('pagos'); setMenuAbierto(false); }}>{t('nav_payments')}</button>
-                    <button className={`text-left px-3 py-2 rounded-lg font-medium transition cursor-pointer ${vista === 'billing' ? 'bg-blue-100 text-blue-700' : 'hover:bg-blue-50 text-gray-700'}`} onClick={() => { setVista('billing'); setMenuAbierto(false); }}>{t('nav_billing')}</button>
                   </nav>
                 )}
               </div>
@@ -1894,204 +1891,6 @@ const loadPaypalSdk = useCallback(() => {
                   />
                 </div>
               </div>
-            )}
-            {vista === 'billing' && (
-              <BillingView
-                billingProfiles={billingProfile ? [billingProfile] : []}
-                currentProfile={billingProfile}
-                billingAddress={{
-                  ...addressForm,
-                  line2: addressForm.line2 ?? '',
-                  city: addressForm.city ?? '',
-                  region: addressForm.region ?? '',
-                  postal_code: addressForm.postal_code ?? '',
-                  country: addressForm.country ?? ''
-                }}
-                paymentMethods={pmList}
-                invoices={invoices}
-                loadingProfiles={billingLoading}
-                loadingPaymentMethods={pmLoading}
-                loadingInvoices={billingLoading}
-                showCreateProfile={!billingProfile}
-                showEditProfile={false}
-                showAddPayment={pmFormOpen}
-                editingPayment={pmEditingId ? pmList.find(pm => pm.id === pmEditingId) || null : null}
-                newProfile={{
-                  legal_name: billingProfile?.legal_name || `${usuario.nombre}${usuario.apellido ? ' ' + usuario.apellido : ''}`,
-                  tax_id: billingProfile?.tax_id || ''
-                }}
-                newPaymentMethod={{
-                  type: pmForm.provider === 'paypal' ? 'paypal' : 'card',
-                  provider: pmForm.provider,
-                  holder_name: pmForm.brand || '',
-                  email: pmForm.token || ''
-                }}
-                setShowCreateProfile={() => {}}
-                setShowEditProfile={() => {}}
-                setShowAddPayment={setPmFormOpen}
-                setEditingPayment={(payment) => setPmEditingId(payment?.id || null)}
-                setNewProfile={(profile) => {
-                  if (billingProfile) {
-                    setBillingProfile({
-                      ...billingProfile,
-                      legal_name: profile.legal_name,
-                      tax_id: profile.tax_id
-                    });
-                  }
-                }}
-                setNewPaymentMethod={(method) => {
-                  setPmForm({
-                    provider: method.provider,
-                    token: method.email,
-                    brand: method.holder_name,
-                    last4: '',
-                    exp_month: undefined,
-                    exp_year: undefined
-                  });
-                }}
-                setBillingAddress={(address) => setAddressForm({
-                  ...addressForm,
-                  line1: address.line1,
-                  line2: address.line2 || null,
-                  city: address.city || null,
-                  region: address.region || null,
-                  postal_code: address.postal_code || null,
-                  country: address.country || null,
-                })}
-                handleCreateProfile={async () => {
-                  if (!billingProfile) {
-                    try {
-                      setBillingLoading(true);
-                      const created = await createOrUpdateBillingProfile({
-                        billable_type: 'App\\Models\\Usuario',
-                        billable_id: usuario.email,
-                        legal_name: `${usuario.nombre}${usuario.apellido ? ' ' + usuario.apellido : ''}`,
-                      });
-                      setBillingProfile(created);
-                      addToast(t('billing_profile_created'), 'success');
-                    } catch (e) {
-                      addToast(e instanceof Error ? e.message : 'Error al crear perfil', 'error');
-                    } finally {
-                      setBillingLoading(false);
-                    }
-                  }
-                }}
-                handleEditProfile={async () => {
-                  if (!billingProfile) return;
-                  try {
-                    await createOrUpdateBillingProfile({ 
-                      id: billingProfile.id, 
-                      legal_name: billingProfile.legal_name, 
-                      tax_id: billingProfile.tax_id 
-                    });
-                    addToast('Perfil actualizado', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al actualizar perfil', 'error');
-                  }
-                }}
-                handleSaveAddress={async () => {
-                  if (!billingProfile) return;
-                  try {
-                    let addrId = addressForm.id;
-                    if (addrId && addrId > 0) {
-                      await updateAddress(addrId, {
-                        line1: addressForm.line1, 
-                        line2: addressForm.line2, 
-                        city: addressForm.city, 
-                        region: addressForm.region, 
-                        postal_code: addressForm.postal_code, 
-                        country: addressForm.country, 
-                        is_billing: true,
-                      });
-                    } else {
-                      const created = await createAddress({
-                        line1: addressForm.line1, 
-                        line2: addressForm.line2, 
-                        city: addressForm.city, 
-                        region: addressForm.region, 
-                        postal_code: addressForm.postal_code, 
-                        country: addressForm.country, 
-                        is_billing: true,
-                      });
-                      addrId = created.id;
-                      setAddressForm(a => ({ ...a, id: created.id }));
-                    }
-                    await createOrUpdateBillingProfile({ id: billingProfile.id, address_id: addrId });
-                    addToast('Dirección guardada', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al guardar dirección', 'error');
-                  }
-                }}
-                handleAddPaymentMethod={async () => {
-                  if (!billingProfile) return;
-                  try {
-                    setPmLoading(true);
-                    await createPaymentMethod({
-                      billing_profile_id: billingProfile.id,
-                      provider: pmForm.provider,
-                      token: pmForm.token,
-                      brand: pmForm.provider === 'paypal' ? 'PayPal' : pmForm.brand,
-                      last4: pmForm.provider === 'paypal' ? undefined : pmForm.last4,
-                      exp_month: pmForm.provider === 'paypal' ? undefined : pmForm.exp_month,
-                      exp_year: pmForm.provider === 'paypal' ? undefined : pmForm.exp_year,
-                      is_default: pmList.length === 0,
-                      status: 'active',
-                    });
-                    const methods = await listPaymentMethodsByProfile(billingProfile.id);
-                    setPmList(methods);
-                    setPmFormOpen(false);
-                    setPmForm({ provider: 'manual' });
-                    addToast('Método de pago agregado', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al agregar método', 'error');
-                  } finally {
-                    setPmLoading(false);
-                  }
-                }}
-                handleEditPaymentMethod={async () => {
-                  const pm = pmList.find(p => p.id === pmEditingId);
-                  if (!pm) return;
-                  try {
-                    if (pm.provider === 'paypal') {
-                      await updatePaymentMethod(pm.id, {
-                        token: pmEditForm.token ?? pm.token,
-                      });
-                    } else {
-                      await updatePaymentMethod(pm.id, {
-                        brand: pmEditForm.brand ?? pm.brand,
-                        last4: pmEditForm.last4 ?? pm.last4,
-                        exp_month: pmEditForm.exp_month ?? pm.exp_month,
-                        exp_year: pmEditForm.exp_year ?? pm.exp_year,
-                      });
-                    }
-                    const methods = await listPaymentMethodsByProfile(pm.billing_profile_id);
-                    setPmList(methods);
-                    setPmEditingId(null);
-                    setPmEditForm({});
-                    addToast('Método actualizado', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al guardar', 'error');
-                  }
-                }}
-                handleDeletePaymentMethod={async (id: number) => {
-                  try {
-                    await deletePaymentMethod(id);
-                    setPmList(list => list.filter(x => x.id !== id));
-                    addToast('Método eliminado', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al eliminar', 'error');
-                  }
-                }}
-                handleSetDefaultPayment={async (id: number) => {
-                  try {
-                    await updatePaymentMethod(id, { is_default: true });
-                    setPmList(list => list.map(x => ({ ...x, is_default: x.id === id })));
-                    addToast('Predeterminado actualizado', 'success');
-                  } catch (e) {
-                    addToast(e instanceof Error ? e.message : 'Error al actualizar', 'error');
-                  }
-                }}
-              />
             )}
             {/* Vista de Pagos mejorada */}
             {/* Vista de Pagos modularizada */}

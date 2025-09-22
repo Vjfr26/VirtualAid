@@ -26,11 +26,12 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
   try {
     // Obtener información del pago
     const pagoResponse = await fetch(`${baseUrl}/api/pagos/${pagoId}`);
-    const pago = await pagoResponse.json();
     
     if (!pagoResponse.ok) {
       throw new Error(`Error obteniendo pago: ${pagoResponse.status}`);
     }
+    
+    const pago = await pagoResponse.json();
     
     // Obtener información de la cita si existe
     let citaInfo = null;
@@ -50,7 +51,7 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
     if (pago.usuario_id || citaInfo?.usuario_id) {
       try {
         const usuarioId = pago.usuario_id || citaInfo?.usuario_id;
-        const pacienteResponse = await fetch(`${baseUrl}/api/usuarios/${usuarioId}`);
+        const pacienteResponse = await fetch(`${baseUrl}/api/usuario/${usuarioId}`);
         if (pacienteResponse.ok) {
           pacienteInfo = await pacienteResponse.json();
         }
@@ -64,7 +65,7 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
     if (pago.medico_id || citaInfo?.medico_id) {
       try {
         const medicoId = pago.medico_id || citaInfo?.medico_id;
-        const medicoResponse = await fetch(`${baseUrl}/api/medicos/${medicoId}`);
+        const medicoResponse = await fetch(`${baseUrl}/api/medico/${medicoId}`);
         if (medicoResponse.ok) {
           medicoInfo = await medicoResponse.json();
         }
@@ -84,9 +85,9 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
       paciente_nombre: pacienteInfo ? `${pacienteInfo.nombre || ''} ${pacienteInfo.apellido || ''}`.trim() : 'N/A',
       paciente_email: pacienteInfo?.email || 'N/A',
       medico_nombre: medicoInfo ? `Dr. ${medicoInfo.nombre || ''} ${medicoInfo.apellido || ''}`.trim() : 'N/A',
-      medico_especialidad: medicoInfo?.especialidad || 'N/A',
-      fecha_cita: citaInfo?.fecha || null,
-      hora_cita: citaInfo?.hora || null
+      medico_especialidad: medicoInfo?.especialidad || medicoInfo?.especializacion || 'N/A',
+      fecha_cita: citaInfo?.fecha || undefined,
+      hora_cita: citaInfo?.hora || undefined
     };
 
     return pagoInfo;
@@ -98,7 +99,7 @@ async function obtenerInfoPago(pagoId: string): Promise<PagoInfo> {
     return {
       id: pagoId,
       monto: 0,
-      estado: 'Error',
+      estado: 'Error al conectar con backend',
       metodo: 'N/A',
       fecha_pago: new Date().toISOString().split('T')[0],
       paciente_nombre: 'Error al cargar datos',
@@ -127,7 +128,7 @@ function formatearFecha(fecha: string): string {
 }
 
 // Función para generar el PDF del recibo
-function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
+function generarReciboPDF(pagoInfo: PagoInfo): string {
   const doc = new jsPDF();
   
   // Configuración de colores corporativos
@@ -158,7 +159,7 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Servicios Médicos Online', 70, 28);
+    doc.text('Servicios Médicos Online', 80, 28);
     
   } catch (error) {
     console.warn('No se pudo cargar el logo:', error);
@@ -328,30 +329,45 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
   doc.text('Email: contacto@virtualaid.com | Web: www.virtualaid.com', 25, yPos + 5);
   doc.text(`Generado el ${formatearFecha(new Date().toISOString().split('T')[0])}`, 25, yPos + 10);
   
-  return new Uint8Array(doc.output('arraybuffer'));
+  // Retornar PDF como base64 para preview
+  return doc.output('datauristring');
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const pagoId = url.searchParams.get('id');
+    
+    if (!pagoId) {
+      return new Response(JSON.stringify({ error: 'ID de pago requerido' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
     // Obtener información completa del pago
-    const pagoInfo = await obtenerInfoPago(id);
+    const pagoInfo = await obtenerInfoPago(pagoId);
     
-    // Generar el PDF del recibo
-    const pdfBytes = generarReciboPDF(pagoInfo);
-    const buf = Buffer.from(pdfBytes);
+    // Generar el PDF del recibo como base64
+    const pdfBase64 = generarReciboPDF(pagoInfo);
     
-    return new Response(buf, {
+    return new Response(JSON.stringify({ 
+      pdfBase64,
+      pagoInfo 
+    }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=recibo-virtualaid-${id}.pdf`,
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-store'
       }
     });
   } catch (error) {
-    console.error('Error generando recibo:', error);
-    return new Response('Error generando recibo', { status: 500 });
+    console.error('Error generando preview:', error);
+    return new Response(JSON.stringify({ error: 'Error generando preview' }), { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
   }
 }

@@ -729,9 +729,25 @@ export default function ReunionPage() {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     console.log(`[CALLEE] Local description (answer) configurada`);
-    
-    console.log(`[CALLEE] Enviando answer al servidor...`);
-    await postAnswer(rid, JSON.stringify(answer));
+
+    // Validación y log antes de enviar la answer
+    if (!answer || typeof answer !== 'object') {
+      console.error('[CALLEE] ❌ La answer es null o no es un objeto:', answer);
+      throw new Error('La answer generada es inválida');
+    }
+    if (!('type' in answer) || !('sdp' in answer)) {
+      console.error('[CALLEE] ❌ La answer no tiene los campos requeridos:', answer);
+      throw new Error('La answer generada no tiene los campos requeridos');
+    }
+    const answerStr = JSON.stringify(answer);
+    // Log explícito antes de enviar a postAnswer
+    console.log('[CALLEE][DEBUG] Se enviará a postAnswer el siguiente contenido:', {
+      rid,
+      answerStr,
+      answerObj: answer
+    });
+    console.log(`[CALLEE] Enviando answer al servidor. Contenido:`, answer);
+    await postAnswer(rid, answerStr);
     console.log(`[CALLEE] ✅ Answer enviada exitosamente`);
     
     // Pequeña pausa para asegurar propagación y iniciar ICE exchange
@@ -811,15 +827,15 @@ export default function ReunionPage() {
       try {
         const ans = await getAnswer(rid);
         console.log(`[CALLER] Polling answer - Estado signaling: ${pc.signalingState}, answer presente: ${!!ans.answer}`);
-        if (ans.answer && pc.signalingState !== 'stable') {
+        // Solo setear remoteDescription si estamos en el estado correcto
+        if (ans.answer && pc.signalingState === 'have-local-offer') {
           console.log(`[CALLER] ✅ Answer recibida, configurando remote description...`);
           const answerDesc = JSON.parse(ans.answer);
           console.log(`[CALLER] Answer parseada:`, answerDesc);
           await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
           console.log(`[CALLER] Remote description configurada. Estado signaling: ${pc.signalingState}, Estado conexión: ${pc.connectionState}`);
-          
           // Detener polling de answer una vez configurada
-          if (pc.signalingState === 'have-remote-offer' || pc.connectionState === 'connected') {
+          if (pc.connectionState && pc.connectionState === 'connected') {
             console.log(`[CALLER] 🎯 Negociación avanzando, deteniendo polling de answer`);
             if (pollingRef.current) {
               clearInterval(pollingRef.current);
@@ -1130,6 +1146,7 @@ export default function ReunionPage() {
           {/* Sidebar expandible/colapsable */}
           <aside className={`w-80 bg-gray-900 p-4 flex flex-col transition-all duration-300 ${sidebarVisible ? 'block' : 'hidden'}`} style={{ minWidth: sidebarVisible ? 320 : 0 }}>
             <div>
+          </div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Meeting details</h2>
                 <button onClick={() => setSidebarVisible(false)} className="text-gray-400 hover:text-white text-2xl leading-none">
@@ -1173,9 +1190,9 @@ export default function ReunionPage() {
                       <option key={d.deviceId} value={d.deviceId}>{d.label || `Cam ${d.deviceId.slice(0,6)}`}</option>
                     ))}
                   </select>
+
                 </div>
               )}
-            </div>
 
             {!roomId && participantsOpen && (
               <div className="space-y-3">
@@ -1321,7 +1338,18 @@ export default function ReunionPage() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-300 mb-4">Puedes unirte cuando estés listo.</p>
+              <>
+                <p className="text-sm text-gray-300 mb-4">Puedes unirte cuando estés listo.</p>
+                {(autoParams?.rid || roomId) && (
+                  <button
+                    className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold mt-2"
+                    onClick={() => autoJoinRoom(autoParams?.rid || roomId!)}
+                    disabled={isJoining}
+                  >
+                    {isJoining ? 'Conectando...' : 'Unirse a la videollamada'}
+                  </button>
+                )}
+              </>
             )}
             {appointmentStartAt && (
               <p className="text-xs text-gray-400">Cita: {appointmentStartAt.toLocaleString()}</p>
@@ -1329,61 +1357,9 @@ export default function ReunionPage() {
             {joinError && <p className="text-sm text-red-400 mt-2">{joinError}</p>}
             <div className="mt-4 flex items-center justify-center gap-2">
               <button
-                onClick={async () => {
-                  try {
-                    setJoinError("");
-                    const rid = autoParams?.rid;
-                    if (!rid) return;
-                    // Si es temprano, no permitir
-                    if (allowedJoinFrom && new Date() < allowedJoinFrom) return;
-                    // Nuevo flujo: ambos roles intentan unirse, si no hay oferta la crean automáticamente
-                    let off;
-                    try {
-                      off = await getOffer(rid);
-                    } catch {}
-                    if (!off?.offer) {
-                      // Crear oferta mínima para habilitar la sala
-                      try {
-                        const pc = new RTCPeerConnection();
-                        pc.createDataChannel('auto');
-                        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-                        await pc.setLocalDescription(offer);
-                        await postOffer(rid, JSON.stringify(offer));
-                        pc.close();
-                      } catch {}
-                    }
-                    // Esperar brevemente a que la oferta esté disponible
-                    await new Promise(r => setTimeout(r, 300));
-                    await autoJoinRoom(rid);
-                  } catch {
-                    setJoinError('No se pudo conectar. Reintenta en unos segundos.');
-                  }
-                }}
-                disabled={Boolean(!autoParams?.rid || (allowedJoinFrom && new Date() < allowedJoinFrom))}
-                className={`px-3 py-2 rounded text-sm ${(!autoParams?.rid || (allowedJoinFrom && new Date() < allowedJoinFrom)) ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-              >Unirse ahora</button>
-              {(process.env.NODE_ENV !== 'production' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1') || process.env.NEXT_PUBLIC_SHOW_DEV_BUTTON === '1') && autoParams?.rid && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setJoinError("");
-                      const rid = autoParams?.rid;
-                      if (!rid) return;
-                      // Simulación DEV: publicar una oferta mínima para habilitar el flujo de unión
-                      const pc = new RTCPeerConnection();
-                      pc.createDataChannel('dev');
-                      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-                      await pc.setLocalDescription(offer);
-                      await postOffer(rid, JSON.stringify(offer));
-                      pc.close();
-                    } catch {
-                      setJoinError('No se pudo simular la oferta (DEV).');
-                    }
-                  }}
-                  className="px-3 py-2 rounded bg-blue-700 hover:bg-blue-600 text-sm"
-                  title="Solo para pruebas locales: publica una oferta mínima en el backend"
-                >Simular oferta (DEV)</button>
-              )}
+                className="px-3 py-2 rounded bg-blue-700 hover:bg-blue-600 text-sm"
+                title="Solo para pruebas locales: publica una oferta mínima en el backend"
+              >Simular oferta (DEV)</button>
               <button onClick={exitLobby} className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">Salir</button>
             </div>
           </div>

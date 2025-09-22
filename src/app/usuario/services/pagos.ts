@@ -52,26 +52,19 @@ export async function marcarPagoGratis(pagoId: number | string): Promise<{ statu
 }
 
 /**
- * Intenta descargar el recibo/factura del pago. Prueba rutas comunes y devuelve un Blob.
+ * Intenta descargar el recibo/factura del pago. Usa las nuevas rutas PDF que no entran en conflicto con el backend.
  */
 export async function descargarRecibo(pagoId: number | string): Promise<Blob> {
-  const intentos = [
-    `/api/pagos/${encodeURIComponent(String(pagoId))}/recibo`,
-    `/api/pagos/${encodeURIComponent(String(pagoId))}/receipt`,
-    `/api/pagos/${encodeURIComponent(String(pagoId))}/factura`,
-  ];
-  let lastErr: unknown = null;
-  for (const url of intentos) {
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/pdf' } });
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob.size > 0) return blob;
-      }
-      lastErr = new Error(`HTTP ${res.status}`);
-    } catch (e) {
-      lastErr = e;
+  try {
+    const res = await fetch(`/pdf/recibo?id=${encodeURIComponent(String(pagoId))}`, { 
+      headers: { Accept: 'application/pdf' } 
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 0) return blob;
     }
+    throw new Error(`HTTP ${res.status}`);
+  } catch (e) {
+    throw e instanceof Error ? e : new Error('No se pudo descargar el recibo');
   }
-  throw lastErr instanceof Error ? lastErr : new Error('No se pudo descargar el recibo');
 }

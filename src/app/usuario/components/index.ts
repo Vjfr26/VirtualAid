@@ -31,14 +31,3 @@ export { default as PaymentsTable } from './pagos/PaymentsTable';
 export { default as PaymentsTableHeader } from './pagos/PaymentsTableHeader';
 export { default as PaymentsTableColumns } from './pagos/PaymentsTableColumns';
 export { default as PaymentRow } from './pagos/PaymentRow';
-
-// Componentes de Billing
-export { default as BillingView } from './billing/BillingView';
-export { default as BillingHeader } from './billing/BillingHeader';
-export { default as BillingProfileSection } from './billing/BillingProfileSection';
-export { default as AddressSection } from './billing/AddressSection';
-export { default as PaymentMethodsSection } from './billing/PaymentMethodsSection';
-export { default as PaymentMethodItem } from './billing/PaymentMethodItem';
-export { default as PaymentMethodForm } from './billing/PaymentMethodForm';
-export { default as InvoicesSection } from './billing/InvoicesSection';
-export { default as CouponSection } from './billing/CouponSection';
