@@ -21,19 +21,19 @@ export default function SpecialistsList({
 
   if (loadingEspecialistas) {
     return (
-      <div className="space-y-4 animate-pulse">
+      <div className="space-y-3 animate-pulse">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="p-6 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
+          <div key={i} className="p-4 border border-gray-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
               <div className="flex-1">
-                <div className="h-5 bg-gray-300 rounded mb-2 w-1/2"></div>
-                <div className="h-4 bg-gray-300 rounded mb-2 w-1/3"></div>
-                <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+                <div className="h-4 bg-gray-300 rounded mb-1.5 w-1/2"></div>
+                <div className="h-3 bg-gray-300 rounded mb-1 w-1/3"></div>
+                <div className="h-2.5 bg-gray-300 rounded w-1/4"></div>
               </div>
-              <div className="space-y-2">
-                <div className="h-8 bg-gray-300 rounded w-32"></div>
-                <div className="h-8 bg-gray-300 rounded w-32"></div>
+              <div className="space-y-1.5">
+                <div className="h-7 bg-gray-300 rounded w-28"></div>
+                <div className="h-7 bg-gray-300 rounded w-28"></div>
               </div>
             </div>
           </div>

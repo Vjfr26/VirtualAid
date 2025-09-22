@@ -132,13 +132,13 @@ function generarReciboPDF(pagoInfo: PagoInfo): string {
   const doc = new jsPDF();
   
   // Configuración de colores corporativos
-  const colorPrimario: [number, number, number] = [41, 128, 185]; // Azul VirtualAid
+  const colorPrimario: [number, number, number] = [170, 220, 230]; // Color claro Azul VirtualAid
   const colorSecundario: [number, number, number] = [52, 73, 94]; // Gris oscuro
   const colorTexto: [number, number, number] = [44, 62, 80]; // Gris texto
   
   // Intentar cargar y agregar el logo
   try {
-    const logoPath = join(process.cwd(), 'public', 'imagenes', 'Logo', 'Logo Transparente', 'Logo sin fondo Horizontal.png');
+    const logoPath = join(process.cwd(), 'public', 'imagenes', 'Logo', 'Logo Transparente', 'Logo son fondo.png');
     const logoBuffer = readFileSync(logoPath);
     const logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
     
@@ -147,16 +147,16 @@ function generarReciboPDF(pagoInfo: PagoInfo): string {
     doc.rect(0, 0, 210, 35, 'F');
     
     // Agregar logo en el header con proporción correcta
-    doc.addImage(logoBase64, 'PNG', 15, 10, 50, 15); // x, y, width, height - proporción horizontal
+    doc.addImage(logoBase64, 'PNG', 15, 10, 35, 20); // x, y, width, height - proporción horizontal
     
     // Título del recibo (ajustado para no solapar con el logo)
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(51, 51, 51);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text('RECIBO DE PAGO', 80, 20);
     
     // Información de la empresa (ajustada)
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(51, 51, 51);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Servicios Médicos Online', 80, 28);
@@ -214,29 +214,21 @@ function generarReciboPDF(pagoInfo: PagoInfo): string {
   doc.setTextColor(39, 174, 96); // Verde para pagado
   doc.text(pagoInfo.estado, 80, yPos);
   
-  // Información del paciente
-  yPos += 25;
-  doc.setTextColor(...colorSecundario);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(20, yPos - 5, 170, 20, 'F');
-  
-  doc.setFontSize(14);
+  yPos += 8;
+  doc.setTextColor(...colorTexto);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Monto:`, 25, yPos);
   doc.setFont('helvetica', 'bold');
-  doc.text('INFORMACIÓN DEL PACIENTE', 25, yPos + 5);
+  doc.text(`€${pagoInfo.monto.toFixed(2)}`, 80, yPos);
   
-  yPos += 25;
+  // Información del paciente (sin título)
+  yPos += 8;
   doc.setTextColor(...colorTexto);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.text(`Nombre:`, 25, yPos);
   doc.setFont('helvetica', 'bold');
   doc.text(pagoInfo.paciente_nombre || 'N/A', 80, yPos);
-  
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Email:`, 25, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.text(pagoInfo.paciente_email || 'N/A', 80, yPos);
   
   // Información del servicio
   yPos += 25;
@@ -296,18 +288,12 @@ function generarReciboPDF(pagoInfo: PagoInfo): string {
   doc.setFont('helvetica', 'bold');
   doc.text(pagoInfo.metodo || 'N/A', 80, yPos);
   
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Fecha de Pago:`, 25, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.text(formatearFecha(pagoInfo.fecha_pago || new Date().toISOString().split('T')[0]), 80, yPos);
-  
   // Monto total destacado
   yPos += 20;
   doc.setFillColor(...colorPrimario);
   doc.rect(20, yPos - 5, 170, 25, 'F');
   
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(51, 51, 51);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('MONTO TOTAL:', 25, yPos + 8);
@@ -353,7 +339,8 @@ export async function GET(request: Request) {
     
     return new Response(JSON.stringify({ 
       pdfBase64,
-      pagoInfo 
+      pagoInfo,
+      fileName: `Recibo_${pagoInfo.id}`
     }), {
       status: 200,
       headers: {

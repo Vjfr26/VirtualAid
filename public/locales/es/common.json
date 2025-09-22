@@ -351,7 +351,7 @@
   "with_files_count": "Con archivos: {{count}}",
   "new_meeting": "Nueva reunión"
   ,
-  "join_meeting": "Unirse a la reunión",
+  "join_meeting": "Unirse",
   "join_meeting_unavailable": "Disponible el día de la cita y tras el pago",
   
   "loading_transactions": "Cargando transacciones...",

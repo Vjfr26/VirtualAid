@@ -56,13 +56,6 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
         <div className="pdf-preview-header">
           <h3>Vista Previa del Recibo</h3>
           <div className="pdf-preview-actions">
-            <button 
-              className="btn-download"
-              onClick={handleDownload}
-              disabled={loading || !!error}
-            >
-              📥 Descargar PDF
-            </button>
             <button className="btn-close" onClick={onClose}>
               ✕
             </button>

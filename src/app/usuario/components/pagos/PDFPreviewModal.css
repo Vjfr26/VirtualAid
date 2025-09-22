@@ -41,7 +41,7 @@
 .pdf-preview-header {
   background: linear-gradient(135deg, #2980b9, #3498db);
   color: white;
-  padding: 20px 25px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -50,7 +50,7 @@
 
 .pdf-preview-header h3 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
@@ -206,38 +206,28 @@
   }
   
   .pdf-preview-header {
-    padding: 16px 20px;
+    padding: 10px 14px;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     text-align: center;
   }
   
   .pdf-preview-header h3 {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
   }
   
   .pdf-preview-actions {
     width: 100%;
     justify-content: center;
   }
-  
-  .btn-download {
-    flex: 1;
-    justify-content: center;
-  }
 }
 
 @media (max-width: 480px) {
   .pdf-preview-header {
-    padding: 12px 16px;
+    padding: 8px 12px;
   }
   
   .pdf-preview-header h3 {
-    font-size: 1.2rem;
-  }
-  
-  .btn-download {
-    font-size: 0.8rem;
-    padding: 8px 12px;
+    font-size: 1rem;
   }
 }

@@ -185,22 +185,22 @@ export default function MeetingItem({
         </div>
         
         {/* Acciones */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-2">
           {reunion.archivo ? (
             <a
               href={reunion.archivo?.startsWith('/perfiles/') ? reunion.archivo : `/storage/${reunion.archivo}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 shadow-md"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-1.5 shadow-md text-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span>{t('download_file')}</span>
             </a>
           ) : (
-            <div className="bg-gray-100 text-gray-500 px-6 py-2 rounded-lg font-medium text-center">
-              <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-gray-100 text-gray-500 px-4 py-1.5 rounded-lg font-medium text-center text-sm">
+              <svg className="w-3.5 h-3.5 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               {t('no_file')}
@@ -213,13 +213,13 @@ export default function MeetingItem({
             disabled={!canJoin}
             onClick={handleJoinMeeting}
             title={canJoin ? '' : t('join_meeting_unavailable')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 border ${
+            className={`px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1.5 border text-sm ${
               canJoin 
                 ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
                 : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             <span>{t('join_meeting')}</span>

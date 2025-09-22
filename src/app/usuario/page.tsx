@@ -519,7 +519,12 @@ export default function DashboardPaciente() {
       if (enable) next.add(key); else next.delete(key);
       return next;
     });
-    addToast(enable ? (t('email_reminder_enabled') as string || 'Se te recordará por correo electrónico.') : (t('email_reminder_disabled') as string || 'La notificación por correo está desactivada.'), 'success');
+    addToast(
+      enable
+        ? t('email_reminder_enabled') || 'Se te recordará por correo electrónico.'
+        : t('email_reminder_disabled') || 'La notificación por correo está desactivada.',
+      enable ? 'success' : 'info'
+    );
   };
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
@@ -1150,11 +1155,7 @@ const loadPaypalSdk = useCallback(() => {
                 onClick={handleLogout}
                 aria-label={t('sign_out')}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M6 5v14" />
-                  <path d="M14 12h6" />
-                  <path d="M17 9l3 3-3 3" />
-                </svg>
+                <img src="/imagenes/cerrar-sesion.png" alt="logout" className="h-6 w-6" style={{ background: 'none' }} />
                 <span className="sr-only">{t('sign_out')}</span>
               </button>
             </div>

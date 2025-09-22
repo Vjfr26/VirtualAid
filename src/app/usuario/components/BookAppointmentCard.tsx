@@ -52,7 +52,7 @@ export default function BookAppointmentCard({
 
 
   return (
-    <div ref={solicitarCitaRef} className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
+    <div ref={solicitarCitaRef} className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500 hover:shadow-xl transition-shadow  max-w-[450px] sm:max-w-[520px] mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">{t('book_appointment')}</h2>
@@ -95,7 +95,7 @@ export default function BookAppointmentCard({
             <span>{t('book_appointment')}</span>
           </button>
         ) : (
-          <div className={`${styles.calendarBox} w-full max-w-xl mx-auto`}>
+          <div className={`${styles.calendarBox} w-full max-w-[320px] sm:max-w-[380px] mx-auto p-1 sm:p-2`}>
             <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl p-6 mb-6 border border-purple-100 shadow-sm">
               <div className="flex items-center mb-4">
                 <svg className="w-6 h-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +162,7 @@ export default function BookAppointmentCard({
 
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50 to-indigo-50 p-2 shadow-lg">
                     <Calendar
-                      className={styles.calendarBox}
+                      className={`${styles.calendarBox} max-w-[300px] sm:max-w-[340px]`}
                       onChange={date => {
                         if (date instanceof Date) {
                           setFecha(date);
