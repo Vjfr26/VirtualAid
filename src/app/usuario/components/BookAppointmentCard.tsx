@@ -52,7 +52,7 @@ export default function BookAppointmentCard({
 
 
   return (
-    <div ref={solicitarCitaRef} className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500 hover:shadow-xl transition-shadow  max-w-[450px] sm:max-w-[520px] mx-auto">
+    <div ref={solicitarCitaRef} className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500 hover:shadow-xl transition-shadow  mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">{t('book_appointment')}</h2>
@@ -86,25 +86,25 @@ export default function BookAppointmentCard({
       <div className="flex justify-center">
         {!mostrarCalendario ? (
           <button 
-            className="bg-gradient-to-r from-purple-600 to-purple-400 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:from-purple-700 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 flex items-center cursor-pointer space-x-2" 
+            className="bg-gradient-to-r from-purple-600 to-purple-400 text-white font-bold py-2 px-6 rounded-md shadow-md hover:from-purple-700 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 flex items-center cursor-pointer space-x-2 text-sm" 
             onClick={() => setMostrarCalendario(true)}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>{t('book_appointment')}</span>
           </button>
         ) : (
-          <div className={`${styles.calendarBox} w-full max-w-[320px] sm:max-w-[380px] mx-auto p-1 sm:p-2`}>
+          <div className={`${styles.calendarBox} w-full max-w-[280px] sm:max-w-[320px] mx-auto p-1 sm:p-2`}>
             <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl p-6 mb-6 border border-purple-100 shadow-sm">
               <div className="flex items-center mb-4">
                 <svg className="w-6 h-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <label className="text-lg font-bold text-gray-800">{t('choose_specialty')}</label>
+                <label className="text-md font-bold text-gray-800">{t('choose_specialty')}</label>
               </div>
               
-              <div className="relative">
+              <div className="relative w-xs">
                 <select
                   className="w-full border-2 border-purple-200 rounded-xl px-4 py-4 text-gray-700 bg-white font-medium shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-20 focus:border-blue-500 cursor-pointer transition-all duration-300 appearance-none text-base"
                   value={medicoSeleccionado}
@@ -140,9 +140,9 @@ export default function BookAppointmentCard({
 
             {medicoSeleccionado && (
               <>
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                <div className="mb-6 w-sm">
+                  <div className="flex items-center justify-between mb-4 ">
+                    <h3 className="text-l font-bold text-gray-800 flex items-center">
                       <svg className="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
@@ -160,7 +160,7 @@ export default function BookAppointmentCard({
                     )}
                   </div>
 
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50 to-indigo-50 p-2 shadow-lg">
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br w-sm from-white via-purple-50 to-indigo-50 p-2 shadow-lg">
                     <Calendar
                       className={`${styles.calendarBox} max-w-[300px] sm:max-w-[340px]`}
                       onChange={date => {
@@ -234,7 +234,7 @@ export default function BookAppointmentCard({
 
                 {fecha && (
                   <>
-                    <div className="mb-8">
+                    <div className="mb-8 w-sm">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-bold text-gray-800 flex items-center">
                           <svg className="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

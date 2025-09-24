@@ -158,14 +158,26 @@ export default function CitasSection({ ctx }: { ctx: any }) {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {ctx.filtroCitas === 'hoy' && ctx.citasAMostrar.length === 0 ? (
+                {ctx.citasAMostrar.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="p-4 bg-yellow-50 rounded-full mb-4">
-                      <span className="text-3xl text-yellow-500">⏳</span>
+                      <span className="text-3xl text-yellow-500">
+                        {ctx.filtroCitas === 'hoy' ? '⏳' : 
+                         ctx.filtroCitas === 'canceladas' ? '🚫' :
+                         ctx.filtroCitas === 'finalizadas' ? '✅' : '📅'}
+                      </span>
                     </div>
-                    <p className="text-yellow-700 font-semibold text-lg">No hay citas hoy</p>
+                    <p className="text-yellow-700 font-semibold text-lg">
+                      {ctx.filtroCitas === 'hoy' ? 'No hay citas hoy' :
+                       ctx.filtroCitas === 'canceladas' ? 'No hay citas canceladas' :
+                       ctx.filtroCitas === 'finalizadas' ? 'No hay citas finalizadas' :
+                       'No hay citas'}
+                    </p>
                     <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
-                      No hay citas disponibles para hoy. <br /> Puedes revisar <b>"Todas"</b>.
+                      {ctx.filtroCitas === 'hoy' ? 'No hay citas programadas para hoy. Puedes revisar "Todas".' :
+                       ctx.filtroCitas === 'canceladas' ? 'No tienes citas canceladas registradas.' :
+                       ctx.filtroCitas === 'finalizadas' ? 'No tienes citas finalizadas aún.' :
+                       'No hay citas disponibles con los filtros actuales.'}
                     </p>
                   </div>
                 ) : (
@@ -307,15 +319,15 @@ export default function CitasSection({ ctx }: { ctx: any }) {
               </div>
             )}
             
-            {/* Botón Ver más / Ver menos */}
-            {ctx.citasFiltradas.length > 4 && (
+            {/* Botón Ver más / Ver menos - Solo para filtro 'todas' */}
+            {ctx.filtroCitas === 'todas' && ctx.citas.length > 4 && (
               <div className="border-t border-gray-100 p-4 flex justify-center">
                 <button
                   className="bg-gradient-to-r from-slate-100 to-gray-100 hover:from-slate-200 hover:to-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                   onClick={() => ctx.setMostrarTodasLasCitas(!ctx.mostrarTodasLasCitas)}
                 >
                   <span className="text-base">{ctx.mostrarTodasLasCitas ? '🔺' : '🔻'}</span>
-                  {ctx.mostrarTodasLasCitas ? 'Ver menos citas' : `Ver más citas (${ctx.citasFiltradas.length - 4} restantes)`}
+                  {ctx.mostrarTodasLasCitas ? 'Ver menos citas' : `Ver más citas (${ctx.citas.length - 4} restantes)`}
                 </button>
               </div>
             )}

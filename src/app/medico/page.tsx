@@ -204,19 +204,25 @@ export default function MedicoDashboard() {
 
   // Filtro de citas: 'hoy', 'semana', 'todas', 'canceladas', 'finalizadas'
   const [filtroCitas, setFiltroCitas] = useState<'hoy' | 'semana' | 'todas' | 'canceladas' | 'finalizadas'>('hoy');
-  // Lógica de filtrado y ordenado
-  const hoy = new Date();
-  hoy.setHours(0,0,0,0);
+  // Memoizar fechas para optimizar rendimiento
+  const fechas = React.useMemo(() => {
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    
+    // Calcular primer día de la semana (Lunes)
+    const primerDiaSemana = new Date(hoy);
+    const diaActual = hoy.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+    const diasHastaLunes = diaActual === 0 ? -6 : 1 - diaActual; // Si es domingo, retroceder 6 días
+    primerDiaSemana.setDate(hoy.getDate() + diasHastaLunes);
+    
+    // Último día de la semana (Domingo)
+    const ultimoDiaSemana = new Date(primerDiaSemana);
+    ultimoDiaSemana.setDate(primerDiaSemana.getDate() + 6);
+    
+    return { hoy, primerDiaSemana, ultimoDiaSemana };
+  }, []);
   
-  // Calcular primer día de la semana (Lunes)
-  const primerDiaSemana = new Date(hoy);
-  const diaActual = hoy.getDay(); // 0 = Domingo, 1 = Lunes, etc.
-  const diasHastaLunes = diaActual === 0 ? -6 : 1 - diaActual; // Si es domingo, retroceder 6 días
-  primerDiaSemana.setDate(hoy.getDate() + diasHastaLunes);
-  
-  // Último día de la semana (Domingo)
-  const ultimoDiaSemana = new Date(primerDiaSemana);
-  ultimoDiaSemana.setDate(primerDiaSemana.getDate() + 6);
+  const { hoy, primerDiaSemana, ultimoDiaSemana } = fechas;
   
   // Debug del rango de semana
   if (process.env.NODE_ENV === 'development' && filtroCitas === 'semana') {
@@ -227,91 +233,100 @@ export default function MedicoDashboard() {
     console.log('- Fechas disponibles en citas:', [...new Set(citas.map(c => c.fecha))].sort());
   }
 
-  let citasFiltradas: Cita[] = [];
-  if (filtroCitas === 'hoy') {
-    // Mostrar todas las citas del día (sin importar la hora), excepto canceladas
-    const hoyString = hoy.toISOString().split('T')[0];
-    citasFiltradas = citas.filter(cita => {
-      const fechaCitaString = new Date(cita.fecha).toISOString().split('T')[0];
-      return fechaCitaString === hoyString && (cita.estado || '').toLowerCase() !== 'cancelada';
-    }).sort((a, b) => {
-      const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-      const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
-      return fa.getTime() - fb.getTime();
-    });
-  } else if (filtroCitas === 'semana') {
-    // Mostrar TODAS las citas de la semana actual (de lunes a domingo)
-    citasFiltradas = citas.filter(cita => {
-      const fechaCita = new Date(cita.fecha);
-      fechaCita.setHours(0,0,0,0);
-      return fechaCita >= primerDiaSemana && fechaCita <= ultimoDiaSemana && (cita.estado || '').toLowerCase() !== 'cancelada';
-    }).sort((a, b) => {
-      const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-      const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
-      return fa.getTime() - fb.getTime();
-    });
-  } else if (filtroCitas === 'canceladas') {
-    // Mostrar solo las citas canceladas (más recientes primero)
-    citasFiltradas = citas.filter(cita => (cita.estado || '').toLowerCase() === 'cancelada')
-      .sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
-        return fb.getTime() - fa.getTime();
-      });
-  } else if (filtroCitas === 'finalizadas') {
-    // Mostrar solo las citas cuya fecha y hora ya pasaron (más recientes primero)
-    const ahora = new Date();
-    citasFiltradas = citas.filter(cita => {
-      const fechaCompleta = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
-      return fechaCompleta.getTime() < ahora.getTime();
-    }).sort((a, b) => {
-      const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-      const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
-      return fb.getTime() - fa.getTime();
-    });
-  } else {
-    // Todas: primero las citas que aún no han ocurrido (ahora o después), ordenadas por fecha/hora
-    // (hoy, mañana, pasado mañana...), y al final las que ya pasaron.
-    const ahora = new Date();
-    const futuras = citas
-      .filter(cita => {
-        const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
-        return fechaCita.getTime() >= ahora.getTime();
-      })
-      .sort((a, b) => {
+  // Memoizar el filtrado de citas para optimizar rendimiento
+  const citasFiltradas = React.useMemo(() => {
+    let resultado: Cita[] = [];
+    
+    if (filtroCitas === 'hoy') {
+      // Mostrar todas las citas del día (sin importar la hora), excepto canceladas
+      const hoyString = hoy.toISOString().split('T')[0];
+      resultado = citas.filter(cita => {
+        const fechaCitaString = new Date(cita.fecha).toISOString().split('T')[0];
+        return fechaCitaString === hoyString && (cita.estado || '').toLowerCase() !== 'cancelada';
+      }).sort((a, b) => {
         const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
         const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
         return fa.getTime() - fb.getTime();
       });
-
-    const pasadas = citas
-      .filter(cita => {
-        const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
-        return fechaCita.getTime() < ahora.getTime();
-      })
-      .sort((a, b) => {
-        // Mostrar las pasadas con las más recientes primero (más cercanas a ahora)
+    } else if (filtroCitas === 'semana') {
+      // Mostrar TODAS las citas de la semana actual (de lunes a domingo)
+      resultado = citas.filter(cita => {
+        const fechaCita = new Date(cita.fecha);
+        fechaCita.setHours(0,0,0,0);
+        return fechaCita >= primerDiaSemana && fechaCita <= ultimoDiaSemana && (cita.estado || '').toLowerCase() !== 'cancelada';
+      }).sort((a, b) => {
+        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        return fa.getTime() - fb.getTime();
+      });
+    } else if (filtroCitas === 'canceladas') {
+      // Mostrar solo las citas canceladas (más recientes primero)
+      resultado = citas.filter(cita => (cita.estado || '').toLowerCase() === 'cancelada')
+        .sort((a, b) => {
+          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          return fb.getTime() - fa.getTime();
+        });
+    } else if (filtroCitas === 'finalizadas') {
+      // Mostrar solo las citas cuya fecha y hora ya pasaron (más recientes primero)
+      const ahora = new Date();
+      resultado = citas.filter(cita => {
+        const fechaCompleta = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+        return fechaCompleta.getTime() < ahora.getTime();
+      }).sort((a, b) => {
         const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
         const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
         return fb.getTime() - fa.getTime();
       });
+    } else {
+      // Todas: primero las citas que aún no han ocurrido (ahora o después), ordenadas por fecha/hora
+      // (hoy, mañana, pasado mañana...), y al final las que ya pasaron.
+      const ahora = new Date();
+      const futuras = citas
+        .filter(cita => {
+          const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+          return fechaCita.getTime() >= ahora.getTime();
+        })
+        .sort((a, b) => {
+          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          return fa.getTime() - fb.getTime();
+        });
 
-    citasFiltradas = [...futuras, ...pasadas];
-  }
+      const pasadas = citas
+        .filter(cita => {
+          const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+          return fechaCita.getTime() < ahora.getTime();
+        })
+        .sort((a, b) => {
+          // Mostrar las pasadas con las más recientes primero (más cercanas a ahora)
+          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
+          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          return fb.getTime() - fa.getTime();
+        });
+
+      resultado = [...futuras, ...pasadas];
+    }
+    
+    return resultado;
+  }, [filtroCitas, citas, hoy, primerDiaSemana, ultimoDiaSemana]);
   // Paginación visual (solo para 'todas')
   const [mostrarTodasLasCitas, setMostrarTodasLasCitas] = useState(false);
-  // Para 'todas', mostrar todas las citas ordenadas por fecha y hora ascendente
-  const citasAMostrar = filtroCitas === 'todas'
-    ? (mostrarTodasLasCitas ? [...citas].sort((a, b) => {
+  // Calcular citas a mostrar según el filtro activo
+  const citasAMostrar = React.useMemo(() => {
+    if (filtroCitas === 'todas') {
+      // Para 'todas', usar la lógica de paginación
+      const todasOrdenadas = [...citas].sort((a, b) => {
         const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
         const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
         return fa.getTime() - fb.getTime();
-      }) : [...citas].sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
-        return fa.getTime() - fb.getTime();
-      }).slice(0, 4))
-    : citasFiltradas;
+      });
+      return mostrarTodasLasCitas ? todasOrdenadas : todasOrdenadas.slice(0, 4);
+    } else {
+      // Para otros filtros, usar citasFiltradas directamente
+      return citasFiltradas;
+    }
+  }, [filtroCitas, citas, citasFiltradas, mostrarTodasLasCitas]);
   
   // Estado de perfil editable
   const [perfil, setPerfil] = useState({

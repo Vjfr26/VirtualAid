@@ -13,6 +13,8 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && pagoId && pagoId !== 0) {
@@ -58,7 +60,9 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
           if (data.pdfBase64) {
             setPdfBase64(data.pdfBase64);
             setFileName(data.fileName || `recibo_${pagoId}`);
-            console.log('✅ PDF configurado en estado');
+            setIframeLoaded(false);
+            setShowFallback(false);
+            console.log('✅ PDF configurado en estado con nombre:', data.fileName || `recibo_${pagoId}`);
           } else {
             throw new Error('No se recibió pdfBase64 en la respuesta');
           }
@@ -79,14 +83,39 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
     }
   }, [isOpen, pagoId]);
 
+  // Timer para mostrar fallback si el iframe no carga
+  React.useEffect(() => {
+    if (pdfBase64 && !iframeLoaded && !showFallback) {
+      const fallbackTimer = setTimeout(() => {
+        console.log('⚠️ Iframe tardó más de 3 segundos, mostrando fallback');
+        setShowFallback(true);
+      }, 3000);
+      
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [pdfBase64, iframeLoaded, showFallback]);
+
   if (!isOpen) return null;
 
   const handleDownload = async () => {
     try {
-      // Fallback al método original
-      onDownload();
+      if (fileName) {
+        // Usar el endpoint directo para descarga con nombre correcto
+        const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+        const a = document.createElement('a');
+        a.href = `/pdf/recibo?id=${pagoId}`;
+        a.download = finalFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        console.log('✅ Descarga iniciada con nombre:', finalFileName);
+      } else {
+        // Fallback al método original
+        onDownload();
+      }
     } catch (error) {
       console.error('Error en descarga:', error);
+      onDownload();
     }
     onClose();
   };
@@ -103,7 +132,7 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
                 onClick={handleDownload}
                 title="Descargar PDF"
               >
-                📥
+                ⬇️ Descargar
               </button>
             )}
             <button className="btn-close" onClick={onClose}>
@@ -131,20 +160,39 @@ export default function PDFPreviewModal({ isOpen, onClose, pagoId, onDownload }:
           
           {!loading && !error && pdfBase64 && (
             <div className="pdf-preview-viewer">
-              <iframe
-                src={pdfBase64}
-                width="100%"
-                height="100%"
-                title={fileName ? `${fileName}.pdf` : `recibo_${pagoId}.pdf`}
-                style={{ border: 'none' }}
-              />
+              <div className="pdf-preview-container" style={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                backgroundColor: '#f5f5f5'
+              }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <iframe
+                    src={`/pdf/recibo?id=${pagoId}&preview=true`}
+                    width="100%"
+                    height="100%"
+                    title={fileName ? (fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`) : `recibo_${pagoId}.pdf`}
+                    style={{ 
+                      border: 'none',
+                      backgroundColor: 'white'
+                    }}
+                    onLoad={() => {
+                      console.log('📄 Iframe con endpoint de preview cargado correctamente');
+                      setIframeLoaded(true);
+                    }}
+                    onError={(e) => {
+                      console.error('❌ Error cargando iframe de preview:', e);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
         
         <div className="pdf-preview-footer">
           <p className="pdf-preview-info">
-            📄 {fileName || `recibo_${pagoId}`} - VirtualAid
+            📄 {fileName ? (fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`) : `recibo_${pagoId}.pdf`} - VirtualAid
           </p>
         </div>
       </div>

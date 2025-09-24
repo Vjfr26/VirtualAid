@@ -132,7 +132,7 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
   const doc = new jsPDF();
   
   // Configuración de colores corporativos
-  const colorPrimario: [number, number, number] = [41, 128, 185]; // Azul VirtualAid
+  const colorPrimario: [number, number, number] = [120, 200, 240]; // Azul VirtualAid
   const colorSecundario: [number, number, number] = [52, 73, 94]; // Gris oscuro
   const colorTexto: [number, number, number] = [44, 62, 80]; // Gris texto
   
@@ -147,16 +147,16 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
     doc.rect(0, 0, 210, 35, 'F');
     
     // Agregar logo en el header con proporción correcta
-    doc.addImage(logoBase64, 'PNG', 15, 10, 50, 15); // x, y, width, height - proporción horizontal
+    doc.addImage(logoBase64, 'PNG', 5, 10, 60, 15); // x, y, width, height - proporción horizontal
     
     // Título del recibo (ajustado para no solapar con el logo)
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(44, 62, 80);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text('RECIBO DE PAGO', 80, 20);
     
     // Información de la empresa (ajustada)
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(44, 62, 80);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Servicios Médicos Online', 80, 28);
@@ -214,29 +214,27 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
   doc.setTextColor(39, 174, 96); // Verde para pagado
   doc.text(pagoInfo.estado, 80, yPos);
   
-  // Información del paciente
-  yPos += 25;
-  doc.setTextColor(...colorSecundario);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(20, yPos - 5, 170, 20, 'F');
-  
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('INFORMACIÓN DEL PACIENTE', 25, yPos + 5);
-  
-  yPos += 25;
+  yPos += 8;
   doc.setTextColor(...colorTexto);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.text(`Nombre:`, 25, yPos);
   doc.setFont('helvetica', 'bold');
   doc.text(pagoInfo.paciente_nombre || 'N/A', 80, yPos);
-  
+
   yPos += 8;
   doc.setFont('helvetica', 'normal');
-  doc.text(`Email:`, 25, yPos);
+  doc.text(`Monto:`, 25, yPos);
   doc.setFont('helvetica', 'bold');
-  doc.text(pagoInfo.paciente_email || 'N/A', 80, yPos);
+  doc.text(`€${pagoInfo.monto.toFixed(2)}`, 80, yPos);
+
+  yPos += 8;
+  doc.setTextColor(...colorTexto);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Método de Pago:`, 25, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.text(pagoInfo.metodo || 'N/A', 80, yPos);
   
   // Información del servicio
   yPos += 25;
@@ -278,42 +276,6 @@ function generarReciboPDF(pagoInfo: PagoInfo): Uint8Array {
     doc.text(pagoInfo.hora_cita, 80, yPos);
   }
   
-  // Detalles del pago
-  yPos += 25;
-  doc.setTextColor(...colorSecundario);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(20, yPos - 5, 170, 20, 'F');
-  
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DETALLES DEL PAGO', 25, yPos + 5);
-  
-  yPos += 25;
-  doc.setTextColor(...colorTexto);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Método de Pago:`, 25, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.text(pagoInfo.metodo || 'N/A', 80, yPos);
-  
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Fecha de Pago:`, 25, yPos);
-  doc.setFont('helvetica', 'bold');
-  doc.text(formatearFecha(pagoInfo.fecha_pago || new Date().toISOString().split('T')[0]), 80, yPos);
-  
-  // Monto total destacado
-  yPos += 20;
-  doc.setFillColor(...colorPrimario);
-  doc.rect(20, yPos - 5, 170, 25, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('MONTO TOTAL:', 25, yPos + 8);
-  doc.setFontSize(24);
-  doc.text(`€${pagoInfo.monto.toFixed(2)}`, 130, yPos + 8);
-  
   // Footer
   yPos += 40;
   doc.setTextColor(...colorTexto);
@@ -336,6 +298,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const pagoId = url.searchParams.get('id');
+    const preview = url.searchParams.get('preview');
     
     if (!pagoId) {
       return new Response('ID de pago requerido', { status: 400 });
@@ -349,14 +312,24 @@ export async function GET(request: Request) {
     const buf = Buffer.from(pdfBytes);
     
     const filename = `recibo_${pagoId}.pdf`;
+    
+    // Si es para vista previa, no incluir Content-Disposition attachment
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/pdf',
+      'X-Filename': filename,
+      'Cache-Control': 'no-store'
+    };
+    
+    // Solo añadir attachment para descarga, no para preview
+    if (!preview) {
+      headers['Content-Disposition'] = `attachment; filename=${filename}`;
+    } else {
+      headers['Content-Disposition'] = `inline; filename=${filename}`;
+    }
+    
     return new Response(buf, {
       status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=${filename}`,
-        'X-Filename': filename,
-        'Cache-Control': 'no-store'
-      }
+      headers
     });
   } catch (error) {
     console.error('Error generando recibo:', error);
