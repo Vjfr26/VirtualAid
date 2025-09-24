@@ -36,7 +36,7 @@ interface PaymentsTableProps {
   fmtMonto: (monto: number) => string;
   abrirModalPago: (pagoId: number) => void;
   marcarPagoGratis: (pagoId: string | number) => Promise<{ status: string; } | undefined>;
-  descargarRecibo: (pagoId: number) => Promise<Blob>;
+  descargarRecibo: (pagoId: number) => Promise<{ blob: Blob; fileName: string }>;
   addToast: (message: string, type: 'success' | 'error') => void;
   refreshPagos: () => Promise<void>;
   setVista: React.Dispatch<React.SetStateAction<"inicio" | "citas" | "especialistas" | "pagos" | "billing" | "Reunion">>;
@@ -78,11 +78,11 @@ export default function PaymentsTable({
   const handleDescargarDesdeModal = async () => {
     if (previewPagoId) {
       try {
-        const blob = await descargarRecibo(previewPagoId);
-        const url = URL.createObjectURL(blob);
+        const result = await descargarRecibo(previewPagoId);
+        const url = URL.createObjectURL(result.blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `recibo-virtualaid-${previewPagoId}.pdf`;
+        a.download = result.fileName || `recibo_${previewPagoId}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -189,15 +189,13 @@ export default function PaymentsTable({
 
       <Footer />
 
-      {/* Modal de Vista Previa - Renderizado fuera de la tabla para evitar errores de hidratación */}
-      {previewPagoId && (
-        <PDFPreviewModal
-          isOpen={showPreview}
-          onClose={handleCerrarPreview}
-          pagoId={previewPagoId}
-          onDownload={handleDescargarDesdeModal}
-        />
-      )}
+      {/* Modal de Vista Previa */}
+      <PDFPreviewModal
+        isOpen={showPreview && previewPagoId !== null}
+        onClose={handleCerrarPreview}
+        pagoId={previewPagoId || 0}
+        onDownload={handleDescargarDesdeModal}
+      />
     </div>
   );
 }

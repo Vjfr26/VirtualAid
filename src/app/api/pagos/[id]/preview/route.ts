@@ -344,7 +344,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     
     return new Response(JSON.stringify({ 
       pdfBase64,
-      pagoInfo 
+      pagoInfo,
+      fileName: `recibo_${pagoInfo.id}`
     }), {
       status: 200,
       headers: {

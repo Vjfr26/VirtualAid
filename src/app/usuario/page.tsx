@@ -1155,7 +1155,7 @@ const loadPaypalSdk = useCallback(() => {
                 onClick={handleLogout}
                 aria-label={t('sign_out')}
               >
-                <img src="/imagenes/cerrar-sesion.png" alt="logout" className="h-6 w-6" style={{ background: 'none' }} />
+                <Image src="/imagenes/cerrar-sesion.png" alt="logout" width={24} height={24} className="h-6 w-6" />
                 <span className="sr-only">{t('sign_out')}</span>
               </button>
             </div>
@@ -1204,7 +1204,7 @@ const loadPaypalSdk = useCallback(() => {
           >
             {/* Botón de cerrar dentro del modal */}
             <button 
-              className="absolute top-3 right-3 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full text-white transition-all duration-200 hover:scale-110 z-50 cursor-pointer"
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full text-white transition-all duration-200 hover:scale-105 z-50 cursor-pointer"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1213,27 +1213,27 @@ const loadPaypalSdk = useCallback(() => {
               aria-label={t('close_modal')}
               type="button"
             >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
             {/* Header del modal con diseño mejorado */}
-            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-green-600 p-4 sm:p-8 overflow-hidden">
+            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-green-600 p-3 sm:p-5 overflow-hidden">
               {/* Elementos decorativos */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
               
               <div className="relative z-10">
-                <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-1.5 sm:space-y-0 sm:space-x-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('my_profile')}</h2>
-                    <p className="text-sm sm:text-base text-blue-100">Personaliza tu experiencia en VirtualAid</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-white">{t('my_profile')}</h2>
+                    <p className="text-xs sm:text-sm text-blue-100">Personaliza tu experiencia en VirtualAid</p>
                   </div>
                 </div>
               </div>
@@ -1243,12 +1243,12 @@ const loadPaypalSdk = useCallback(() => {
             <div className="p-0 max-h-[calc(98vh-120px)] sm:max-h-[calc(95vh-120px)] overflow-y-auto">
               <form onSubmit={guardarPerfil} className="flex flex-col lg:flex-row">
                 {/* Columna izquierda - Avatar y acciones rápidas */}
-                <div className="w-full lg:w-1/3 bg-gradient-to-b from-gray-50 to-white p-4 sm:p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 order-1 lg:order-1 lg:max-h-[calc(98vh-120px)] lg:overflow-y-auto">
-                  <div className="space-y-4 sm:space-y-6">
+                <div className="w-full lg:w-1/3 bg-gradient-to-b from-gray-50 to-white p-3 sm:p-4 lg:p-5 border-b lg:border-b-0 lg:border-r border-gray-100 order-1 lg:order-1 lg:max-h-[calc(98vh-120px)] lg:overflow-y-auto">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Sección de avatar mejorada */}
-                    <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+                    <div className="flex flex-col items-center space-y-2">
                       <div className="relative group">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-xl overflow-hidden border-2 sm:border-3 border-white shadow-lg bg-gradient-to-br from-blue-100 to-green-100 relative">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl overflow-hidden border-2 sm:border-3 border-white shadow-lg bg-gradient-to-br from-blue-100 to-green-100 relative">
                           <Image 
                             src={formPerfil.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"} 
                             alt="avatar" 
@@ -1256,15 +1256,15 @@ const loadPaypalSdk = useCallback(() => {
                             className="object-cover"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                           </div>
                         </div>
                         {/* Indicador de estado online */}
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-white rounded-full"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                          <div className="w-1 h-1 bg-white rounded-full"></div>
                         </div>
                       </div>
                       
@@ -1278,15 +1278,15 @@ const loadPaypalSdk = useCallback(() => {
                       />
                       <label
                         htmlFor="avatarUpload"
-                        className={`group relative overflow-hidden bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer ${subiendoAvatar ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-md transform hover:scale-105'}`}
+                        className={`group relative overflow-hidden bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white rounded-md px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-medium transition-all cursor-pointer ${subiendoAvatar ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-md transform hover:scale-[1.02]'}`}
                       >
                         <div className="relative z-10 flex items-center space-x-1 sm:space-x-2">
                           {subiendoAvatar ? (
-                            <svg className="animate-spin w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="animate-spin w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
                           )}
@@ -1297,52 +1297,9 @@ const loadPaypalSdk = useCallback(() => {
                       </label>
                     </div>
 
-                    {/* Stats del usuario */}
-                    <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-md border border-gray-100">
-                      <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">{t('stats')}</h3>
-                      <div className="space-y-2 sm:space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full"></div>
-                            <span className="text-xs sm:text-sm text-gray-600">{t('scheduled_appointments')}</span>
-                          </div>
-                          <span className="text-sm sm:text-lg font-bold text-gray-900">{citasAgendadas.length}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-xs sm:text-sm text-gray-600">{t('payments_made')}</span>
-                          </div>
-                          <span className="text-sm sm:text-lg font-bold text-gray-900">{pagos.length}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
-                            <span className="text-xs sm:text-sm text-gray-600">{t('specialists')}</span>
-                          </div>
-                          <span className="text-sm sm:text-lg font-bold text-gray-900">{especialistas.length}</span>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Estadísticas del usuario */}
                     <div className="space-y-2 sm:space-y-3">
                       <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('my_activity')}</h3>
-                      
-                      {/* Contador de citas */}
-                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xl sm:text-2xl font-bold text-blue-700">{citasAgendadas.length}</p>
-                            <p className="text-xs text-blue-600 font-medium">{t('scheduled_appointments')}</p>
-                          </div>
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
 
                       {/* Estado del perfil */}
                       <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-green-200">
@@ -1389,79 +1346,45 @@ const loadPaypalSdk = useCallback(() => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Acciones rápidas */}
-                    <div className="space-y-2 sm:space-y-3">
-                      <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('quick_actions')}</h3>
-                      <button
-                        type="button"
-                        className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white hover:bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100 transition-all hover:shadow-md cursor-pointer"
-                        onClick={() => setVista('citas')}
-                      >
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                    <div className="space-y-1.5 md:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700">{t('country')}</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
+                              placeholder={t('your_country')}
+                              value={formPerfil.pais}
+                              onChange={e => setFormPerfil(f => ({ ...f, pais: e.target.value }))}
+                            />
+                            <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="text-xs sm:text-sm font-medium text-gray-700 block">{t('view_my_appointments')}</span>
-                          <span className="text-xs text-gray-500">{citasAgendadas.length} {t('appointments_scheduled')}</span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white hover:bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100 transition-all hover:shadow-md cursor-pointer"
-                        onClick={() => setVista('especialistas')}
-                      >
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="text-xs sm:text-sm font-medium text-gray-700 block">{t('search_specialists')}</span>
-                          <span className="text-xs text-gray-500">{t('schedule_new_appointment')}</span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white hover:bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100 transition-all hover:shadow-md cursor-pointer"
-                        onClick={() => setVista('pagos')}
-                      >
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="text-xs sm:text-sm font-medium text-gray-700 block">{t('payment_methods')}</span>
-                          <span className="text-xs text-gray-500">{t('manage_payments')}</span>
-                        </div>
-                      </button>
-                    </div>
                   </div>
                 </div>
 
                 {/* Columna derecha - Formulario */}
-                <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 order-2 lg:order-2 lg:max-h-[calc(98vh-120px)] lg:overflow-y-auto">
-                  <div className="space-y-6 sm:space-y-8">{/* Información personal */}
-                    <div className="space-y-4 sm:space-y-6">
+                <div className="flex-1 min-w-0 p-3 sm:p-4 lg:p-5 order-2 lg:order-2 lg:max-h-[calc(98vh-120px)] lg:overflow-y-auto">
+                  <div className="space-y-4 sm:space-y-6">{/* Información personal */}
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-900">{t('personal_information')}</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900">{t('personal_information')}</h3>
                       </div>
                       
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('first_name')}</label>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-gray-700">{t('first_name')}</label>
                           <div className="relative">
                             <input
                               type="text"
-                              className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
+                              className="w-full bg-gray-50 border-0 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                               placeholder={t('your_first_name')}
                               value={formPerfil.nombre}
                               disabled
@@ -1474,12 +1397,12 @@ const loadPaypalSdk = useCallback(() => {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('last_name')}</label>
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-gray-700">{t('last_name')}</label>
                           <div className="relative">
                             <input
                               type="text"
-                              className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
+                              className="w-full bg-gray-50 border-0 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                               placeholder={t('your_last_name')}
                               value={formPerfil.apellido}
                               disabled
@@ -1492,12 +1415,12 @@ const loadPaypalSdk = useCallback(() => {
                           </div>
                         </div>
 
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('email')}</label>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700">{t('email')}</label>
                           <div className="relative">
                             <input
                               type="email"
-                              className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
+                              className="w-full bg-gray-50 border-0 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                               placeholder={t('your_email')}
                               value={formPerfil.email}
                               onChange={e => setFormPerfil(f => ({ ...f, email: e.target.value }))}
@@ -1510,12 +1433,12 @@ const loadPaypalSdk = useCallback(() => {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('phone_number')}</label>
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-gray-700">{t('phone_number')}</label>
                           <div className="relative">
                             <input
                               type="tel"
-                              className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
+                              className="w-full bg-gray-50 border-0 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                               placeholder={t('phone_placeholder')}
                               value={formPerfil.telefono}
                               disabled
@@ -1527,12 +1450,12 @@ const loadPaypalSdk = useCallback(() => {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('dni')}</label>
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-gray-700">{t('dni')}</label>
                           <div className="relative">
                             <input
                               type="text"
-                              className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
+                              className="w-full bg-gray-50 border-0 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                               placeholder={t('dni_placeholder')}
                               value={formPerfil.dni}
                               disabled
@@ -1542,29 +1465,12 @@ const loadPaypalSdk = useCallback(() => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                             </svg>
                           </div>
-                        </div>
-
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="block text-sm font-semibold text-gray-700">{t('country')}</label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
-                              placeholder={t('your_country')}
-                              value={formPerfil.pais}
-                              onChange={e => setFormPerfil(f => ({ ...f, pais: e.target.value }))}
-                            />
-                            <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </div>
-                        </div>
+                        </div>                        
                       </div>
                     </div>
 
                     {/* Sección de seguridad */}
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
@@ -1572,7 +1478,7 @@ const loadPaypalSdk = useCallback(() => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
                           </div>
-                          <h3 className="text-xl font-bold text-gray-900">{t('security')}</h3>
+                          <h3 className="text-lg font-bold text-gray-900">{t('security')}</h3>
                         </div>
                         <button
                           type="button"
@@ -1587,35 +1493,35 @@ const loadPaypalSdk = useCallback(() => {
                       </div>
 
                       {mostrarPwd && (
-                        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-6 space-y-6 border border-blue-100">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2 md:col-span-2">
-                              <label className="block text-sm font-semibold text-gray-700">{t('current_password')}</label>
+                        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-4 space-y-4 border border-blue-100">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5 md:col-span-2">
+                              <label className="block text-xs font-semibold text-gray-700">{t('current_password')}</label>
                               <input
                                 type="password"
-                                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                                 placeholder="••••••••"
                                 value={pwdActual}
                                 onChange={e => setPwdActual(e.target.value)}
                                 disabled={cambiandoPwd}
                               />
                             </div>
-                            <div className="space-y-2">
-                              <label className="block text-sm font-semibold text-gray-700">{t('new_password')}</label>
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-semibold text-gray-700">{t('new_password')}</label>
                               <input
                                 type="password"
-                                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                                 placeholder="Mínimo 6 caracteres"
                                 value={pwdNueva}
                                 onChange={e => setPwdNueva(e.target.value)}
                                 disabled={cambiandoPwd}
                               />
                             </div>
-                            <div className="space-y-2">
-                              <label className="block text-sm font-semibold text-gray-700">{t('confirm_password')}</label>
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-semibold text-gray-700">{t('confirm_password')}</label>
                               <input
                                 type="password"
-                                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                                 placeholder="••••••••"
                                 value={pwdConfirm}
                                 onChange={e => setPwdConfirm(e.target.value)}
@@ -1625,7 +1531,7 @@ const loadPaypalSdk = useCallback(() => {
                           </div>
                           <button
                             type="button"
-                            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl px-6 py-3 font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg px-4 py-2 font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transform hover:scale-[1.01]"
                             disabled={cambiandoPwd}
                             onClick={async () => {
                               setMsgPwd(null);
@@ -1651,17 +1557,17 @@ const loadPaypalSdk = useCallback(() => {
                           >
                             {cambiandoPwd ? (
                               <>
-                                <svg className="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
-                                <span>{t('updating_password')}...</span>
+                                <span className="text-sm">{t('updating_password')}...</span>
                               </>
                             ) : (
                               <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
-                                <span>{t('update_password')}</span>
+                                <span className="text-sm">{t('update_password')}</span>
                               </>
                             )}
                           </button>
@@ -1684,31 +1590,31 @@ const loadPaypalSdk = useCallback(() => {
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-200">
                       <button
                         type="submit"
-                        className="flex-1 min-w-0 bg-gradient-to-r from-blue-600 via-blue-700 to-green-600 hover:from-blue-700 hover:via-blue-800 hover:to-green-700 text-white rounded-xl px-4 sm:px-8 py-3 sm:py-4 font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2 sm:space-x-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.02]"
+                        className="flex-1 min-w-0 bg-gradient-to-r from-blue-600 via-blue-700 to-green-600 hover:from-blue-700 hover:via-blue-800 hover:to-green-700 text-white rounded-md px-2.5 sm:px-4 py-1.5 sm:py-2 text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:scale-[1.01]"
                         disabled={cargandoPerfil}
                       >
                         {cargandoPerfil ? (
                           <>
-                            <svg className="animate-spin w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="animate-spin w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            <span className="text-base sm:text-lg">{t('saving_changes')}...</span>
+                            <span className="text-sm">{t('saving_changes')}...</span>
                           </>
                         ) : (
                           <>
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            <span className="text-base sm:text-lg">{t('save_changes')}</span>
+                            <span className="text-sm">{t('save_changes')}</span>
                           </>
                         )}
                       </button>
                       <button
                         type="button"
-                        className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl px-4 sm:px-8 py-3 sm:py-4 font-bold transition-all border-2 border-gray-200 hover:border-gray-300 cursor-pointer"
+                        className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md px-2.5 sm:px-4 py-1.5 sm:py-2 text-sm font-semibold transition-all border border-gray-200 hover:border-gray-300 cursor-pointer"
                         onClick={cerrarEditarPerfil}
                         disabled={cargandoPerfil}
                       >
@@ -1996,20 +1902,7 @@ const loadPaypalSdk = useCallback(() => {
                   </button>
                 </div>
 
-                {/* Información del especialista (sin correo electrónico) */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">{t('info_section_title')}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {especialistaSeleccionado.telefono && (
-                      <div className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                        </svg>
-                        <span className="text-sm text-gray-700">{especialistaSeleccionado.telefono}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {/* Información del especialista removida por requerimiento: solo mostrar Experiencia y Educación */}
 
                 {/* Experiencia y Educación */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -2203,7 +2096,7 @@ const loadPaypalSdk = useCallback(() => {
                   {t('payment_security_note') || 'Transacción segura. Tus datos no son almacenados aquí.'}
                 </div>
                 <div className="mt-4 text-sm">
-                  <div className="font-semibold">{t('payment_details') || 'Detalle'}</div>
+                  <div className="font-semibold text-gray-800">{t('payment_details') || 'Detalle'}</div>
                   <div className="text-gray-600 text-sm mt-1">{pagos.find(p => p.id === pagoSeleccionado)?.medico || '—'}</div>
                 </div>
               </div>

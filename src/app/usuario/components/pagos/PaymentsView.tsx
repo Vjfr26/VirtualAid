@@ -34,7 +34,7 @@ interface PaymentsViewProps {
   fmtMonto: (monto: number) => string;
   abrirModalPago: (pagoId: number) => void;
   marcarPagoGratis: (pagoId: string | number) => Promise<{ status: string; } | undefined>;
-  descargarRecibo: (pagoId: number) => Promise<Blob>;
+  descargarRecibo: (pagoId: number) => Promise<{ blob: Blob; fileName: string }>;
   addToast: (message: string, type: 'success' | 'error') => void;
   refreshPagos: () => Promise<void>;
   setVista: React.Dispatch<React.SetStateAction<"inicio" | "citas" | "especialistas" | "pagos" | "billing" | "Reunion">>;

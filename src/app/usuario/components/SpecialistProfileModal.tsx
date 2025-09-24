@@ -111,88 +111,31 @@ export default function SpecialistProfileModal({
             </div>
           </div>
 
-          {/* Contact Information */}
-          <div className="bg-gray-50 rounded-xl p-6 mb-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {t('contact_information')}
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('email')}</label>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                  </svg>
-                  <span className="text-gray-900">{medico.email || t('not_available')}</span>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('phone')}</label>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                  </svg>
-                  <span className="text-gray-900">{medico.telefono || t('not_available')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Professional Information */}
-          <div className="bg-orange-50 rounded-xl p-6 mb-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-              {t('professional_information')}
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('specialty')}</label>
-                <span className="text-orange-600 font-semibold">{medico.especialidad}</span>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('years_experience')}</label>
-                <span className="text-gray-900">{medico.experiencia || t('not_specified')} {t('years')}</span>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('education')}</label>
-                <span className="text-gray-900">{medico.educacion || t('not_specified')}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Information */}
+          {/* Solo Experiencia y Educación */}
           {(medico.experiencia || medico.educacion) && (
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                {t('additional_information')}
-              </h4>
-              
+            <div className="mb-6 space-y-6">
               {medico.experiencia && (
-                <div className="mb-4">
-                  <h5 className="font-medium text-gray-900 mb-2">{t('experience')}</h5>
+                <div className="bg-orange-50 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+                    </svg>
+                    {t('experience')}
+                  </h4>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {medico.experiencia}
                   </p>
                 </div>
               )}
-              
+
               {medico.educacion && (
-                <div>
-                  <h5 className="font-medium text-gray-900 mb-2">{t('education')}</h5>
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {t('education')}
+                  </h4>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {medico.educacion}
                   </p>

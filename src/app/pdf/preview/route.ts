@@ -288,18 +288,6 @@ function generarReciboPDF(pagoInfo: PagoInfo): string {
   doc.setFont('helvetica', 'bold');
   doc.text(pagoInfo.metodo || 'N/A', 80, yPos);
   
-  // Monto total destacado
-  yPos += 20;
-  doc.setFillColor(...colorPrimario);
-  doc.rect(20, yPos - 5, 170, 25, 'F');
-  
-  doc.setTextColor(51, 51, 51);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('MONTO TOTAL:', 25, yPos + 8);
-  doc.setFontSize(24);
-  doc.text(`€${pagoInfo.monto.toFixed(2)}`, 130, yPos + 8);
-  
   // Footer
   yPos += 40;
   doc.setTextColor(...colorTexto);
@@ -340,7 +328,7 @@ export async function GET(request: Request) {
     return new Response(JSON.stringify({ 
       pdfBase64,
       pagoInfo,
-      fileName: `Recibo_${pagoInfo.id}`
+      fileName: `recibo_${pagoInfo.id}`
     }), {
       status: 200,
       headers: {

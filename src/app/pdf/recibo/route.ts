@@ -348,11 +348,13 @@ export async function GET(request: Request) {
     const pdfBytes = generarReciboPDF(pagoInfo);
     const buf = Buffer.from(pdfBytes);
     
+    const filename = `recibo_${pagoId}.pdf`;
     return new Response(buf, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=recibo-virtualaid-${pagoId}.pdf`,
+        'Content-Disposition': `attachment; filename=${filename}`,
+        'X-Filename': filename,
         'Cache-Control': 'no-store'
       }
     });

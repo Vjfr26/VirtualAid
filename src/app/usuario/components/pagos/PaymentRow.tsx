@@ -16,7 +16,7 @@ interface PaymentRowProps {
   fmtMonto: (monto: number) => string;
   abrirModalPago: (pagoId: number) => void;
   marcarPagoGratis: (pagoId: string | number) => Promise<{ status: string; } | undefined>;
-  descargarRecibo: (pagoId: number) => Promise<Blob>;
+  descargarRecibo: (pagoId: number) => Promise<{ blob: Blob; fileName: string }>;
   addToast: (message: string, type: 'success' | 'error') => void;
   refreshPagos: () => Promise<void>;
   onAbrirPreview: (pagoId: number) => void; // Nueva prop para abrir preview
@@ -51,11 +51,11 @@ export default function PaymentRow({
 
   const handleDescargarRecibo = async () => {
     try {
-      const blob = await descargarRecibo(pago.id);
-      const url = URL.createObjectURL(blob);
+      const result = await descargarRecibo(pago.id);
+      const url = URL.createObjectURL(result.blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `recibo-virtualaid-${pago.id}.pdf`;
+      a.download = result.fileName || `recibo_${pago.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

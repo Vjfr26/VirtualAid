@@ -54,14 +54,35 @@ export async function marcarPagoGratis(pagoId: number | string): Promise<{ statu
 /**
  * Intenta descargar el recibo/factura del pago. Usa las nuevas rutas PDF que no entran en conflicto con el backend.
  */
-export async function descargarRecibo(pagoId: number | string): Promise<Blob> {
+export type DescargaReciboResult = {
+  blob: Blob;
+  fileName: string;
+};
+
+export async function descargarRecibo(pagoId: number | string): Promise<DescargaReciboResult> {
   try {
     const res = await fetch(`/pdf/recibo?id=${encodeURIComponent(String(pagoId))}`, { 
       headers: { Accept: 'application/pdf' } 
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 0) return blob;
+      if (blob.size > 0) {
+        // Intentar obtener filename desde headers
+        const xFilename = res.headers.get('X-Filename');
+        const contentDisp = res.headers.get('Content-Disposition') || '';
+        let fileName = xFilename || '';
+
+        if (!fileName && contentDisp) {
+          const match = /filename\*?=([^;]+)/i.exec(contentDisp);
+          if (match) {
+            fileName = match[1].trim().replace(/"/g, '');
+          }
+        }
+
+        if (!fileName) fileName = `recibo_${pagoId}.pdf`;
+
+        return { blob, fileName };
+      }
     }
     throw new Error(`HTTP ${res.status}`);
   } catch (e) {

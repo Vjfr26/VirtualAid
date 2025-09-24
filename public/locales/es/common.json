@@ -363,5 +363,21 @@
   "paypal_loading": "Cargando PayPal…",
   "paypal_configure_id": "Configura NEXT_PUBLIC_PAYPAL_CLIENT_ID y reinicia.",
   "confirm_free_payment": "Confirmar sin pago",
-  "paypal_configure_title": "PayPal:"
+  "paypal_configure_title": "PayPal:",
+  "choose_payment_method": "Selecciona método de pago",
+  "payment_modal_sub": "Paga de forma segura con el método que prefieras",
+  "amount_to_pay": "Importe",
+  "paypal": "Pagar con PayPal",
+  "paypal_description": "Usa tu cuenta PayPal o tarjeta a través de PayPal. Rápido y seguro.",
+  "payment_security_note": "Transacción segura. Tus datos no son almacenados aquí.",
+  "payment_details": "Detalle",
+  "card": "Pagar con tarjeta",
+  "card_description": "Introduce los datos de tu tarjeta. El cobro requiere una pasarela (p. ej. Stripe) en el servidor.",
+  "card_name_placeholder": "Nombre completo (como en la tarjeta)",
+  "card_number_placeholder": "Número de tarjeta",
+  "card_expiry_placeholder": "MM/AA",
+  "card_cvc_placeholder": "CVC/CVV",
+  "card_payment_note": "La integración de tarjeta requiere un gateway (Stripe/Adyen) en backend.",
+  "pay_with_card": "Pagar con tarjeta",
+  "card_flow_not_implemented": "Integración de tarjeta no implementada"
 }
