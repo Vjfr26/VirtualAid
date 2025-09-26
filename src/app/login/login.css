@@ -1,4 +1,11 @@
 /* Variables CSS para estilo médico profesional - Solo para login */
+.loginPageLayout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .loginContainer {
   --medical-primary: #2563eb;
   --medical-primary-dark: #1d4ed8;
@@ -32,21 +39,16 @@
 
 /* Estilos específicos para la página de login médico */
 
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  max-width: none;
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
   margin: 0;
   padding: clamp(1rem, 3vw, 2rem);
   padding-bottom: clamp(80px, 10vh, 100px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   overflow-x: hidden;
   overflow-y: auto;
   z-index: 1000;
@@ -80,7 +82,26 @@
     0 0,
     0 0;
   background-attachment: fixed;
-  min-height: 100vh;
+  min-height: 100%;
+}
+
+.loginTopActions {
+  position: absolute;
+  top: clamp(12px, 2vw, 18px);
+  right: clamp(24px, 3vw, 32px);
+  z-index: 200;
+}
+
+.loginContent {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 100;
+  padding-top: clamp(1rem, 5vh, 2.5rem);
+  padding-bottom: clamp(1rem, 5vh, 2.5rem);
 }
 
 /* Ocultar footer global cuando está la página de login */
@@ -1185,14 +1206,13 @@ body.login-page footer {
 
 /* Estilos para el footer de la página de login */
 .loginPage-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  width: 100%;
+  margin-top: auto;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(37, 99, 235, 0.08); 
-  z-index: 1001 !important;
+  z-index: 100;
   box-shadow: 0 -2px 10px rgba(37, 99, 235, 0.05);
 }
 

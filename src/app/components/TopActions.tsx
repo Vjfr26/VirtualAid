@@ -6,18 +6,18 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
 const languages = [
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
+  { code: 'es', label: 'Español', flagCode: 'es' },
+  { code: 'en', label: 'English', flagCode: 'us' },
+  { code: 'fr', label: 'Français', flagCode: 'fr' },
+  { code: 'de', label: 'Deutsch', flagCode: 'de' },
+  { code: 'it', label: 'Italiano', flagCode: 'it' },
+  { code: 'pt', label: 'Português', flagCode: 'pt' },
+  { code: 'ru', label: 'Русский', flagCode: 'ru' },
+  { code: 'zh', label: '中文', flagCode: 'cn' },
+  { code: 'ja', label: '日本語', flagCode: 'jp' },
+  { code: 'ar', label: 'العربية', flagCode: 'sa' },
+  { code: 'tr', label: 'Türkçe', flagCode: 'tr' },
+  { code: 'pl', label: 'Polski', flagCode: 'pl' },
 ];
 
 export default function TopActions() {
@@ -61,6 +61,8 @@ export default function TopActions() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showLangMenu]);
 
+  const currentLang = getCurrentLang();
+
   return (
     <>
       <style>{`
@@ -100,15 +102,34 @@ export default function TopActions() {
           color: #fff;
           font-weight: 700;
         }
+        .flagIcon {
+          display: inline-flex;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          box-shadow: 0 0 0 1px #00000011;
+        }
+        .srOnly {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
       `}</style>
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 9 }}>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowLangMenu(v => !v)}
-            style={{ padding: '0.18rem 0.5rem', borderRadius: 7, border: '1.2px solid #bbb', background: '#fff', cursor: 'pointer', fontWeight: 700, color: '#222', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px #0001', height: 32, width: 32, minWidth: 32, minHeight: 32, justifyContent: 'center' }}
-            aria-label="Seleccionar idioma"
+            style={{ padding: '0.18rem 0.5rem', borderRadius: 7, border: '1.2px solid #bbb', background: '#fff', cursor: 'pointer', fontWeight: 700, color: '#222', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px #0001', height: 36, width: 36, minWidth: 36, minHeight: 36, justifyContent: 'center' }}
+            aria-label={`Seleccionar idioma (${currentLang.label})`}
           >
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{getCurrentLang().flag}</span>
+            <span className={`fi fis fi-${currentLang.flagCode} flagIcon`} aria-hidden="true" />
+            <span className="srOnly">{currentLang.label}</span>
           </button>
           {showLangMenu && (
             <div id="langMenuDropdown" className="langMenuDropdown">
@@ -118,7 +139,8 @@ export default function TopActions() {
                   onClick={() => changeLanguage(lang.code)}
                   className={`langMenuOption${i18nHook.language === lang.code ? ' selected' : ''}`}
                 >
-                  <span style={{ fontSize: 20 }}>{lang.flag}</span> <span>{lang.label}</span>
+                  <span className={`fi fis fi-${lang.flagCode} flagIcon`} aria-hidden="true" />
+                  <span>{lang.label}</span>
                 </button>
               ))}
             </div>

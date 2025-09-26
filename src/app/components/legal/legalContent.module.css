@@ -1,0 +1,77 @@
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: #1f2937;
+}
+
+.sectionTitle {
+  font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem);
+  text-align: center;
+  font-weight: 800;
+  color: #1d4ed8;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.highlight {
+  font-size: 0.95rem;
+  text-align: center;
+  color: #475569;
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.contentCard {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: clamp(20px, 1.5vw + 14px, 32px);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.contentCard h2 {
+  margin-top: 1.8rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.contentCard h2:first-of-type {
+  margin-top: 0.2rem;
+}
+
+.contentCard p {
+  margin: 0.65rem 0;
+  line-height: 1.7;
+  font-size: 0.98rem;
+  color: #1f2937;
+}
+
+.contentList {
+  margin: 0.4rem 0 1.1rem 1.6rem;
+  padding: 0;
+  list-style: disc;
+}
+
+.contentList li {
+  margin-bottom: 0.45rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .contentCard {
+    padding: 20px;
+  }
+
+  .highlight {
+    font-size: 0.87rem;
+  }
+
+  .contentCard p,
+  .contentCard li {
+    font-size: 0.93rem;
+  }
+}

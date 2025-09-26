@@ -1,5 +1,10 @@
-import React, { CSSProperties, ReactNode } from 'react';
+"use client";
+
+import { CSSProperties, MouseEvent, ReactNode, useState } from 'react';
 import styles from './footer.module.css';
+import LegalModal from './legal/LegalModal';
+import PrivacyContent from './legal/PrivacyContent';
+import TermsContent from './legal/TermsContent';
 
 type FooterLink = {
     href: string;
@@ -40,6 +45,9 @@ export default function Footer({
     links,
     variant = 'medical',
 }: FooterProps) {
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
+    const legalHoverBackground = variant === 'gradient' ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.1)';
     
     // Configuración de variantes
     const getVariantStyles = (): CSSProperties => {
@@ -91,37 +99,74 @@ export default function Footer({
         { href: '/P&T/terms', label: 'Términos de Uso', icon: '📋' },
     ];
 
-    const renderedLinks = (links ?? defaultLinks).map((l, idx) => (
-        <a
-            key={`${l.href}-${idx}`}
-            href={l.href}
-            target={l.target}
-            rel={l.rel}
-            style={{ 
-                color: linkColor ?? (variant === 'gradient' ? '#ffffff' : '#3b82f6'), 
-                textDecoration: 'none', 
-                marginLeft: idx > 0 ? '20px' : '0px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: '500',
-                transition: 'all 0.2s ease',
-                borderRadius: '6px',
-                fontSize: '0.85rem',
-            }}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.backgroundColor = variant === 'gradient' ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-        >
-            {l.icon && <span style={{ fontSize: '0.85rem' }}>{l.icon}</span>}
-            {l.label}
-        </a>
-    ));
+    const computeLinkStyle = (idx: number, asButton = false): CSSProperties => ({
+        color: linkColor ?? (variant === 'gradient' ? '#ffffff' : '#3b82f6'),
+        textDecoration: 'none',
+        marginLeft: idx > 0 ? '20px' : '0px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontWeight: 500,
+        transition: 'all 0.2s ease',
+        borderRadius: '6px',
+        fontSize: '0.85rem',
+        backgroundColor: 'transparent',
+        padding: '6px 10px',
+        cursor: 'pointer',
+        border: asButton ? 'none' : '1px solid transparent',
+    });
+
+    const handleMouseEnter = (event: MouseEvent<HTMLElement>) => {
+        event.currentTarget.style.transform = 'translateY(-1px)';
+        event.currentTarget.style.backgroundColor = legalHoverBackground;
+    };
+
+    const handleMouseLeave = (event: MouseEvent<HTMLElement>) => {
+        event.currentTarget.style.transform = 'translateY(0)';
+        event.currentTarget.style.backgroundColor = 'transparent';
+    };
+
+    const renderedLinks = (links ?? defaultLinks).map((l, idx) => {
+        const normalizedHref = (l.href ?? '').toLowerCase();
+        const isPrivacyLink = normalizedHref === '/p&t/privacy';
+        const isTermsLink = normalizedHref === '/p&t/terms';
+
+        if (isPrivacyLink || isTermsLink) {
+            const openModal = () => (isPrivacyLink ? setShowPrivacyModal(true) : setShowTermsModal(true));
+            const expanded = isPrivacyLink ? showPrivacyModal : showTermsModal;
+            return (
+                <button
+                    key={`${normalizedHref}-${idx}`}
+                    type="button"
+                    style={computeLinkStyle(idx, true)}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={openModal}
+                    aria-haspopup="dialog"
+                    aria-expanded={expanded}
+                    aria-controls={isPrivacyLink ? 'privacy-legal-modal' : 'terms-legal-modal'}
+                >
+                    {l.icon && <span style={{ fontSize: '0.85rem' }}>{l.icon}</span>}
+                    {l.label}
+                </button>
+            );
+        }
+
+        return (
+            <a
+                key={`${l.href}-${idx}`}
+                href={l.href}
+                target={l.target}
+                rel={l.rel}
+                style={computeLinkStyle(idx)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
+                {l.icon && <span style={{ fontSize: '0.85rem' }}>{l.icon}</span>}
+                {l.label}
+            </a>
+        );
+    });
 
     const leftContentStyle: CSSProperties = {
         display: 'flex',
@@ -175,13 +220,33 @@ export default function Footer({
     );
 
     return (
-        <footer className={`${styles.footer} ${className ?? ''}`} style={baseStyle}>
-            <div className={styles.left} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                {brandSection}
-            </div>
-            <div className={styles.links} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {renderedLinks}
-            </div>
-        </footer>
+        <>
+            <footer className={`${styles.footer} ${className ?? ''}`} style={baseStyle}>
+                <div className={styles.left} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                    {brandSection}
+                </div>
+                <div className={styles.links} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {renderedLinks}
+                </div>
+            </footer>
+
+            <LegalModal
+                open={showPrivacyModal}
+                onClose={() => setShowPrivacyModal(false)}
+                title="Política de Privacidad"
+                dialogId="privacy-legal-modal"
+            >
+                <PrivacyContent />
+            </LegalModal>
+
+            <LegalModal
+                open={showTermsModal}
+                onClose={() => setShowTermsModal(false)}
+                title="Términos de Uso"
+                dialogId="terms-legal-modal"
+            >
+                <TermsContent />
+            </LegalModal>
+        </>
     );
 }

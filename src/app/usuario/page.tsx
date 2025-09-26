@@ -4,8 +4,8 @@ import { useMediaQuery } from 'react-responsive';
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import HeaderLogo from '../components/HeaderLogo';
-import i18n from '../../i18n';
 import Footer from '../components/Footer';
+import TopActions from '../components/TopActions';
 
 import 'react-calendar/dist/Calendar.css';
 import styles from './calendar.module.css';
@@ -15,6 +15,7 @@ interface BillingInvoice { id: string; amount: number; currency: string; status:
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
 import { getHorarios, type Horario } from '../medico/services/horarios';
 import { useToast } from '../components/Toast';
+import RecordatorioService from './services/recordatorioService';
 
 // Componentes modularizados del dashboard
 import { 
@@ -37,25 +38,8 @@ import type { MedicoResumen } from './services/medicos';
 
 const especialistasEjemplo: MedicoResumen[] = [];
 
-// Idiomas disponibles
-const languages = [
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-];
-
 export default function DashboardPaciente() {
   const { t, i18n: i18nHook } = useTranslation('common');
-  const [showLangMenu, setShowLangMenu] = useState(false);
   
   // Citas reales
   const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string; tokenSala?: string; idRoom?: string; token?: string }[]>([]);
@@ -135,46 +119,6 @@ export default function DashboardPaciente() {
       }));
     }
   }, []);
-
-
-  // Funciones para manejo de idiomas
-  const getCurrentLang = () => {
-    const found = languages.find(l => l.code === i18nHook.language);
-    return found || languages[0];
-  };
-
-  const changeLanguage = (lng: string) => {
-    // Cambiamos idioma vía i18next; el hook de react-i18next re-renderiza el componente
-    i18n.changeLanguage(lng);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('virtualaid_lang', lng);
-    }
-    setShowLangMenu(false);
-  };
-
-  // Al montar, restaurar idioma guardado
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('virtualaid_lang');
-      if (savedLang && savedLang !== i18n.language) {
-        i18n.changeLanguage(savedLang);
-      }
-    }
-  }, []);
-
-  // Cerrar menú de idiomas al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showLangMenu && !(event.target as Element).closest('.relative')) {
-        setShowLangMenu(false);
-      }
-    };
-
-    if (showLangMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showLangMenu]);
 
   // Limpiar overflow cuando el componente se desmonte
   useEffect(() => {
@@ -510,21 +454,74 @@ export default function DashboardPaciente() {
     const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
     return recordatoriosActivos.has(key);
   };
-  const toggleRecordatorio = async (c: { id?: number|string; fecha: Date; hora: string; medico: string }) => {
+  const toggleRecordatorio = async (c: { id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }) => {
     const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
     const enable = !recordatoriosActivos.has(key);
-    // Simulación: asumimos éxito inmediato sin llamar al backend
-    setRecordatoriosActivos(prev => {
-      const next = new Set(prev);
-      if (enable) next.add(key); else next.delete(key);
-      return next;
-    });
+    
+    // Mostrar toast de carga
     addToast(
-      enable
-        ? t('email_reminder_enabled') || 'Se te recordará por correo electrónico.'
-        : t('email_reminder_disabled') || 'La notificación por correo está desactivada.',
-      enable ? 'success' : 'info'
+      enable 
+        ? 'Activando recordatorio y enviando confirmación por correo...'
+        : 'Desactivando recordatorio...',
+      'info'
     );
+
+    try {
+      // Actualizar el estado local primero
+      setRecordatoriosActivos(prev => {
+        const next = new Set(prev);
+        if (enable) next.add(key); else next.delete(key);
+        return next;
+      });
+
+      // Si se está activando el recordatorio, enviar correo electrónico
+      if (enable) {
+        const resultado = await RecordatorioService.procesarToggleRecordatorio(
+          {
+            destinatario: '', // Se obtiene automáticamente en el servicio
+            fechaCita: c.fecha,
+            horaCita: c.hora,
+            medico: c.medico,
+            especialidad: c.especialidad
+          },
+          true // isActivando = true
+        );
+
+        if (resultado.success) {
+          addToast(
+            '✅ Recordatorio activado y confirmación enviada por correo electrónico',
+            'success'
+          );
+        } else {
+          // Si falla el correo, mantener el recordatorio activo pero mostrar advertencia
+          addToast(
+            `⚠️ Recordatorio activado, pero hubo un problema al enviar el correo: ${resultado.message}`,
+            'info'
+          );
+        }
+      } else {
+        // Para desactivación, solo mostrar mensaje local (opcional enviar correo de confirmación)
+        addToast(
+          '🔕 Recordatorio desactivado correctamente',
+          'info'
+        );
+      }
+      
+    } catch (error) {
+      console.error('Error al procesar recordatorio:', error);
+      
+      // Revertir el estado si hubo error
+      setRecordatoriosActivos(prev => {
+        const next = new Set(prev);
+        if (!enable) next.add(key); else next.delete(key);
+        return next;
+      });
+      
+      addToast(
+        `❌ Error al ${enable ? 'activar' : 'desactivar'} el recordatorio. Inténtalo de nuevo.`,
+        'error'
+      );
+    }
   };
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
@@ -1095,39 +1092,7 @@ const loadPaypalSdk = useCallback(() => {
         </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 ml-2">
-              {/* Selector de idiomas */}
-              <div className="relative">
-                <button
-                  className="bg-white/90 hover:bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg shadow-sm transition text-xs font-medium flex items-center gap-2 cursor-pointer"
-                  onClick={() => setShowLangMenu(!showLangMenu)}
-                >
-                  <span className="text-lg">{getCurrentLang().flag}</span>
-                  <span className="hidden sm:inline">{getCurrentLang().label}</span>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                
-                {showLangMenu && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]">
-                    <div className="py-1">
-                      {languages.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => changeLanguage(lang.code)}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-3 cursor-pointer ${
-                            getCurrentLang().code === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                          }`}
-                        >
-                          <span className="text-lg">{lang.flag}</span>
-                          <span>{lang.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
+              <TopActions />
               <button
                 type="button"
                 className="bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-semibold px-3 sm:px-4 py-2 rounded-lg shadow transition text-xs flex items-center gap-2 cursor-pointer min-w-0"
@@ -1195,7 +1160,7 @@ const loadPaypalSdk = useCallback(() => {
       {/* Modal de edición de perfil */}
       {mostrarEditarPerfil && (
         <div 
-          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[9999] p-2 sm:p-4"
+          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[9999] p-2 sm:p-4 overflow-hidden"
           onClick={cerrarEditarPerfil}
         >
           <div 

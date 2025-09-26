@@ -120,7 +120,7 @@
   border: none !important;
   color: white !important;
   font-weight: 600 !important;
-  font-size: clamp(0.7rem, 1vw, 1.15rem) !important;
+  font-size: clamp(0.5rem, 0.7vw, 1rem) !important;
   padding: clamp(6px, 0.9%, 12px) clamp(10px, 1.5%, 18px) !important;
   border-radius: clamp(4px, 1vw, 8px) !important;
   transition: all 0.2s ease !important;
@@ -191,7 +191,7 @@
 .calendarBox :global(.react-calendar__month-view__weekdays__weekday) {
   color: #64748b !important;
   font-weight: 600 !important;
-  font-size: clamp(0.75rem, 1.6vw, 1rem) !important;
+  font-size: clamp(0.5rem, 0.7vw, 1rem) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.3px !important;
   padding: clamp(4px, 0.8vw, 8px) !important;
@@ -208,7 +208,7 @@
   font-weight: 500 !important;
   padding: clamp(6px, 1.2vw, 14px) clamp(4px, 0.8vw, 10px) !important;
   margin: 0 !important;
-  font-size: clamp(0.85rem, 1.8vw, 1.1rem) !important;
+  font-size: clamp(0.5rem, 0.7vw, 1rem) !important;
   transition: all 0.2s ease !important;
   position: relative !important;
   aspect-ratio: 1 !important;
@@ -242,7 +242,7 @@
   box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3) !important;
   /* reducir padding y tamaño de fuente del tile activo para que no aumente la caja al seleccionar */
   padding: clamp(4px, 0.8vw, 8px) !important;
-  font-size: clamp(0.78rem, 1.4vw, 0.95rem) !important;
+  font-size: clamp(0.5rem, 1vw, 0.8rem) !important;
   min-height: clamp(30px, 4.5vw, 40px) !important;
   border-radius: clamp(3px, 0.8vw, 8px) !important;
   box-shadow: 0 2px 6px rgba(168,85,247,0.18) !important;
@@ -268,7 +268,7 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  font-size: 8px;
+  font-size: 6px;
   color: #dc2626;
   animation: pulse 2s infinite;
 }
@@ -309,7 +309,7 @@
 
 /* Inputs (médico) */
 .dateInput {
-  font-size: clamp(0.8rem, 1.8vw, 1rem);
+  font-size: clamp(0.6rem, 1.4vw, 1rem);
   padding: clamp(8px, 2vw, 12px) clamp(10px, 2.5vw, 16px);
   border-radius: clamp(6px, 1.5vw, 12px);
   border: 2px solid #e5e7eb;
@@ -345,7 +345,7 @@
   border: 2px solid #a855f7;
   border-radius: clamp(6px, 1.5vw, 10px);
   padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 16px);
-  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-size: clamp(0.5rem, 1.3vw, 1rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;

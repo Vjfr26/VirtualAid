@@ -70,14 +70,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="loginContainer">
-      <Link href="/" className="homeLink">{t('back_home', 'Back to Home')}</Link>
-      <div style={{ position: 'absolute', top: 14, right: 32, zIndex: 100 }}>
-        <TopActions />
-      </div>
+    <div className="loginPageLayout">
+      <div className="loginContainer">
+        <Link href="/" className="homeLink">{t('back_home', 'Back to Home')}</Link>
+        <div className="loginTopActions">
+          <TopActions />
+        </div>
 
-      <div className="loginWrapper">
-        <div className="loginCard">
+        <div className="loginContent">
+          <div className="loginCard">
           <div className="logo">
             <HeaderLogo variant="horizontal" />
           </div>
@@ -105,14 +106,16 @@ export default function LoginPage() {
               <Link href="/registro">{t('signup', 'Sign Up')}</Link>
             </div>
           </form>
+          </div>
         </div>
-
-        <footer className='loginPage-footer'>
-            <div className="loginPage-footerContent">
-              <Footer color="oklch(12.9% 0.042 264.695)" background="transparent" borderColor="transparent" />
-            </div>
-        </footer>
       </div>
+      <Footer
+        className="loginPage-footer"
+        color="oklch(12.9% 0.042 264.695)"
+        background="rgba(255,255,255,0.92)"
+        borderColor="rgba(37,99,235,0.12)"
+        padding="18px 32px"
+      />
     </div>
   );
 }

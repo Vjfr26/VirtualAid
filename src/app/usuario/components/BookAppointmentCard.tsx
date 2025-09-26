@@ -189,22 +189,22 @@ export default function BookAppointmentCard({
                             return (
                               <div className="custom-tile-content">
                                 <span style={{ 
-                                  fontSize: '18px', 
-                                  fontWeight: '800', 
+                                  fontSize: '16px', 
+                                  fontWeight: '700', 
                                   color: '#991b1b',
                                   textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                 }}>
                                   {date.getDate()}
                                 </span>
                                 <span style={{ 
-                                  fontSize: '10px', 
+                                  fontSize: '7px', 
                                   fontWeight: '600', 
                                   color: '#dc2626',
                                   marginTop: '2px',
                                   textTransform: 'uppercase',
                                   letterSpacing: '0.5px'
                                 }}>
-                                  {citasEnEsteDia.length} cita{citasEnEsteDia.length > 1 ? 's' : ''}
+                                  {citasEnEsteDia.length}
                                 </span>
                               </div>
                             );
@@ -285,7 +285,7 @@ export default function BookAppointmentCard({
                             return (
                               <button
                                 key={hora}
-                                className={`${styles.hourBtn} ${horaSeleccionada === hora ? styles.selected : ''} ${isOcupada ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`${styles.hourBtn} ${horaSeleccionada === hora ? styles.selected : ''} ${isOcupada ? 'opacity-50 cursor-not-allowed' : ''} flex items-center gap-2`}
                                 onClick={() => {
                                   if (!isOcupada) setHoraSeleccionada(hora);
                                 }}
@@ -295,10 +295,12 @@ export default function BookAppointmentCard({
                                 style={{ animationDelay: `${index * 0.1}s` }}
                                 title={isOcupada ? t('not_available') : undefined}
                               >
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {hora}
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>{hora}</span>
+                                </span>
                               </button>
                             );
                           });

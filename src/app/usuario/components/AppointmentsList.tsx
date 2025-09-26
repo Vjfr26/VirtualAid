@@ -9,7 +9,7 @@ interface AppointmentsListProps {
   filtroCitas: 'todas' | 'proximas' | 'pasadas';
   setVista: (vista: 'inicio' | 'citas' | 'especialistas' | 'pagos' | 'billing' | 'Reunion') => void;
   isRecordatorioOn: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => boolean;
-  toggleRecordatorio: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => void;
+  toggleRecordatorio: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => Promise<void>;
 }
 
 export default function AppointmentsList({
