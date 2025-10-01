@@ -139,8 +139,8 @@ export default function BookAppointmentCard({
             </div>
 
             {medicoSeleccionado && (
-              <>
-                <div className="mb-6 w-sm">
+              <div className={`flex flex-col ${fecha ? 'lg:flex-row lg:items-start lg:gap-10' : ''} px-4 sm:px-2`}>
+                <div className={`mb-6 w-sm ${fecha ? 'lg:w-[340px] lg:flex-shrink-0' : ''}`}>
                   <div className="flex items-center justify-between mb-4 ">
                     <h3 className="text-l font-bold text-gray-800 flex items-center">
                       <svg className="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,31 +181,15 @@ export default function BookAppointmentCard({
                       tileContent={({ date, view }) => {
                         if (view === 'month') {
                           // Contar citas para este día
-                          const citasEnEsteDia = citasAgendadas.filter(cita => 
+                          const citasEnEsteDia = citasAgendadas.filter(cita =>
                             cita.fecha.toDateString() === date.toDateString()
                           );
-                          
+
                           if (citasEnEsteDia.length > 0) {
                             return (
-                              <div className="custom-tile-content">
-                                <span style={{ 
-                                  fontSize: '16px', 
-                                  fontWeight: '700', 
-                                  color: '#991b1b',
-                                  textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                }}>
-                                  {date.getDate()}
-                                </span>
-                                <span style={{ 
-                                  fontSize: '7px', 
-                                  fontWeight: '600', 
-                                  color: '#dc2626',
-                                  marginTop: '2px',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  {citasEnEsteDia.length}
-                                </span>
+                              <div className={styles.appointmentTile}>
+                                <span className={styles.appointmentDayNumber}>{date.getDate()}</span>
+                                <span className={styles.appointmentBadge}>{citasEnEsteDia.length}</span>
                               </div>
                             );
                           }
@@ -233,8 +217,8 @@ export default function BookAppointmentCard({
                 </div>
 
                 {fecha && (
-                  <>
-                    <div className="mb-8 w-sm">
+                  <div className="flex-1 mt-6 lg:mt-0 ml-4 lg:ml-12">
+                    <div className="mb-8 w-sm lg:w-full">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-bold text-gray-800 flex items-center">
                           <svg className="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +236,7 @@ export default function BookAppointmentCard({
                         )}
                       </div>
                       
-                      <div className={styles.hoursList}>
+                      <div className={`${styles.hoursList} lg:grid lg:grid-cols-2 lg:gap-3`}>
                         {horasDisponibles.length === 0 ? (
                           <div className="col-span-full">
                             <div className="text-center py-8 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
@@ -308,9 +292,9 @@ export default function BookAppointmentCard({
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row justify-center gap-3 pt-5 border-t border-gray-100 lg:border-t-0 lg:pt-0 lg:justify-start">
                       <button
-                        className={`${styles.solicitarBtn} flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+                        className={`${styles.solicitarBtn} flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
                         onClick={onSolicitarCita}
                         disabled={!horaSeleccionada}
                       >
@@ -320,7 +304,7 @@ export default function BookAppointmentCard({
                         <span>{t('confirm_appointment')}</span>
                       </button>
                       <button
-                        className="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl px-8 py-4 font-bold transition-all duration-300 border border-gray-300 hover:border-gray-400 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2"
+                        className="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg px-5 py-3 text-sm font-semibold transition-all duration-200 border border-gray-300 hover:border-gray-400 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
                         onClick={onCancelarCalendario}
                         type="button"
                       >
@@ -330,9 +314,9 @@ export default function BookAppointmentCard({
                         <span>{t('cancel')}</span>
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}

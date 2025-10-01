@@ -8,6 +8,7 @@ interface DashboardCardsProps {
     valor: string | number;
     icono: string;
     bg: string;
+    detalles?: string[];
   }>;
   mostrarDetalleIngresos: boolean;
   setMostrarDetalleIngresos: (show: boolean) => void;
@@ -54,6 +55,16 @@ export default function DashboardCards({
                 <div className="text-sm font-semibold text-gray-200 uppercase tracking-wide">
                   {item.titulo}
                 </div>
+                {item.detalles?.length ? (
+                  <ul className="mt-3 space-y-1 text-sm text-gray-100">
+                    {item.detalles.map((detalle, detalleIdx) => (
+                      <li key={detalleIdx} className="flex items-start gap-2">
+                        <span className="text-lg leading-none">•</span>
+                        <span className="leading-snug text-gray-100/90">{detalle}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
               
               {/* Decoración inferior */}

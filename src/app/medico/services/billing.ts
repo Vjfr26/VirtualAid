@@ -52,12 +52,51 @@ export interface Invoice {
   paid_at?: string;
 }
 
-export async function getBillingProfileByOwner(type: 'medico'|'usuario', id: string): Promise<BillingProfile> {
+type BillingProfileApi = Omit<BillingProfile, 'paymentMethods'> & {
+  payment_methods?: PaymentMethod[];
+};
+
+export async function getBillingProfileByOwner(email: string, type?: 'medico'|'usuario'): Promise<BillingProfile> {
   try {
-    return await fetchJSON<BillingProfile>(`${API_URL}/api/billing/profile/owner/${type}/${encodeURIComponent(id)}`);
+    // La ruta del backend es GET /billing/profile/{id} donde id = email
+    const searchParams = new URLSearchParams();
+    if (type) {
+      searchParams.set('type', type);
+    }
+
+    const url = searchParams.size
+      ? `${API_URL}/api/billing/profile/${encodeURIComponent(email)}?${searchParams.toString()}`
+      : `${API_URL}/api/billing/profile/${encodeURIComponent(email)}`;
+
+    const raw = await fetchJSON<BillingProfileApi>(url);
+
+    const { payment_methods, paymentMethods, address, ...rest } = raw as BillingProfileApi & { paymentMethods?: PaymentMethod[] };
+
+    // Normalizar address: is_billing puede venir como 0/1
+    const normalizedAddress = address
+      ? {
+          ...address,
+          is_billing: Boolean(Number((address as any).is_billing)),
+        }
+      : undefined;
+
+    // Normalizar payment methods: is_default puede venir como 0/1
+    const rawMethods = payment_methods ?? (paymentMethods as PaymentMethod[]) ?? [];
+    const normalizedMethods: PaymentMethod[] = rawMethods.map((m: any) => ({
+      ...m,
+      is_default: Boolean(Number(m.is_default)),
+    }));
+
+    return {
+      ...rest,
+      address: normalizedAddress,
+      paymentMethods: normalizedMethods,
+    };
   } catch (error: any) {
-    // Si el endpoint no existe o devuelve error del servidor, indicar que no está implementado
-    if (error.message?.includes('404') || error.message?.includes('500') || error.message?.includes('Error 404') || error.message?.includes('Error 500')) {
+    if (error.message?.includes('Perfil no encontrado') || error.message?.includes('404')) {
+      throw new Error('BILLING_PROFILE_NOT_FOUND');
+    }
+    if (error.message?.includes('500') || error.message?.includes('Error 500')) {
       throw new Error('BILLING_NOT_IMPLEMENTED');
     }
     console.error('Error en getBillingProfileByOwner:', error);
@@ -69,11 +108,9 @@ export async function listPaymentMethodsByProfile(profileId: number): Promise<Pa
   try {
     return await fetchJSON<PaymentMethod[]>(`${API_URL}/api/billing/payment-methods/profile/${profileId}`);
   } catch (error: any) {
-    // Si el endpoint no existe, devolver array vacío
-    if (error.message?.includes('404') || error.message?.includes('500')) {
-      return [];
-    }
-    throw error;
+    // Si hay cualquier error (500, timeout, etc.) no queremos romper la carga del dashboard.
+    console.warn('Error listPaymentMethodsByProfile:', error?.message ?? error);
+    return [];
   }
 }
 

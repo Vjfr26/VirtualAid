@@ -536,7 +536,7 @@ export default function MedicoDashboard() {
       if (!medicoData) return;
       setBillingLoading(true);
       try {
-        const profile = await getBillingProfileByOwner('medico', medicoData.email);
+  const profile = await getBillingProfileByOwner(medicoData.email, 'medico');
         setBillingProfile(profile);
         if (profile.address) setAddressForm(profile.address);
         const methods = await listPaymentMethodsByProfile(profile.id);

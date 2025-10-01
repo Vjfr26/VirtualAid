@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useMediaQuery } from 'react-responsive';
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
+import Script from 'next/script';
 import HeaderLogo from '../components/HeaderLogo';
 import Footer from '../components/Footer';
 import TopActions from '../components/TopActions';
@@ -15,7 +16,7 @@ interface BillingInvoice { id: string; amount: number; currency: string; status:
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
 import { getHorarios, type Horario } from '../medico/services/horarios';
 import { useToast } from '../components/Toast';
-import RecordatorioService from './services/recordatorioService';
+import { fillEmailJsForm, EMAILJS_USER_ID, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID } from './notify';
 
 // Componentes modularizados del dashboard
 import { 
@@ -38,8 +39,25 @@ import type { MedicoResumen } from './services/medicos';
 
 const especialistasEjemplo: MedicoResumen[] = [];
 
+type EmailJSGlobal = {
+  init: (userId: string) => void;
+  sendForm: (serviceId: string, templateId: string, form: HTMLFormElement) => Promise<unknown>;
+};
+
+declare global {
+  interface Window {
+    emailjs?: EmailJSGlobal;
+    emailjsInitialized?: boolean;
+  }
+}
+
 export default function DashboardPaciente() {
   const { t, i18n: i18nHook } = useTranslation('common');
+
+  const [emailJsReady, setEmailJsReady] = useState(false);
+  const contactoFormRef = useRef<HTMLFormElement | null>(null);
+  const contactSubmitRef = useRef<HTMLInputElement | null>(null);
+  const submitResolveRef = useRef<((result: boolean) => void) | null>(null);
   
   // Citas reales
   const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string; tokenSala?: string; idRoom?: string; token?: string }[]>([]);
@@ -117,6 +135,17 @@ export default function DashboardPaciente() {
         nombre: session.nombre || prev.nombre,
         email: session.email || prev.email
       }));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.emailjs && !window.emailjsInitialized) {
+      window.emailjs.init(EMAILJS_USER_ID);
+      window.emailjsInitialized = true;
+      setEmailJsReady(true);
+    } else if (window.emailjsInitialized) {
+      setEmailJsReady(true);
     }
   }, []);
 
@@ -454,75 +483,145 @@ export default function DashboardPaciente() {
     const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
     return recordatoriosActivos.has(key);
   };
-  const toggleRecordatorio = async (c: { id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }) => {
-    const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
-    const enable = !recordatoriosActivos.has(key);
-    
-    // Mostrar toast de carga
-    addToast(
-      enable 
-        ? 'Activando recordatorio y enviando confirmación por correo...'
-        : 'Desactivando recordatorio...',
-      'info'
-    );
+
+  const handleEmailJsLoad = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (window.emailjs && !window.emailjsInitialized) {
+      window.emailjs.init(EMAILJS_USER_ID);
+      window.emailjsInitialized = true;
+      setEmailJsReady(true);
+    } else if (window.emailjsInitialized) {
+      setEmailJsReady(true);
+    }
+  }, []);
+
+  const handleContactFormSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submitBtn = contactSubmitRef.current ?? (form.querySelector('#submitButton') as HTMLInputElement | null);
+    if (submitBtn) submitBtn.value = 'Sending...';
 
     try {
-      // Actualizar el estado local primero
-      setRecordatoriosActivos(prev => {
-        const next = new Set(prev);
-        if (enable) next.add(key); else next.delete(key);
-        return next;
-      });
-
-      // Si se está activando el recordatorio, enviar correo electrónico
-      if (enable) {
-        const resultado = await RecordatorioService.procesarToggleRecordatorio(
-          {
-            destinatario: '', // Se obtiene automáticamente en el servicio
-            fechaCita: c.fecha,
-            horaCita: c.hora,
-            medico: c.medico,
-            especialidad: c.especialidad
-          },
-          true // isActivando = true
-        );
-
-        if (resultado.success) {
-          addToast(
-            '✅ Recordatorio activado y confirmación enviada por correo electrónico',
-            'success'
-          );
-        } else {
-          // Si falla el correo, mantener el recordatorio activo pero mostrar advertencia
-          addToast(
-            `⚠️ Recordatorio activado, pero hubo un problema al enviar el correo: ${resultado.message}`,
-            'info'
-          );
-        }
-      } else {
-        // Para desactivación, solo mostrar mensaje local (opcional enviar correo de confirmación)
-        addToast(
-          '🔕 Recordatorio desactivado correctamente',
-          'info'
-        );
+      if (typeof window === 'undefined' || !window.emailjs) {
+        console.log('FAILED...', new Error('EmailJS no disponible'));
+        if (submitBtn) submitBtn.value = 'Send Email';
+        submitResolveRef.current?.(false);
+        return;
       }
-      
-    } catch (error) {
-      console.error('Error al procesar recordatorio:', error);
-      
-      // Revertir el estado si hubo error
+
+      await window.emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, form);
+
+      if (submitBtn) submitBtn.value = 'Send Email';
+      form.reset();
+      submitResolveRef.current?.(true);
+    } catch (err) {
+      if (submitBtn) submitBtn.value = 'Send Email';
+      console.log('FAILED...', err);
+      submitResolveRef.current?.(false);
+    } finally {
+      submitResolveRef.current = null;
+    }
+  }, []);
+
+  const toggleRecordatorio = useCallback(async (c: { id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }) => {
+    const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
+    const enable = !recordatoriosActivos.has(key);
+
+    if (!enable) {
       setRecordatoriosActivos(prev => {
         const next = new Set(prev);
-        if (!enable) next.add(key); else next.delete(key);
+        next.delete(key);
         return next;
       });
-      
-      addToast(
-        `❌ Error al ${enable ? 'activar' : 'desactivar'} el recordatorio. Inténtalo de nuevo.`,
-        'error'
-      );
+      addToast('🔕 Recordatorio desactivado correctamente', 'info');
+      return;
     }
-  };
+
+    const form = contactoFormRef.current;
+    if (!form) {
+      addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
+      return;
+    }
+
+    setRecordatoriosActivos(prev => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+
+    const nombreCompleto = [usuario.nombre, usuario.apellido].filter(Boolean).join(' ').trim() || usuario.nombre || 'Paciente';
+    const fechaTexto = c.fecha.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const especialidadTexto = c.especialidad ?? 'Consulta general';
+    const descripcion = [
+      `Hola ${nombreCompleto},`,
+      '',
+      `Te recordamos que tienes una cita en VirtualAid con ${c.medico} (${especialidadTexto}).`,
+      '',
+      'Detalles de tu cita:',
+      `• Fecha: ${fechaTexto}`,
+      `• Hora: ${c.hora}`,
+      `• Especialidad: ${especialidadTexto}`,
+      '',
+      'Por favor, conéctate unos minutos antes para comprobar tu conexión y preparar la consulta.',
+      'Si necesitas reprogramar o cancelar, accede a tu panel de usuario o contáctanos lo antes posible.',
+      '',
+      'Gracias por confiar en VirtualAid.',
+    ].join('\n');
+
+    fillEmailJsForm(form, {
+      subject: `Recordatorio de cita: ${fechaTexto} a las ${c.hora}`,
+      name: nombreCompleto,
+      email: usuario.email || '',
+      phone: usuario.telefono || '',
+      description: descripcion,
+    });
+
+    if (contactSubmitRef.current) {
+      contactSubmitRef.current.value = 'Send Email';
+    }
+
+    if (typeof window !== 'undefined' && window.emailjs && !window.emailjsInitialized) {
+      window.emailjs.init(EMAILJS_USER_ID);
+      window.emailjsInitialized = true;
+      setEmailJsReady(true);
+    }
+
+    if (!emailJsReady && typeof window !== 'undefined' && window.emailjs) {
+      setEmailJsReady(true);
+    }
+
+    try {
+      const success = await new Promise<boolean>((resolve) => {
+        submitResolveRef.current = resolve;
+        form.requestSubmit();
+      });
+
+      if (success) {
+        addToast('✅ Recordatorio activado y confirmación enviada por correo electrónico', 'success');
+      } else {
+        setRecordatoriosActivos(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+        addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
+      }
+    } catch (error) {
+      setRecordatoriosActivos(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+      addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
+    } finally {
+      submitResolveRef.current = null;
+    }
+  }, [addToast, emailJsReady, recordatoriosActivos, usuario.nombre, usuario.apellido, usuario.email, usuario.telefono]);
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
     const especialidadMatch = !especialidadFiltro || (m.especialidad && m.especialidad.toLowerCase() === especialidadFiltro.toLowerCase());
@@ -1073,15 +1172,22 @@ const loadPaypalSdk = useCallback(() => {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center relative"
-      style={{
-        background: `
+    <>
+      <Script
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+        strategy="afterInteractive"
+        onLoad={handleEmailJsLoad}
+      />
+
+      <div
+        className="min-h-screen flex flex-col items-center relative"
+        style={{
+          background: `
           linear-gradient(120deg, #60a5fa85 0%, #bbf7d098 100%),
           url('/imagenes/fondo_usuario.jpg') center center / cover no-repeat
         `
-      }}
-    >
+        }}
+      >
       <div className="w-full max-w-6xl px-2 md:px-6 py-5">
         <div className="flex items-center justify-between h-16 bg-white/70 rounded-t-xl shadow-sm px-4">
         <div className="flex flex-row items-center">
@@ -2105,7 +2211,22 @@ const loadPaypalSdk = useCallback(() => {
           </div>
         </div>
       )}
+        <form
+          id="ContactoForm"
+          ref={contactoFormRef}
+          onSubmit={handleContactFormSubmit}
+          className="hidden"
+          aria-hidden="true"
+        >
+          <input type="text" name="emailjs_asunto" id="emailjs_asunto4" defaultValue="" />
+          <input type="text" name="emailjs_nombre" id="emailjs_nombre4" defaultValue="" />
+          <input type="email" name="emailjs_correo" id="emailjs_correo4" defaultValue="" />
+          <input type="tel" name="emailjs_phone" id="emailjs_phone4" defaultValue="" />
+          <textarea name="emailjs_Descripcion" id="emailjs_Descripcion4" defaultValue="" />
+          <input type="submit" id="submitButton" ref={contactSubmitRef} value="Send Email" />
+        </form>
       </div>
     </div>
+    </>
   );
 }

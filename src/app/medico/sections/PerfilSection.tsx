@@ -163,8 +163,8 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
               <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Contraseña actual" value={ctx.passwordActual} onChange={(e) => ctx.setPasswordActual(e.target.value)} required />
               <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Nueva contraseña" value={ctx.nuevoPassword} onChange={(e) => ctx.setNuevoPassword(e.target.value)} required />
               <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Confirmar nueva contraseña" value={ctx.confirmarPassword} onChange={(e) => ctx.setConfirmarPassword(e.target.value)} required />
-              <div className="flex gap-2">
-                <button type="submit" className="bg-primary hover:bg-primary-dark text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60" disabled={ctx.cambiandoPassword}>Guardar contraseña</button>
+              <div className="flex gap-2 justify-center">
+                <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60" disabled={ctx.cambiandoPassword}>Guardar contraseña</button>
                 <button type="button" className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md px-6 py-2 font-semibold" onClick={() => { ctx.setMostrarCambioPassword(false); ctx.setPasswordActual(''); ctx.setNuevoPassword(''); ctx.setConfirmarPassword(''); ctx.setMensajePassword(''); }}>Cancelar</button>
               </div>
               {ctx.mensajePassword && <div className="text-green-600 text-center font-semibold mt-2">{ctx.mensajePassword}</div>}

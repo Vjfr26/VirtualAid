@@ -747,10 +747,14 @@ export default function MedicoDashboard() {
       setBillingLoading(true);
       setBillingNotImplemented(false);
       try {
-        const profile = await getBillingProfileByOwner('medico', medicoData.email);
+  const profile = await getBillingProfileByOwner(medicoData.email, 'medico');
         setBillingProfile(profile);
         if (profile.address) setAddressForm(profile.address);
-        const methods = await listPaymentMethodsByProfile(profile.id);
+        // Preferir métodos devueltos en el perfil para evitar llamadas redundantes
+        const methodsFromProfile = profile.paymentMethods ?? [];
+        const methods = methodsFromProfile.length > 0
+          ? methodsFromProfile
+          : await listPaymentMethodsByProfile(profile.id);
         setPmList(methods);
         const allInvoices = await listInvoices();
         setInvoices(allInvoices.filter(inv => inv.billing_profile_id === profile.id));
@@ -758,6 +762,8 @@ export default function MedicoDashboard() {
         if (error.message === 'BILLING_NOT_IMPLEMENTED') {
           setBillingNotImplemented(true);
           console.warn('Sistema de billing no implementado en el backend');
+        } else if (error.message === 'BILLING_PROFILE_NOT_FOUND') {
+          console.info('No existe perfil de facturación aún para este médico');
         } else {
           console.error('Error cargando billing:', error);
         }
@@ -771,9 +777,136 @@ export default function MedicoDashboard() {
     if (activeTab === 'billing' && medicoData) cargarBilling();
   }, [activeTab, medicoData]);
 
-  // Resumen para el grid superior
+  const tendenciasDashboard = React.useMemo(() => {
+    const now = currentTime ? new Date(currentTime.getTime()) : new Date();
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+
+    const prevEnd = new Date(start);
+    prevEnd.setDate(start.getDate() - 1);
+    prevEnd.setHours(23, 59, 59, 999);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevEnd.getDate() - 6);
+    prevStart.setHours(0, 0, 0, 0);
+
+    const normalizarEstado = (estado?: string) => (estado ?? '').toLowerCase();
+    const esCancelada = (estado: string) => estado.includes('cancel');
+    const esCompletada = (estado: string) =>
+      estado.includes('complet') || estado.includes('final') || estado.includes('realiz') || estado.includes('asist');
+    const parseFechaCita = (cita: Cita) => {
+      const base = cita.fecha ? `${cita.fecha}T${cita.hora || '00:00'}` : cita.created_at ?? '';
+      const fecha = new Date(base);
+      if (Number.isNaN(fecha.getTime())) {
+        return new Date();
+      }
+      return fecha;
+    };
+
+    let completadasActuales = 0;
+    let canceladasActuales = 0;
+    let completadasPrevias = 0;
+    let canceladasPrevias = 0;
+
+    citas.forEach(cita => {
+      const fecha = parseFechaCita(cita);
+      const estado = normalizarEstado(cita.estado);
+      if (fecha >= start && fecha <= end) {
+        if (esCancelada(estado)) canceladasActuales += 1;
+        else if (esCompletada(estado)) completadasActuales += 1;
+      } else if (fecha >= prevStart && fecha <= prevEnd) {
+        if (esCancelada(estado)) canceladasPrevias += 1;
+        else if (esCompletada(estado)) completadasPrevias += 1;
+      }
+    });
+
+    const parseFechaPago = (pago: Pago) => {
+      const fecha = new Date(`${pago.fecha_pago}T00:00:00`);
+      if (Number.isNaN(fecha.getTime())) {
+        return new Date(pago.created_at ?? Date.now());
+      }
+      return fecha;
+    };
+
+    const ingresosActuales = pagos
+      .filter(pago => {
+        const fecha = parseFechaPago(pago);
+        return fecha >= start && fecha <= end;
+      })
+      .reduce((total, pago) => total + (pago.monto ?? 0), 0);
+
+    const ingresosPrevios = pagos
+      .filter(pago => {
+        const fecha = parseFechaPago(pago);
+        return fecha >= prevStart && fecha <= prevEnd;
+      })
+      .reduce((total, pago) => total + (pago.monto ?? 0), 0);
+
+    const conteoPorPaciente = new Map<string, number>();
+    citas.forEach(cita => {
+      if (!cita.usuario_id) return;
+      conteoPorPaciente.set(cita.usuario_id, (conteoPorPaciente.get(cita.usuario_id) ?? 0) + 1);
+    });
+
+    const totalPacientesUnicos = conteoPorPaciente.size;
+    const pacientesRecurrentes = Array.from(conteoPorPaciente.values()).filter(total => total > 1).length;
+    const tasaRetencion = totalPacientesUnicos > 0 ? (pacientesRecurrentes / totalPacientesUnicos) * 100 : 0;
+
+    const formatDiff = (actual: number, previo: number, invert = false) => {
+      const diff = actual - previo;
+      if (diff === 0) return '→0';
+      const arrow = diff > 0 ? (invert ? '↓' : '↑') : (invert ? '↑' : '↓');
+      const sign = diff > 0 ? '+' : '';
+      return `${arrow}${sign}${diff}`;
+    };
+
+    let ingresosComparativa = '';
+    if (ingresosPrevios > 0) {
+      const diff = ingresosActuales - ingresosPrevios;
+      const percent = Math.round((diff / ingresosPrevios) * 100);
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const sign = diff > 0 ? '+' : '';
+      ingresosComparativa = ` (${arrow}${sign}${percent}% vs. 7d prev)`;
+    } else if (ingresosActuales > 0) {
+      ingresosComparativa = ' (nuevo)';
+    }
+
+    const retencionLabel = totalPacientesUnicos > 0
+      ? `${Math.round(tasaRetencion)}% (${pacientesRecurrentes}/${totalPacientesUnicos})`
+      : 'Sin datos';
+
+    const totalActualCitas = completadasActuales + canceladasActuales;
+    const totalPrevioCitas = completadasPrevias + canceladasPrevias;
+    const completadasPct = totalActualCitas > 0
+      ? Math.round((completadasActuales / totalActualCitas) * 100)
+      : 0;
+    const canceladasPct = totalActualCitas > 0
+      ? Math.round((canceladasActuales / totalActualCitas) * 100)
+      : 0;
+
+    return {
+      completadasActuales,
+      canceladasActuales,
+      completadasPrevias,
+      canceladasPrevias,
+      totalActualCitas,
+      totalPrevioCitas,
+      completadasPct,
+      canceladasPct,
+      diffCompletadas: formatDiff(completadasActuales, completadasPrevias),
+      diffCanceladas: formatDiff(canceladasActuales, canceladasPrevias, true),
+      ingresosActuales,
+      ingresosPrevios,
+      ingresosComparativa,
+      retencionLabel,
+    };
+  }, [citas, pagos, currentTime]);
+
+  // Resumen para el grid superior (datos generales)
   const resumen = [
-    { titulo: "Total Citas", valor: citas.length, icono: "📅", color: "#e3f2fd", bg: "bg-blue-300/40", accent: "bg-gradient-primary-soft" },
+    { titulo: "Total Citas", valor: citas.length, icono: "�", color: "#e3f2fd", bg: "bg-blue-300/40", accent: "bg-gradient-primary-soft" },
     { titulo: "Total Pacientes", valor: pacientes.length, icono: "👤", color: "#90caf9", bg: "bg-orange-200/40", accent: "bg-gradient-secondary-soft" },
     { titulo: "Disponibilidad", valor: disponibilidad.length, icono: "🕒", color: "#ececec", bg: "bg-purple-300/40", accent: "bg-gradient-accent-soft" },
     { 
@@ -1486,74 +1619,126 @@ export default function MedicoDashboard() {
                 </div>
               </section>
               
-              {/* Panel de Citas (como cuarta tarjeta del grid) */}
-              <section className="bg-gradient-to-br from-white via-indigo-50/30 to-blue-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-indigo-200/50 flex flex-col overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 p-5 md:p-6 relative overflow-hidden">
+              {/* Panel de Tendencias y Comparativas */}
+              <section className="bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-indigo-200/50 flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 p-5 md:p-6 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-transparent"></div>
                   <div className="relative flex items-center gap-3">
                     <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <span className="text-xl">📅</span>
+                      <span className="text-xl">📈</span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">Citas</h2>
-                      <p className="text-indigo-100 text-xs">Calendario interactivo</p>
+                      <h2 className="font-bold text-white uppercase tracking-wide">Tendencias</h2>
+                      <p className="text-indigo-100 text-xs">Análisis de los últimos 7 días</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-3 md:p-4 lg:p-2 overflow-hidden">
-                  <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-blue-500 rounded my-4" />
-                  
-                  {/* Calendario con márgenes controlados - responsive mejorado */}
-                  <div className="flex flex-col gap-3 overflow-hidden">
-                    <div className="w-full flex justify-center overflow-hidden">
-                      <div className={`${styles.calendarContainer} w-full max-w-full h-96 sm:h-56 md:h-64 lg:h-80 xl:h-80`} style={{ margin: '0 auto' }}>
-                        <Calendar
-                          className={`${styles.calendarBox} h-full`}
-                          onChange={date => setFechaSeleccionada(date instanceof Date ? date : null)}
-                          value={fechaSeleccionada}
-                          minDate={new Date('2024-01-01')}
-                          tileContent={tileContent}
-                          tileDisabled={() => false}
-                        />
+                <div className="p-5 md:p-6">
+                  <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded mb-4" />
+
+                  <div className="space-y-4">
+                    {/* Evolución de Citas: Completadas vs Canceladas */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">📊</span>
+                        <h3 className="text-sm font-bold text-indigo-900">Evolución de Citas (7d)</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Citas Completadas */}
+                        <div className="bg-white/80 rounded-lg p-3 border border-green-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-green-700">Completadas</span>
+                            <span className="text-xs text-green-600 font-semibold">
+                              {tendenciasDashboard.diffCompletadas}
+                            </span>
+                          </div>
+                          <div className="text-2xl font-bold text-green-700">
+                            {tendenciasDashboard.completadasActuales}
+                          </div>
+                          <div className="text-xs text-green-600 mt-1">
+                            {tendenciasDashboard.completadasPct}% del total
+                          </div>
+                        </div>
+                        {/* Citas Canceladas */}
+                        <div className="bg-white/80 rounded-lg p-3 border border-red-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-red-700">Canceladas</span>
+                            <span className="text-xs text-red-600 font-semibold">
+                              {tendenciasDashboard.diffCanceladas}
+                            </span>
+                          </div>
+                          <div className="text-2xl font-bold text-red-700">
+                            {tendenciasDashboard.canceladasActuales}
+                          </div>
+                          <div className="text-xs text-red-600 mt-1">
+                            {tendenciasDashboard.canceladasPct}% del total
+                          </div>
+                        </div>
+                      </div>
+                      {/* Barra comparativa visual */}
+                      <div className="mt-3 bg-white/60 rounded-lg p-2">
+                        <div className="flex h-3 rounded-full overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-green-400 to-green-500"
+                            style={{ width: `${tendenciasDashboard.completadasPct}%` }}
+                          ></div>
+                          <div 
+                            className="bg-gradient-to-r from-red-400 to-red-500"
+                            style={{ width: `${tendenciasDashboard.canceladasPct}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-600 text-center mt-1">
+                          {tendenciasDashboard.totalActualCitas} citas en los últimos 7 días
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* Resumen compacto de citas */}
-                    <div className="bg-white/80 border border-indigo-200 rounded-xl p-3">
-                      {fechaSeleccionada ? (
-                        <>
-                          <div className="text-xs font-semibold text-indigo-800 mb-2">
-                            {fechaSeleccionada.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+
+                    {/* Grid de 2 columnas para ingresos y retención en md+ */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Comparativa de Ingresos */}
+                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 flex flex-col h-full shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl bg-emerald-100 rounded-full p-2 shadow-inner">💰</span>
+                          <h3 className="text-base font-bold text-emerald-900">Ingresos Semanales</h3>
+                        </div>
+                        <div className="flex-1 flex flex-col justify-center">
+                          <div className="text-xs text-emerald-700 mb-1">Últimos 7 días</div>
+                          <div className="text-3xl font-extrabold text-emerald-700 mb-1 tracking-tight">
+                            {formatearMonto(tendenciasDashboard.ingresosActuales)}
                           </div>
-                          {getCitasDelDia(fechaSeleccionada).length === 0 ? (
-                            <div className="text-center text-gray-500 py-2">
-                              <div className="text-lg mb-1">📅</div>
-                              <p className="text-xs">Sin citas</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-1 max-h-[80px] overflow-y-auto">
-                              {getCitasDelDia(fechaSeleccionada).slice(0, 3).map((cita, idx) => (
-                                <div key={idx} className="bg-blue-50 rounded p-1.5 border border-blue-200">
-                                  <div className="text-xs font-medium text-blue-800">
-                                    {usuariosMap.get(cita.usuario_id) || `Usuario ${cita.usuario_id}`}
-                                  </div>
-                                  <div className="text-xs text-blue-600">🕐 {cita.hora}</div>
-                                </div>
-                              ))}
-                              {getCitasDelDia(fechaSeleccionada).length > 3 && (
-                                <div className="text-xs text-center text-indigo-600 font-medium">
-                                  +{getCitasDelDia(fechaSeleccionada).length - 3} más
-                                </div>
-                              )}
+                          <div className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                            <span>{tendenciasDashboard.ingresosComparativa}</span>
+                          </div>
+                          {/* Indicador comparativo */}
+                          {tendenciasDashboard.ingresosPrevios > 0 && (
+                            <div className="mt-2 pt-2 border-t border-emerald-200">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-600">Período anterior:</span>
+                                <span className="text-gray-700 font-medium">
+                                  {formatearMonto(tendenciasDashboard.ingresosPrevios)}
+                                </span>
+                              </div>
                             </div>
                           )}
-                        </>
-                      ) : (
-                        <div className="text-center text-gray-500 py-3">
-                          <div className="text-lg mb-1">👆</div>
-                          <p className="text-xs">Selecciona un día</p>
                         </div>
-                      )}
+                      </div>
+
+                      {/* Tasa de Retención */}
+                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-4 flex flex-col h-full shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl bg-purple-100 rounded-full p-2 shadow-inner">🔄</span>
+                          <h3 className="text-base font-bold text-purple-900">Tasa de Retención</h3>
+                        </div>
+                        <div className="flex-1 flex flex-col justify-center">
+                          <div className="text-xs text-purple-700 mb-1">Pacientes recurrentes</div>
+                          <div className="text-2xl font-extrabold text-purple-700 mb-2 tracking-tight">
+                            {tendenciasDashboard.retencionLabel}
+                          </div>
+                          <div className="text-xs text-purple-600">
+                            Pacientes con más de una cita
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
