@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch(_){} try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch(_){}\"",
+  "predev": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch{ } try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch{ }\"",
     "dev": "next dev",
-    "prebuild": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch(_){} try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch(_){}\"",
+  "prebuild": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch{ } try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch{ }\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
