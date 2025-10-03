@@ -12,11 +12,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const citaId = id;
+    const { id: citaId } = await params;
 
     console.log(`📧 [MOCK] Simulando envío de recordatorio para cita ID: ${citaId}`);
 
