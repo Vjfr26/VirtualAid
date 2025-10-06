@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import Image from 'next/image';
+import { getMedicoStatus, type MedicoResumen } from '../../services/medicos';
 
 interface MeetingItemProps {
   reunion: {
@@ -14,6 +16,7 @@ interface MeetingItemProps {
     tokenSala?: string;
     idRoom?: string;
     token?: string;
+    medicoAvatar?: string; // Nueva prop para el avatar del médico
   };
   reuniones: Array<{ fecha: string; medico: string; hora: string; archivo?: string | null; tokenSala?: string; idRoom?: string }>;
   pagos: Array<{ 
@@ -29,6 +32,7 @@ interface MeetingItemProps {
   }>;
   esReciente: boolean;
   canJoin: boolean;
+  medicoInfo?: MedicoResumen; // Nueva prop para información completa del médico
 }
 
 export default function MeetingItem({ 
@@ -36,7 +40,8 @@ export default function MeetingItem({
   reuniones, 
   pagos, 
   esReciente, 
-  canJoin 
+  canJoin,
+  medicoInfo
 }: MeetingItemProps) {
   const { t, i18n } = useTranslation('common');
   const fechaReunion = new Date(reunion.fecha);
@@ -112,10 +117,31 @@ export default function MeetingItem({
         <div className="flex-1 min-w-0 mb-4 lg:mb-0">
           <div className="flex items-start space-x-4">
             {/* Avatar del médico */}
-            <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-gradient-to-br from-green-100 to-teal-100">
+              {reunion.medicoAvatar ? (
+                <Image
+                  src={reunion.medicoAvatar}
+                  alt={`Foto de ${reunion.medico}`}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover rounded-full"
+                  onError={() => {
+                    // Fallback al ícono si la imagen falla
+                    const parent = document.querySelector('.avatar-fallback');
+                    if (parent) {
+                      parent.innerHTML = `
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                      `;
+                    }
+                  }}
+                />
+              ) : (
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              )}
             </div>
             
             {/* Detalles de la reunión */}
@@ -127,12 +153,21 @@ export default function MeetingItem({
                 >
                   {t('doctor_short')} {reunion.medico}
                 </h3>
-                {esReciente && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse"></div>
-                    {t('recent')}
-                  </span>
-                )}
+                {medicoInfo && (() => {
+                  const medicoStatus = getMedicoStatus(medicoInfo);
+                  return (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      medicoStatus.color === 'bg-green-500' ? 'bg-green-100 text-green-800' :
+                      medicoStatus.color === 'bg-yellow-500' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {medicoStatus.showDot && (
+                        <div className={`w-2 h-2 ${medicoStatus.color} rounded-full mr-1 animate-pulse`}></div>
+                      )}
+                      {medicoStatus.status}
+                    </span>
+                  );
+                })()}
               </div>
               
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-2">

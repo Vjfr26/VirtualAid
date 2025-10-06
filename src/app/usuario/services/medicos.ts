@@ -11,6 +11,8 @@ export type MedicoResumen = {
   telefono?: string;
   estado?: string;
   disponible?: boolean;
+  online?: boolean;
+  ultimaConexion?: Date;
 };
 
 type RawMedico = { 
@@ -58,6 +60,13 @@ export async function getEspecialistas(): Promise<MedicoResumen[]> {
       avatar = await resolverAvatarDeterministaMedico(m.email) || '';
     }
     if (!avatar) avatar = 'https://randomuser.me/api/portraits/lego/1.jpg';
+
+    // Simular información de conexión (esto debería venir de la API en el futuro)
+    const ahora = new Date();
+    const horasAleatorias = Math.floor(Math.random() * 48); // 0-48 horas atrás
+    const ultimaConexion = new Date(ahora.getTime() - (horasAleatorias * 60 * 60 * 1000));
+    const online = horasAleatorias < 1; // Online si se conectó hace menos de 1 hora
+
     return {
       avatar,
       nombre: m.nombre,
@@ -67,6 +76,8 @@ export async function getEspecialistas(): Promise<MedicoResumen[]> {
       telefono: m.telefono,
       estado: m.estado || 'activo',
       disponible: m.estado === 'activo',
+      online,
+      ultimaConexion,
       experiencia: ((): string => {
         const v = m.experiencia;
         if (!v) return '';
@@ -114,4 +125,42 @@ export async function getEspecialistas(): Promise<MedicoResumen[]> {
     } as MedicoResumen;
   }));
   return items;
+}
+
+// Función para determinar el estado del médico basado en su conexión
+export function getMedicoStatus(medico: MedicoResumen): { status: string; color: string; showDot: boolean } {
+  if (medico.online) {
+    return {
+      status: 'Online',
+      color: 'bg-green-500',
+      showDot: true
+    };
+  }
+
+  if (!medico.ultimaConexion) {
+    return {
+      status: 'Desconocido',
+      color: 'bg-gray-400',
+      showDot: false
+    };
+  }
+
+  const ahora = new Date();
+  const diferenciaMs = ahora.getTime() - medico.ultimaConexion.getTime();
+  const diferenciaHoras = diferenciaMs / (1000 * 60 * 60);
+
+  if (diferenciaHoras < 1) {
+    return {
+      status: 'Reciente',
+      color: 'bg-yellow-500',
+      showDot: true
+    };
+  } else {
+    const horasRedondeadas = Math.floor(diferenciaHoras);
+    return {
+      status: `Hace ${horasRedondeadas} hr${horasRedondeadas !== 1 ? 's' : ''}`,
+      color: 'bg-gray-500',
+      showDot: false
+    };
+  }
 }

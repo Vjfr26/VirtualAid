@@ -103,7 +103,7 @@ export default function PaymentRow({
 
       {/* Monto */}
       <td className="px-2 py-1 sm:px-3 sm:py-2 text-right min-w-0">
-        <div className="text-base sm:text-lg font-bold text-gray-900">€{fmtMonto(pago.monto)}</div>
+        <div className={`text-base sm:text-lg font-bold ${esPagado ? 'text-green-600' : 'text-yellow-600'}`}>€{fmtMonto(pago.monto)}</div>
       </td>
 
       {/* Estado */}

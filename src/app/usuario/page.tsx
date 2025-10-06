@@ -130,6 +130,7 @@ export default function DashboardPaciente() {
     return () => {
       // Restaurar scroll del body al desmontar el componente
       document.body.style.overflow = 'unset';
+      document.body.style.pointerEvents = 'auto';
     };
   }, []);
 
@@ -910,8 +911,19 @@ const loadPaypalSdk = useCallback(() => {
   const [mostrarModalPago, setMostrarModalPago] = useState(false);
   // Pestaña activa en el modal de pago: 'paypal' | 'card'
   const [modalPaymentTab] = useState<'paypal' | 'card'>('paypal');
-  const abrirModalPago = (pagoId: number) => { setPagoSeleccionado(pagoId); setMostrarModalPago(true); document.body.style.overflow='hidden'; };
-  const cerrarModalPago = () => { setMostrarModalPago(false); setPagoSeleccionado(null); document.body.style.overflow='unset'; };
+  const abrirModalPago = (pagoId: number) => {
+    setPagoSeleccionado(pagoId);
+    setMostrarModalPago(true);
+    document.body.style.overflow = 'hidden';
+    document.body.style.pointerEvents = 'none';
+  };
+
+  const cerrarModalPago = () => {
+    setMostrarModalPago(false);
+    setPagoSeleccionado(null);
+    document.body.style.overflow = 'unset';
+    document.body.style.pointerEvents = 'auto';
+  };
   useEffect(() => {
       // Solo ejecutar si hay email de usuario
       if (!usuario.email) return;
@@ -1044,22 +1056,28 @@ const loadPaypalSdk = useCallback(() => {
     }, [usuario.email]);
 
   // Pantalla de carga global: hasta que todos los bloques hayan cargado (o no sean necesarios)
+  const renderBootstrapShell = () => (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center relative"
+      style={{
+        background: `linear-gradient(120deg, #60a5fa85 0%, #bbf7d098 100%), url('/imagenes/fondo_usuario.jpg') center center / cover no-repeat`
+      }}
+    >
+      <div className="flex flex-col items-center gap-4 bg-white/70 rounded-2xl px-10 py-12 shadow-2xl border border-blue-200">
+        <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
+        <h1 className="text-xl font-bold text-blue-700">{t('loading_dashboard')}</h1>
+        <p className="text-sm text-gray-600 text-center max-w-xs">{t('loading_dashboard_desc')}</p>
+      </div>
+    </div>
+  );
+
+  if (!mounted) {
+    return renderBootstrapShell();
+  }
+
   const globalLoading = !usuario.email || loadingEspecialistas || loadingPagos || loadingCitas;
   if (globalLoading) {
-    return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center relative"
-        style={{
-          background: `linear-gradient(120deg, #60a5fa85 0%, #bbf7d098 100%), url('/imagenes/fondo_usuario.jpg') center center / cover no-repeat`
-        }}
-      >
-        <div className="flex flex-col items-center gap-4 bg-white/70 rounded-2xl px-10 py-12 shadow-2xl border border-blue-200">
-          <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-          <h1 className="text-xl font-bold text-blue-700">{t('loading_dashboard')}</h1>
-          <p className="text-sm text-gray-600 text-center max-w-xs">{t('loading_dashboard_desc')}</p>
-        </div>
-      </div>
-    );
+    return renderBootstrapShell();
   }
 
   return (
@@ -2024,11 +2042,11 @@ const loadPaypalSdk = useCallback(() => {
         )}
       <Footer color="oklch(12.9% 0.042 264.695)" background="" className="shadow-lg rounded-b-lg bg-white/70" style={{ padding: '2rem'}}/>
       {mostrarModalPago && pagoSeleccionado != null && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={cerrarModalPago}>
-          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto" onClick={cerrarModalPago}>
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <button
               type="button"
-              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 transition cursor-pointer border border-gray-100 shadow"
+              className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 transition cursor-pointer border border-gray-100 shadow z-10"
               onClick={cerrarModalPago}
               aria-label={t('close_modal') || 'Cerrar'}
             >
@@ -2036,7 +2054,7 @@ const loadPaypalSdk = useCallback(() => {
             </button>
 
             {/* Header con título y pestañas */}
-            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-green-500 text-white flex items-center justify-between gap-4">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-green-500 text-white flex items-center justify-between gap-4 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2v1c0 1.105 1.343 2 3 2s3 .895 3 2v1c0 1.105-1.343 2-3 2" /></svg>
                 <div>
@@ -2046,53 +2064,55 @@ const loadPaypalSdk = useCallback(() => {
               </div>
             </div>
 
-            {/* Contenido: dos columnas (izq: resumen, der: opciones de pago) */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-1 bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <div className="text-sm text-gray-600">{t('amount_to_pay') || 'Importe'}</div>
-                <div className="text-2xl font-bold text-gray-900 mt-2">€{fmtMonto(pagos.find(p => p.id === pagoSeleccionado)?.monto)}</div>
-                <div className="mt-3 text-sm text-gray-700">
-                  {t('payment_security_note') || 'Transacción segura. Tus datos no son almacenados aquí.'}
-                </div>
-                <div className="mt-4 text-sm">
-                  <div className="font-semibold text-gray-800">{t('payment_details') || 'Detalle'}</div>
-                  <div className="text-gray-600 text-sm mt-1">{pagos.find(p => p.id === pagoSeleccionado)?.medico || '—'}</div>
-                </div>
-              </div>
-
-              <div className="md:col-span-2 bg-white rounded-lg p-4 border border-gray-100">
-                {/* PayPal tab */}
-                {modalPaymentTab === 'paypal' && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('paypal') || 'Pagar con PayPal'}</h4>
-                    <div className="text-xs text-gray-600 mb-3">{t('paypal_description') || 'Usa tu cuenta PayPal o tarjeta a través de PayPal. Rápido y seguro.'}</div>
-                    <div className="border rounded-lg p-3 bg-gray-50">
-                      <PayPalButtonsCell pagoId={pagoSeleccionado} />
-                    </div>
+            {/* Contenido: dos columnas (izq: resumen, der: opciones de pago) - con scroll interno */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-sm text-gray-600">{t('amount_to_pay') || 'Importe'}</div>
+                  <div className="text-2xl font-bold text-gray-900 mt-2">€{fmtMonto(pagos.find(p => p.id === pagoSeleccionado)?.monto)}</div>
+                  <div className="mt-3 text-sm text-gray-700">
+                    {t('payment_security_note') || 'Transacción segura. Tus datos no son almacenados aquí.'}
                   </div>
-                )}
+                  <div className="mt-4 text-sm">
+                    <div className="font-semibold text-gray-800">{t('payment_details') || 'Detalle'}</div>
+                    <div className="text-gray-600 text-sm mt-1">{pagos.find(p => p.id === pagoSeleccionado)?.medico || '—'}</div>
+                  </div>
+                </div>
 
-                {/* Card tab (UI básica, integrar gateway real según backend) */}
-                {modalPaymentTab === 'card' && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('card') || 'Pagar con tarjeta'}</h4>
-                    <div className="text-xs text-gray-600 mb-3">{t('card_description') || 'Introduce los datos de tu tarjeta. El cobro requiere una pasarela (p. ej. Stripe) en el servidor.'}</div>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_name_placeholder') || 'Nombre completo (como en la tarjeta)'} />
-                        <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_number_placeholder') || 'Número de tarjeta'} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_expiry_placeholder') || 'MM/AA'} />
-                        <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_cvc_placeholder') || 'CVC/CVV'} />
-                      </div>
-                      <div className="text-xs text-gray-500">{t('card_payment_note') || 'La integración de tarjeta requiere un gateway (Stripe/Adyen) en backend.'}</div>
-                      <div className="flex justify-end">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md" onClick={() => addToast(t('card_flow_not_implemented') || 'Integración de tarjeta no implementada', 'info')}>{t('pay_with_card') || 'Pagar con tarjeta'}</button>
+                <div className="md:col-span-2 bg-white rounded-lg p-4 border border-gray-100">
+                  {/* PayPal tab */}
+                  {modalPaymentTab === 'paypal' && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('paypal') || 'Pagar con PayPal'}</h4>
+                      <div className="text-xs text-gray-600 mb-3">{t('paypal_description') || 'Usa tu cuenta PayPal o tarjeta a través de PayPal. Rápido y seguro.'}</div>
+                      <div className="border rounded-lg p-3 bg-gray-50">
+                        <PayPalButtonsCell pagoId={pagoSeleccionado} />
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {/* Card tab (UI básica, integrar gateway real según backend) */}
+                  {modalPaymentTab === 'card' && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('card') || 'Pagar con tarjeta'}</h4>
+                      <div className="text-xs text-gray-600 mb-3">{t('card_description') || 'Introduce los datos de tu tarjeta. El cobro requiere una pasarela (p. ej. Stripe) en el servidor.'}</div>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_name_placeholder') || 'Nombre completo (como en la tarjeta)'} />
+                          <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_number_placeholder') || 'Número de tarjeta'} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_expiry_placeholder') || 'MM/AA'} />
+                          <input className="border border-gray-200 rounded-md px-3 py-2" placeholder={t('card_cvc_placeholder') || 'CVC/CVV'} />
+                        </div>
+                        <div className="text-xs text-gray-500">{t('card_payment_note') || 'La integración de tarjeta requiere un gateway (Stripe/Adyen) en backend.'}</div>
+                        <div className="flex justify-end">
+                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md" onClick={() => addToast(t('card_flow_not_implemented') || 'Integración de tarjeta no implementada', 'info')}>{t('pay_with_card') || 'Pagar con tarjeta'}</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

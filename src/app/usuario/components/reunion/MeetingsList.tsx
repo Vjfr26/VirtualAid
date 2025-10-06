@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import MeetingItem from './MeetingItem';
+import { getEspecialistas, type MedicoResumen } from '../../services/medicos';
 
 interface MeetingsListProps {
   citasAgendadas: Array<{
@@ -45,6 +46,29 @@ export default function MeetingsList({
   setVista 
 }: MeetingsListProps) {
   const { t } = useTranslation('common');
+  const [especialistas, setEspecialistas] = useState<MedicoResumen[]>([]);
+
+  useEffect(() => {
+    const cargarEspecialistas = async () => {
+      try {
+        const especialistasData = await getEspecialistas();
+        setEspecialistas(especialistasData);
+      } catch (error) {
+        console.error('Error al cargar especialistas:', error);
+      }
+    };
+    cargarEspecialistas();
+  }, []);
+
+  // Función para encontrar el avatar del médico por nombre
+  const encontrarAvatarMedico = (nombreMedico: string): string | undefined => {
+    const especialista = especialistas.find(esp => {
+      const nombreCompleto = `${esp.nombre} ${esp.apellido || ''}`.trim();
+      return nombreCompleto.toLowerCase() === nombreMedico.toLowerCase() || 
+             esp.nombre.toLowerCase() === nombreMedico.toLowerCase();
+    });
+    return especialista?.avatar;
+  };
 
   const EmptyState = () => (
     <div className="px-6 py-12 text-center">
@@ -239,11 +263,19 @@ export default function MeetingsList({
               return (
                 <MeetingItem
                   key={reunion.id}
-                  reunion={reunion}
+                  reunion={{
+                    ...reunion,
+                    medicoAvatar: encontrarAvatarMedico(reunion.medico)
+                  }}
                   reuniones={reuniones}
                   pagos={pagos}
                   esReciente={esReciente}
                   canJoin={canJoin}
+                  medicoInfo={especialistas.find(esp => {
+                    const nombreCompleto = `${esp.nombre} ${esp.apellido || ''}`.trim();
+                    return nombreCompleto.toLowerCase() === reunion.medico.toLowerCase() || 
+                           esp.nombre.toLowerCase() === reunion.medico.toLowerCase();
+                  })}
                 />
               );
             })}

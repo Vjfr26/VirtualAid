@@ -139,14 +139,6 @@ export default function PaymentsTable({
             <span>•</span>
             <span>{t('total')}: €{totalAmount.toFixed(2)}</span>
           </div>
-          <div className="mt-2 sm:mt-0">
-            <button 
-              onClick={() => setVista('billing')}
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
-            >
-              {t('manage_payment_methods')} →
-            </button>
-          </div>
         </div>
       </div>
     );
