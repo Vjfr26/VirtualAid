@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneMissed, FiMessageSquare, FiUsers, FiMoreVertical, FiPaperclip, FiSend, FiFileText, FiMonitor } from 'react-icons/fi';
-import { postOffer, getOffer, postAnswer, getAnswer, postCandidate, getCandidates, finalizarChat, listRooms, roomLink, roomLinkWithName, getUsuario, getMedico, extractDisplayName } from './services';
+import { postOffer, getOffer, postAnswer, getAnswer, postCandidate, getCandidates, finalizarChat, listRooms, roomLink, roomLinkWithName, getUsuario, getMedico, extractDisplayName, getState } from './services';
 import Footer from '../components/Footer';
 
 
@@ -117,93 +117,50 @@ export default function ReunionPage() {
   // Función robusta para autoasignar rol y conectar
   const autoJoinRoom = async (rid: string) => {
     console.log(`[AutoJoin] Iniciando autoJoinRoom para sala: ${rid}`);
-    
-    // Prevenir múltiples ejecuciones concurrentes
+
     if (isJoining) {
       console.log(`[AutoJoin] ⚠️ Ya hay una conexión en progreso, cancelando...`);
       return;
     }
-    
+
     setIsJoining(true);
     setJoinError("");
     setRoomId(rid);
-    
-    // Omitir limpieza que falla y usar lógica más robusta
-    console.log(`[AutoJoin] Saltando limpieza de sesión (problemática)`);
-    
+    setDcState('connecting');
+    setConnState('new');
+
     try {
-      // Generar un ID único para esta sesión y usar localStorage para coordinación
-      const sessionId = Date.now().toString();
-      const storageKey = `webrtc_caller_${rid}`;
-      console.log(`[AutoJoin] 🆔 Session ID: ${sessionId}`);
-      console.log(`[AutoJoin] 🔑 Storage Key: ${storageKey}`);
-      
-      // Verificar si ya hay un caller registrado en localStorage
-      let existingCaller = null;
+      let shouldBeCallee = false;
+      let prefetchedOffer: string | null = null;
+
       try {
-        const stored = localStorage.getItem(storageKey);
-        console.log(`[AutoJoin] 📦 Raw localStorage content:`, stored);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const age = Date.now() - parsed.timestamp;
-          console.log(`[AutoJoin] ⏰ Parsed data:`, parsed, `Age: ${age}ms`);
-          if (age < 10000) { // Válido por 10 segundos
-            existingCaller = parsed;
-            console.log(`[AutoJoin] ✅ Caller existente válido en localStorage:`, existingCaller);
-          } else {
-            console.log(`[AutoJoin] ⏰ Caller en localStorage demasiado antiguo (${age}ms), limpiando`);
-            localStorage.removeItem(storageKey);
-          }
-        } else {
-          console.log(`[AutoJoin] 📭 No hay datos en localStorage para esta sala`);
+        const remoteState = await getState(rid);
+        console.log('[AutoJoin] Estado remoto recibido:', remoteState);
+        if (remoteState?.hasOffer) {
+          shouldBeCallee = true;
         }
       } catch (err) {
-        console.log(`[AutoJoin] ❌ Error leyendo localStorage:`, err);
+        console.log('[AutoJoin] No fue posible obtener el estado de la sala:', err);
       }
-      
-      
-      // Lógica de asignación de rol con coordinación localStorage
-      let shouldBeCallee = false;
-      let hasValidOffer = false;
-      
-      console.log(`[AutoJoin] 🤔 Evaluando asignación de rol...`);
-      console.log(`[AutoJoin] - existingCaller:`, existingCaller);
-      console.log(`[AutoJoin] - sessionId actual:`, sessionId);
-      
-      if (existingCaller && existingCaller.sessionId !== sessionId) {
-        // Hay otro caller registrado, ser callee
-        console.log(`[AutoJoin] ✅ Hay caller registrado (${existingCaller.sessionId}) diferente al nuestro (${sessionId}). Asignando rol: CALLEE`);
-        shouldBeCallee = true;
-        hasValidOffer = true;
-      } else {
-        // No hay caller o somos nosotros, registrarse como caller
-        console.log(`[AutoJoin] ❌ No hay caller registrado o somos nosotros. Asignando rol: CALLER`);
+
+      if (!shouldBeCallee) {
         try {
-          const callerData = {
-            sessionId: sessionId,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(storageKey, JSON.stringify(callerData));
-          console.log(`[AutoJoin] 💾 Registrado como CALLER en localStorage:`, callerData);
+          const offerResponse = await getOffer(rid);
+          console.log('[AutoJoin] Respuesta de getOffer:', offerResponse);
+          if (offerResponse?.offer) {
+            prefetchedOffer = offerResponse.offer;
+            shouldBeCallee = true;
+          }
         } catch (err) {
-          console.log(`[AutoJoin] ❌ Error guardando en localStorage:`, err);
+          console.log('[AutoJoin] Error al consultar la oferta existente:', err);
         }
       }
-      
-      // Consultar oferta existente solo como información adicional
-      console.log(`[AutoJoin] Consultando oferta existente para sala ${rid}...`);
-      try {
-        const state = await getOffer(rid);
-        console.log(`[AutoJoin] Respuesta de getOffer:`, state);
-      } catch (e) {
-        console.log(`[AutoJoin] Error al consultar oferta:`, e);
-      }
-      
-      if (hasValidOffer && shouldBeCallee) {
-        await joinAndAnswer(rid);
+
+      if (shouldBeCallee) {
+        console.log('[AutoJoin] Detectada oferta existente; actuando como CALLEE');
+        await joinAndAnswer(rid, prefetchedOffer);
       } else {
-        // Ser caller por defecto
-        console.log(`[AutoJoin] ➡️ Siendo CALLER (por defecto o no hay caller activo)`);
+        console.log('[AutoJoin] No hay oferta previa; actuando como CALLER');
         await startAsCaller(rid);
       }
     } catch (e) {
@@ -678,7 +635,7 @@ export default function ReunionPage() {
   // Iniciar como caller en una sala predefinida (rid) sin crear en backend
   // Eliminado flujo de creación local: las salas se crean en backend
 
-  const joinAndAnswer = useCallback(async (rid: string) => {
+  const joinAndAnswer = useCallback(async (rid: string, prefetchedOffer?: string | null) => {
     console.log(`[CALLEE] Iniciando joinAndAnswer para sala: ${rid}`);
     setRoomId(rid);
     roleRef.current = 'callee';
@@ -699,9 +656,9 @@ export default function ReunionPage() {
     
     // Esperar la oferta del caller con reintentos (hasta 15s)
     console.log(`[CALLEE] Esperando oferta del caller...`);
-    let offerStr: string | null = null;
+    let offerStr: string | null = prefetchedOffer ?? null;
     const start = Date.now();
-    while (Date.now() - start < 15000) {
+    while (!offerStr && Date.now() - start < 15000) {
       try {
         const off = await getOffer(rid);
         console.log(`[CALLEE] Polling offer - Tiempo transcurrido: ${Date.now() - start}ms, offer presente: ${!!off.offer}`);
@@ -1042,7 +999,15 @@ export default function ReunionPage() {
 
   // Salir del lobby (cuando no hay sala activa)
   const exitLobby = useCallback(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    try {
+      window.close();
+      // Si el navegador impide el cierre (pestaña no creada por script), caer al plan B
+      if (!window.closed) {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = '/';
+      }
+    } catch {
       try {
         if (window.history.length > 1) window.history.back();
         else window.location.href = '/';
@@ -1356,10 +1321,6 @@ export default function ReunionPage() {
             )}
             {joinError && <p className="text-sm text-red-400 mt-2">{joinError}</p>}
             <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                className="px-3 py-2 rounded bg-blue-700 hover:bg-blue-600 text-sm"
-                title="Solo para pruebas locales: publica una oferta mínima en el backend"
-              >Simular oferta (DEV)</button>
               <button onClick={exitLobby} className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">Salir</button>
             </div>
           </div>
