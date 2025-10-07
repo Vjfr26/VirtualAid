@@ -4,15 +4,16 @@ import { useTranslation } from 'react-i18next';
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
 import usuarioStyles from '../usuario.module.css';
+import type { AppointmentData } from './AppointmentsList';
 
 interface AppointmentsCalendarProps {
   fechaSeleccionadaCalendario: Date | null;
   setFechaSeleccionadaCalendario: (fecha: Date | null) => void;
-  citasFiltradas: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
-  citasFiltradasCalendario: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
-  citasProximas: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
-  citasPasadas: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
-  citasAgendadas: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
+  citasFiltradas: AppointmentData[];
+  citasFiltradasCalendario: AppointmentData[];
+  citasProximas: AppointmentData[];
+  citasPasadas: AppointmentData[];
+  citasAgendadas: AppointmentData[];
 }
 
 export default function AppointmentsCalendar({

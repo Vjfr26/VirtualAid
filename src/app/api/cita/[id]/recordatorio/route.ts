@@ -7,19 +7,24 @@ const RAW_BACKEND_URL = process.env.BACKEND_BASE_URL
 
 const BACKEND_BASE_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
-export async function POST(
+type Method = 'POST' | 'DELETE';
+
+async function forwardRecordatorioRequest(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
+  method: Method
 ) {
   const { id: citaId } = await params;
   const endpoint = `${BACKEND_BASE_URL}/api/cita/${encodeURIComponent(citaId)}/recordatorio`;
 
   let body: string | undefined;
-  try {
-    const rawBody = await request.text();
-    body = rawBody.trim().length > 0 ? rawBody : undefined;
-  } catch (error) {
-    console.warn('No se pudo leer el cuerpo de la petición entrante:', error);
+  if (method !== 'DELETE') {
+    try {
+      const rawBody = await request.text();
+      body = rawBody.trim().length > 0 ? rawBody : undefined;
+    } catch (error) {
+      console.warn('No se pudo leer el cuerpo de la petición entrante:', error);
+    }
   }
 
   const headers = new Headers();
@@ -41,9 +46,9 @@ export async function POST(
 
   try {
     const backendResponse = await fetch(endpoint, {
-      method: 'POST',
+      method,
       headers,
-      body,
+      body: method === 'DELETE' ? undefined : body,
       cache: 'no-store',
     });
 
@@ -86,4 +91,18 @@ export async function POST(
       { status: 502 }
     );
   }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return forwardRecordatorioRequest(request, context, 'POST');
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return forwardRecordatorioRequest(request, context, 'DELETE');
 }

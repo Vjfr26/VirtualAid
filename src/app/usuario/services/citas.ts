@@ -12,6 +12,10 @@ export type Cita = {
   // Campos de reunión provenientes del backend (tabla cita)
   tokenSala?: string;
   idRoom?: string;
+  // Preferencias de recordatorios expuestas por el backend
+  notificaciones_activadas?: boolean;
+  notificaciones_activadas_en?: string | null;
+  ultimo_recordatorio_enviado?: string | null;
 };
 
 export async function getCitasDeUsuario(email: string): Promise<Cita[]> {

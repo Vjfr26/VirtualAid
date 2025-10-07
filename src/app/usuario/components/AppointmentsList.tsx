@@ -4,12 +4,26 @@ import { useTranslation } from 'react-i18next';
 import AppointmentCard from './AppointmentCard';
 import usuarioStyles from '../usuario.module.css';
 
+export interface AppointmentData {
+  id?: number | string;
+  fecha: Date;
+  hora: string;
+  medico: string;
+  especialidad?: string;
+  tokenSala?: string;
+  idRoom?: string;
+  token?: string;
+  notificacionesActivadas?: boolean;
+  ultimoRecordatorioEnviado?: string | null;
+}
+
 interface AppointmentsListProps {
-  citasFiltradas: Array<{ fecha: Date; hora: string; medico: string; especialidad?: string }>;
+  citasFiltradas: AppointmentData[];
   filtroCitas: 'todas' | 'proximas' | 'pasadas';
   setVista: (vista: 'inicio' | 'citas' | 'especialistas' | 'pagos' | 'billing' | 'Reunion') => void;
-  isRecordatorioOn: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => boolean;
-  toggleRecordatorio: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => Promise<void>;
+  isRecordatorioOn: (cita: AppointmentData) => boolean;
+  enviarRecordatorio: (cita: AppointmentData) => Promise<void>;
+  desactivarRecordatorio: (cita: AppointmentData) => Promise<void>;
 }
 
 export default function AppointmentsList({
@@ -17,7 +31,8 @@ export default function AppointmentsList({
   filtroCitas,
   setVista,
   isRecordatorioOn,
-  toggleRecordatorio
+  enviarRecordatorio,
+  desactivarRecordatorio
 }: AppointmentsListProps) {
   const { t } = useTranslation('common');
 
@@ -75,10 +90,11 @@ export default function AppointmentsList({
             <div className="space-y-3">
               {citasFiltradas.map((cita, idx) => (
                 <AppointmentCard
-                  key={idx}
+                  key={cita.id ?? idx}
                   cita={cita}
                   isRecordatorioOn={isRecordatorioOn}
-                  toggleRecordatorio={toggleRecordatorio}
+                  enviarRecordatorio={enviarRecordatorio}
+                  desactivarRecordatorio={desactivarRecordatorio}
                 />
               ))}
             </div>

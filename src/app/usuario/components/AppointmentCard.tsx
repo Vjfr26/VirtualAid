@@ -2,26 +2,27 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import usuarioStyles from '../usuario.module.css';
+import type { AppointmentData } from './AppointmentsList';
 
 interface AppointmentCardProps {
-  cita: {
-    fecha: Date;
-    hora: string;
-    medico: string;
-    especialidad?: string;
-  };
-  isRecordatorioOn: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => boolean;
-  toggleRecordatorio: (cita: { fecha: Date; hora: string; medico: string; especialidad?: string }) => Promise<void>;
+  cita: AppointmentData;
+  isRecordatorioOn: (cita: AppointmentData) => boolean;
+  enviarRecordatorio: (cita: AppointmentData) => Promise<void>;
+  desactivarRecordatorio: (cita: AppointmentData) => Promise<void>;
 }
 
 export default function AppointmentCard({
   cita,
   isRecordatorioOn,
-  toggleRecordatorio
+  enviarRecordatorio,
+  desactivarRecordatorio
 }: AppointmentCardProps) {
   const { t } = useTranslation('common');
-  const [procesandoRecordatorio, setProcesandoRecordatorio] = React.useState(false);
-  
+  const [procesandoEnvio, setProcesandoEnvio] = React.useState(false);
+  const [procesandoDesactivacion, setProcesandoDesactivacion] = React.useState(false);
+  const reminderActive = isRecordatorioOn(cita);
+  const reminderLabel = reminderActive ? t('resend_reminder') : t('enable_reminder');
+
   const hoy = new Date();
   const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   const esPasada = cita.fecha < inicioHoy;
@@ -29,24 +30,23 @@ export default function AppointmentCard({
   const diasRestantes = Math.ceil((cita.fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <div 
+    <div
       className={`${usuarioStyles.citaCard} ${
-        esPasada 
+        esPasada
           ? usuarioStyles.citaCardPast
-          : esHoy 
+          : esHoy
             ? usuarioStyles.citaCardToday
             : usuarioStyles.citaCardUpcoming
       }`}
     >
-      {/* Header de la cita */}
       <div className={usuarioStyles.citaCardHeader}>
         <div>
           <div className={usuarioStyles.citaCardDate}>
-            {cita.fecha.toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              month: 'long', 
+            {cita.fecha.toLocaleDateString('es-ES', {
+              weekday: 'long',
+              month: 'long',
               day: 'numeric',
-              year: 'numeric'
+              year: 'numeric',
             })}
           </div>
           <div className={usuarioStyles.citaCardTime}>
@@ -56,23 +56,24 @@ export default function AppointmentCard({
             {cita.hora}
           </div>
         </div>
-        
-        <div className={`${usuarioStyles.citaCardStatus} ${
-          esPasada 
-            ? usuarioStyles.citaCardStatusPast
-            : esHoy 
-              ? usuarioStyles.citaCardStatusToday
-              : usuarioStyles.citaCardStatusUpcoming
-        }`}>
-          {esPasada 
-            ? t('status_completed') 
-            : esHoy 
-              ? t('legend_today') 
+
+        <div
+          className={`${usuarioStyles.citaCardStatus} ${
+            esPasada
+              ? usuarioStyles.citaCardStatusPast
+              : esHoy
+                ? usuarioStyles.citaCardStatusToday
+                : usuarioStyles.citaCardStatusUpcoming
+          }`}
+        >
+          {esPasada
+            ? t('status_completed')
+            : esHoy
+              ? t('legend_today')
               : t(diasRestantes === 1 ? 'status_in_days_one' : 'status_in_days_other', { count: diasRestantes })}
         </div>
       </div>
 
-      {/* Cuerpo de la cita */}
       <div className={usuarioStyles.citaCardBody}>
         <div className={usuarioStyles.citaCardInfo}>
           <svg className={usuarioStyles.citaCardIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +83,7 @@ export default function AppointmentCard({
             {t('doctor_short')} {cita.medico}
           </span>
         </div>
-        
+
         {cita.especialidad && (
           <div className={usuarioStyles.citaCardInfo}>
             <svg className={usuarioStyles.citaCardIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,8 +92,7 @@ export default function AppointmentCard({
             <span>{cita.especialidad}</span>
           </div>
         )}
-        
-        {/* Información adicional contextual */}
+
         {esHoy && (
           <div className={usuarioStyles.citaCardInfo}>
             <svg className={usuarioStyles.citaCardIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ export default function AppointmentCard({
             <span className="text-orange-600 font-medium">{t('appointment_is_today')}</span>
           </div>
         )}
-        
+
         {diasRestantes === 1 && !esHoy && (
           <div className={usuarioStyles.citaCardInfo}>
             <svg className={usuarioStyles.citaCardIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,59 +112,93 @@ export default function AppointmentCard({
         )}
       </div>
 
-      {/* Acciones de la cita */}
       <div className={usuarioStyles.citaCardActions}>
-        {!esPasada && (() => {
-          const on = isRecordatorioOn(cita);
-          return (
-            <button
-              type="button"
-              className={`${usuarioStyles.citaCardAction} ${on ? usuarioStyles.citaCardActionSuccess : usuarioStyles.citaCardActionPrimary} ${procesandoRecordatorio ? 'opacity-70 cursor-wait' : ''}`}
-              onClick={async () => {
-                if (procesandoRecordatorio) return;
-                setProcesandoRecordatorio(true);
-                try {
-                  await toggleRecordatorio(cita);
-                } finally {
-                  setProcesandoRecordatorio(false);
+        {!esPasada ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="button"
+                className={`${usuarioStyles.citaCardAction} ${reminderActive ? usuarioStyles.citaCardActionSuccess : usuarioStyles.citaCardActionPrimary} ${procesandoEnvio ? 'opacity-70 cursor-wait' : ''}`}
+                onClick={async () => {
+                  if (procesandoEnvio) return;
+                  setProcesandoEnvio(true);
+                  try {
+                    await enviarRecordatorio(cita);
+                  } finally {
+                    setProcesandoEnvio(false);
+                  }
+                }}
+                disabled={procesandoEnvio}
+                aria-pressed={reminderActive}
+                title={
+                  procesandoEnvio
+                    ? 'Procesando recordatorio...'
+                    : (reminderLabel as string)
                 }
-              }}
-              disabled={procesandoRecordatorio}
-              aria-pressed={on}
-              title={
-                procesandoRecordatorio 
-                  ? 'Procesando recordatorio...' 
-                  : on 
-                    ? (t('disable_reminder') as string) 
-                    : (t('enable_reminder') as string)
-              }
-            >
-              {procesandoRecordatorio ? (
-                // Spinner de carga
-                <svg className="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {/* Campana */}
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.73 21a2 2 0 01-3.46 0" />
-                  {/* Trazo de desactivación cuando está activo */}
-                  {on && (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+              >
+                {procesandoEnvio ? (
+                  <svg className="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.73 21a2 2 0 01-3.46 0" />
+                    {reminderActive && (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 0l2 2m-2-2l-2 2" />
+                    )}
+                  </svg>
+                )}
+                {procesandoEnvio ? 'Enviando...' : reminderLabel}
+              </button>
+
+              {reminderActive && (
+                <button
+                  type="button"
+                  className={`${usuarioStyles.citaCardAction} ${usuarioStyles.citaCardActionSecondary} ${procesandoDesactivacion ? 'opacity-70 cursor-wait' : ''}`}
+                  onClick={async () => {
+                    if (procesandoDesactivacion) return;
+                    setProcesandoDesactivacion(true);
+                    try {
+                      await desactivarRecordatorio(cita);
+                    } finally {
+                      setProcesandoDesactivacion(false);
+                    }
+                  }}
+                  disabled={procesandoDesactivacion}
+                  title={
+                    procesandoDesactivacion
+                      ? 'Procesando recordatorio...'
+                      : (t('disable_reminder') as string)
+                  }
+                >
+                  {procesandoDesactivacion ? (
+                    <svg className="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 13v5a2 2 0 01-2 2H8a2 2 0 01-2-2v-5" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 9l7-7 7 7" />
+                    </svg>
                   )}
-                </svg>
+                  {procesandoDesactivacion ? 'Procesando...' : t('disable_reminder')}
+                </button>
               )}
-              {procesandoRecordatorio 
-                ? 'Enviando...'
-                : on 
-                  ? t('disable_reminder') 
-                  : t('enable_reminder')}
-            </button>
-          );
-        })()}
-        {esPasada && (
+            </div>
+
+            {reminderActive && (
+              <div className="flex items-start text-[11px] leading-tight text-green-700">
+                <svg className="w-3 h-3 mr-1 mt-[2px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{t('email_reminder_enabled')}</span>
+              </div>
+            )}
+          </div>
+        ) : (
           <button className={`${usuarioStyles.citaCardAction} ${usuarioStyles.citaCardActionSecondary}`} type="button">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

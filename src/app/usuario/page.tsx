@@ -16,7 +16,7 @@ interface BillingInvoice { id: string; amount: number; currency: string; status:
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
 import { getHorarios, type Horario } from '../medico/services/horarios';
 import { useToast } from '../components/Toast';
-import { enviarRecordatorio } from './services/recordatorios';
+import { enviarRecordatorio, desactivarRecordatorio } from './services/recordatorios';
 
 // Componentes modularizados del dashboard
 import { 
@@ -37,6 +37,19 @@ import {
 // Datos iniciales mínimos para evitar layout shift mientras carga
 import type { MedicoResumen } from './services/medicos';
 
+type CitaAgendada = {
+  id?: number | string;
+  fecha: Date;
+  hora: string;
+  medico: string;
+  especialidad?: string;
+  tokenSala?: string;
+  idRoom?: string;
+  token?: string;
+  notificacionesActivadas?: boolean;
+  ultimoRecordatorioEnviado?: string | null;
+};
+
 const especialistasEjemplo: MedicoResumen[] = [];
 
 // EmailJS ya no se usa, se envían correos desde el backend
@@ -45,7 +58,7 @@ export default function DashboardPaciente() {
   const { t, i18n: i18nHook } = useTranslation('common');
   
   // Citas reales
-  const [citasAgendadas, setCitasAgendadas] = useState<{ id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string; tokenSala?: string; idRoom?: string; token?: string }[]>([]);
+  const [citasAgendadas, setCitasAgendadas] = useState<CitaAgendada[]>([]);
   // Estados para la mejora del apartado de citas
   const [filtroCitas, setFiltroCitas] = useState<'todas' | 'proximas' | 'pasadas'>('todas');
   const [fechaSeleccionadaCalendario, setFechaSeleccionadaCalendario] = useState<Date | null>(null);
@@ -412,7 +425,7 @@ export default function DashboardPaciente() {
     setHoraSeleccionada('');
   }
   // Utilidad para ordenar citas: futuras primero (más próximas -> más lejanas), luego pasadas (más reciente -> más antigua)
-  const ordenarCitas = (citas: { fecha: Date; hora: string; medico: string; especialidad?: string }[]) => {
+  const ordenarCitas = (citas: CitaAgendada[]) => {
     const hoy = new Date();
     const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const futuras = citas.filter(c => c.fecha >= inicioHoy);
@@ -454,66 +467,101 @@ export default function DashboardPaciente() {
     try { return date.toLocaleDateString(locale || undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }); } catch { return ''; }
   }
 
-  // Estado local de recordatorios activados (por id de cita)
-  const [recordatoriosActivos, setRecordatoriosActivos] = useState<Set<string>>(new Set());
-  const isRecordatorioOn = (c: { id?: number|string; fecha: Date; hora: string; medico: string }) => {
-    const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
-    return recordatoriosActivos.has(key);
-  };
+  const isRecordatorioOn = (c: CitaAgendada) => Boolean(c.notificacionesActivadas);
 
-  // Funciones de EmailJS eliminadas - ahora se usa API del backend
-
-  const toggleRecordatorio = useCallback(async (c: { id?: number|string; fecha: Date; hora: string; medico: string; especialidad?: string }) => {
-    const key = c.id != null ? String(c.id) : `${c.medico}|${c.fecha.toDateString()}|${c.hora}`;
-    const enable = !recordatoriosActivos.has(key);
-
-    if (!enable) {
-      setRecordatoriosActivos(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-      addToast('🔕 Recordatorio desactivado correctamente', 'info');
-      return;
-    }
-
-    // Validar que la cita tenga ID
+  const enviarRecordatorioCita = useCallback(async (c: CitaAgendada) => {
     if (!c.id) {
-      addToast('❌ No se puede enviar el recordatorio: ID de cita no disponible', 'error');
+      addToast('❌ No se puede gestionar el recordatorio: la cita no tiene identificador válido.', 'error');
       return;
     }
 
-    // Marcar como activado inmediatamente
-    setRecordatoriosActivos(prev => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
+    const reenviar = Boolean(c.notificacionesActivadas);
 
     try {
-      // Enviar recordatorio mediante API del backend (solo necesita el ID de la cita)
-      const resultado = await enviarRecordatorio(c.id);
+      const resultado = await enviarRecordatorio(
+        c.id,
+        {
+          enabled: true,
+          ...(reenviar ? { force: true } : {}),
+        }
+      );
 
-      if (resultado.success && resultado.data) {
-        addToast(`✅ Recordatorio enviado a ${resultado.data.email}`, 'success');
-      } else {
-        setRecordatoriosActivos(prev => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
+      if (!resultado.success) {
         addToast(`❌ ${resultado.message}`, 'error');
+        return;
       }
+
+      const marcaTemporal = resultado.data?.fecha
+        ? new Date(resultado.data.fecha).toISOString()
+        : new Date().toISOString();
+
+      setCitasAgendadas(prev => prev.map(item => {
+        const mismaId = item.id != null && c.id != null && String(item.id) === String(c.id);
+        const mismaCita = mismaId || (
+          item.id == null && c.id == null &&
+          item.medico === c.medico &&
+          item.hora === c.hora &&
+          item.fecha.toDateString() === c.fecha.toDateString()
+        );
+        if (!mismaCita) return item;
+
+        return {
+          ...item,
+          notificacionesActivadas: true,
+          ultimoRecordatorioEnviado: marcaTemporal,
+        };
+      }));
+
+      addToast(
+        reenviar
+          ? '🔁 Recordatorio reenviado por correo electrónico'
+          : '🔔 Recordatorio activado. Se enviará automáticamente antes de la cita',
+        'success'
+      );
     } catch (error) {
-      setRecordatoriosActivos(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-      addToast('❌ Error al activar el recordatorio. Inténtalo de nuevo.', 'error');
-      console.error('Error en toggleRecordatorio:', error);
+      addToast('❌ Error al gestionar el recordatorio. Inténtalo de nuevo.', 'error');
+      console.error('Error al enviar recordatorio:', error);
     }
-  }, [addToast, recordatoriosActivos]);
+  }, [addToast]);
+
+  const desactivarRecordatorioCita = useCallback(async (c: CitaAgendada) => {
+    if (!c.id) {
+      addToast('❌ No se puede gestionar el recordatorio: la cita no tiene identificador válido.', 'error');
+      return;
+    }
+
+    try {
+      const resultado = await desactivarRecordatorio(c.id);
+
+      if (!resultado.success) {
+        addToast(`❌ ${resultado.message}`, 'error');
+        return;
+      }
+
+      setCitasAgendadas(prev => prev.map(item => {
+        const mismaId = item.id != null && c.id != null && String(item.id) === String(c.id);
+        const mismaCita = mismaId || (
+          item.id == null && c.id == null &&
+          item.medico === c.medico &&
+          item.hora === c.hora &&
+          item.fecha.toDateString() === c.fecha.toDateString()
+        );
+        if (!mismaCita) return item;
+
+        return {
+          ...item,
+          notificacionesActivadas: false,
+          ultimoRecordatorioEnviado: null,
+        };
+      }));
+
+  const successMsg = resultado.message?.trim() ? resultado.message : 'Recordatorio desactivado correctamente';
+  addToast(successMsg.startsWith('🔕') ? successMsg : `🔕 ${successMsg}`, 'info');
+    } catch (error) {
+      addToast('❌ Error al desactivar el recordatorio. Inténtalo de nuevo.', 'error');
+      console.error('Error al desactivar recordatorio:', error);
+    }
+  }, [addToast]);
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
     const especialidadMatch = !especialidadFiltro || (m.especialidad && m.especialidad.toLowerCase() === especialidadFiltro.toLowerCase());
@@ -595,7 +643,19 @@ export default function DashboardPaciente() {
         const m = map.get(c.medico_id);
         const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
       const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
-          return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad, tokenSala: c.tokenSala, idRoom: c.idRoom, token: c.token };
+      const ultimoRecordatorio = c.ultimo_recordatorio_enviado || c.notificaciones_activadas_en || null;
+          return {
+            id: c.id,
+            fecha: date,
+            hora: c.hora,
+            medico: nombreMedico,
+            especialidad: m?.especialidad,
+            tokenSala: c.tokenSala,
+            idRoom: c.idRoom,
+            token: c.token,
+            notificacionesActivadas: Boolean(c.notificaciones_activadas),
+            ultimoRecordatorioEnviado: ultimoRecordatorio,
+          };
       });
   setCitasAgendadas(ordenarCitas(citasFmtRaw));
     setPagos(pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string }; cita: TCita | null }) => {
@@ -999,7 +1059,19 @@ const loadPaypalSdk = useCallback(() => {
             const m = map.get(c.medico_id);
             const nombreMedico = m ? `${m.nombre}${m.apellido ? ' ' + m.apellido : ''}` : c.medico_id;
             const { date } = combinarFechaHoraLocal(c.fecha, c.hora);
-            return { id: c.id, fecha: date, hora: c.hora, medico: nombreMedico, especialidad: m?.especialidad, tokenSala: c.tokenSala, idRoom: c.idRoom, token: c.token };
+            const ultimoRecordatorio = c.ultimo_recordatorio_enviado || c.notificaciones_activadas_en || null;
+            return {
+              id: c.id,
+              fecha: date,
+              hora: c.hora,
+              medico: nombreMedico,
+              especialidad: m?.especialidad,
+              tokenSala: c.tokenSala,
+              idRoom: c.idRoom,
+              token: c.token,
+              notificacionesActivadas: Boolean(c.notificaciones_activadas),
+              ultimoRecordatorioEnviado: ultimoRecordatorio,
+            };
           });
           setCitasAgendadas(ordenarCitas(citasFmt));
           setLoadingCitas(false);
@@ -1736,7 +1808,8 @@ const loadPaypalSdk = useCallback(() => {
                       filtroCitas={filtroCitas}
                       setVista={setVista}
                       isRecordatorioOn={isRecordatorioOn}
-                      toggleRecordatorio={toggleRecordatorio}
+                      enviarRecordatorio={enviarRecordatorioCita}
+                      desactivarRecordatorio={desactivarRecordatorioCita}
                     />
                   </div>
                 )}
