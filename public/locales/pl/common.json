@@ -271,6 +271,8 @@
   "resend_reminder": "Wyślij ponownie przypomnienie",
   "email_reminder_enabled": "Będziesz przypominany przez email.",
   "email_reminder_disabled": "Powiadomienia email zostały wyłączone.",
+  "reminder_processing_title": "Przetwarzanie przypomnienia...",
+  "reminder_sending_label": "Wysyłanie...",
   "report": "Raport",
   "save_changes": "Zapisz zmiany",
   "saving_changes": "Zapisywanie zmian",
@@ -384,5 +386,139 @@
   "total": "Łącznie",
   "coupon": "Kupon",
   "no_active_coupon": "Nie masz aktywnego kuponu.",
-  "redeem_coupon": "Wykorzystaj kupon"
+  "redeem_coupon": "Wykorzystaj kupon",
+  "toast_close_notification": "Zamknij powiadomienie",
+  "legal_modal_close": "Zamknij",
+  "footer": {
+    "copy": "Prawa autorskie © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Tworzone z ❤️ przez ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Polityka prywatności",
+      "terms": "Regulamin"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Polityka prywatności",
+      "highlight": "W VirtualAid z najwyższą starannością chronimy Twoje dane osobowe. Poniżej znajdziesz przejrzyste podsumowanie tego, jak je zbieramy, wykorzystujemy i zabezpieczamy.",
+      "sections": [
+        {
+          "title": "1. Wprowadzenie",
+          "paragraphs": [
+            "Szanujemy Twoją prywatność i zobowiązujemy się do zapewnienia bezpieczeństwa Twoich danych osobowych. Niniejsza polityka opisuje środki, które podejmujemy, aby chronić informacje, oraz sposób ich wykorzystania na platformie."
+          ]
+        },
+        {
+          "title": "2. Jakie informacje zbieramy",
+          "list": [
+            "Dane rejestracyjne, takie jak imię, nazwisko, adres e-mail i zaszyfrowane hasło.",
+            "Informacje o korzystaniu z platformy, w tym wizyty, konsultowane specjalizacje i wiadomości.",
+            "Dane techniczne, m.in. adres IP, typ urządzenia i używana przeglądarka."
+          ]
+        },
+        {
+          "title": "3. Jak wykorzystujemy informacje",
+          "list": [
+            "Zarządzanie Twoim kontem, wizytami medycznymi oraz związanymi z nimi przypomnieniami.",
+            "Udoskonalanie naszych usług i personalizacja doświadczenia na platformie.",
+            "Wysyłanie istotnych komunikatów dotyczących Twojej aktywności lub zmian w VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Udostępnianie informacji",
+          "paragraphs": [
+            "Udostępniamy Twoje dane osobowe stronom trzecim wyłącznie wtedy, gdy jest to niezbędne do świadczenia usług (np. lekarzom powiązanym z wizytą) lub gdy wymagają tego przepisy prawa."
+          ]
+        },
+        {
+          "title": "5. Bezpieczeństwo",
+          "paragraphs": [
+            "Stosujemy środki techniczne i organizacyjne — w tym szyfrowanie, kontrolę dostępu i regularne audyty — aby zapobiegać nieuprawnionemu dostępowi, utracie lub niewłaściwemu wykorzystaniu informacji."
+          ]
+        },
+        {
+          "title": "6. Twoje prawa",
+          "paragraphs": [
+            "W każdej chwili możesz zażądać dostępu do swoich danych osobowych, ich poprawienia lub usunięcia. Skontaktuj się z naszym wsparciem, a zajmiemy się Twoją prośbą w pierwszej kolejności."
+          ]
+        },
+        {
+          "title": "7. Zmiany w polityce",
+          "paragraphs": [
+            "Możemy aktualizować niniejszą politykę, gdy wprowadzamy nowe usługi lub wymagają tego przepisy prawa. O istotnych zmianach poinformujemy Cię przed ich wejściem w życie."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Regulamin",
+      "highlight": "Korzystając z VirtualAid, akceptujesz te warunki, stworzone w celu zapewnienia bezpiecznej i niezawodnej obsługi pacjentów oraz personelu medycznego.",
+      "sections": [
+        {
+          "title": "1. Akceptacja warunków",
+          "paragraphs": [
+            "Dostęp do platformy lub jej użytkowanie oznacza pełną zgodę na niniejsze warunki. Jeśli się z nimi nie zgadzasz, musisz zaprzestać korzystania z VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Korzystanie z platformy",
+          "list": [
+            "W koncie należy podawać prawdziwe, kompletne i aktualne informacje.",
+            "Zabronione jest korzystanie w sposób oszukańczy, nadużywający lub szkodzący innym użytkownikom.",
+            "Możemy zawiesić lub ograniczyć dostęp, jeśli wykryjemy nieprawidłowości."
+          ]
+        },
+        {
+          "title": "3. Własność intelektualna",
+          "paragraphs": [
+            "Treści, znaki towarowe i rozwiązania technologiczne VirtualAid należą do platformy lub jej licencjodawców. Powielanie bez uprzedniej pisemnej zgody jest zabronione."
+          ]
+        },
+        {
+          "title": "4. Odpowiedzialność",
+          "paragraphs": [
+            "VirtualAid działa jako pośrednik technologiczny i nie ponosi odpowiedzialności za decyzje kliniczne ani informacje przekazywane bezpośrednio przez personel medyczny."
+          ]
+        },
+        {
+          "title": "5. Zmiany",
+          "paragraphs": [
+            "Zastrzegamy sobie prawo do aktualizacji tych warunków, aby odzwierciedlać ulepszenia usług lub zmiany regulacyjne. O istotnych zmianach poinformujemy z odpowiednim wyprzedzeniem."
+          ]
+        },
+        {
+          "title": "6. Prawo właściwe",
+          "paragraphs": [
+            "Niniejsze warunki podlegają prawu kraju Twojego zamieszkania, a spory będą rozstrzygane przez właściwe sądy."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Nie można przetworzyć przypomnienia: wizyta nie ma prawidłowego identyfikatora.",
+    "reminder_resent": "🔁 Przypomnienie ponownie wysłane e-mailem",
+    "reminder_enabled": "🔔 Przypomnienie włączone. Zostanie wysłane automatycznie przed wizytą",
+    "reminder_manage_error": "❌ Błąd podczas zarządzania przypomnieniem. Spróbuj ponownie.",
+    "reminder_disabled_success_plain": "Przypomnienie pomyślnie wyłączone",
+    "reminder_disable_error": "❌ Błąd podczas wyłączania przypomnienia. Spróbuj ponownie.",
+    "select_doctor_date_time": "Wybierz lekarza, datę i godzinę",
+    "appointment_created": "Wizyta utworzona",
+    "appointment_create_error": "Błąd podczas tworzenia wizyty",
+    "avatar_updated": "Zdjęcie zaktualizowane",
+  "avatar_upload_error": "Błąd podczas przesyłania obrazu",
+  "avatar_upload_too_large": "Obraz przekracza maksymalny rozmiar {{max}} MB",
+    "payment_completed": "Płatność zakończona",
+    "payment_not_completed": "Płatność nie została zakończona",
+    "payment_not_yours": "Ta płatność nie jest powiązana z Twoim kontem.",
+    "payment_already_processed": "Ta płatność została już przetworzona.",
+    "payment_capture_error": "Błąd podczas finalizacji płatności",
+    "paypal_error": "Błąd PayPal",
+    "payment_cancelled": "Płatność anulowana",
+    "password_changed": "Hasło zmienione",
+    "password_change_error": "Błąd podczas zmiany hasła"
+  },
+  "profile_password_change_success": "Hasło zostało pomyślnie zmienione"
 }

@@ -2,8 +2,15 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
+import { getMedicoPerfil } from '../services/perfil';
+import { resolveMedicoAvatarUrls } from '../../usuario/services/perfil';
+
+const MAX_AVATAR_FILE_BYTES = 3 * 1024 * 1024;
+const MAX_AVATAR_FILE_MB = Math.round(MAX_AVATAR_FILE_BYTES / (1024 * 1024));
 
 export default function PerfilSection({ ctx }: { ctx: any }) {
+  const { t } = useTranslation('common');
   const [editing, setEditing] = React.useState(false);
 
   const nombreCompleto = (ctx?.formPerfil?.nombre || 'Nombre') + (ctx?.formPerfil?.apellido ? ` ${ctx.formPerfil.apellido}` : '');
@@ -25,6 +32,8 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
       ctx.setCargandoPerfil(false);
     }
   };
+
+  const buildOversizeMessage = React.useCallback(() => t('toasts.avatar_upload_too_large', { max: MAX_AVATAR_FILE_MB }), [t]);
 
   return (
     <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200 p-0 max-w-4xl mx-auto mt-6 mb-8 overflow-hidden">
@@ -66,24 +75,102 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
             </div>
             <form onSubmit={async (e) => {
               e.preventDefault();
-              ctx.setCargandoPerfil(true);
               ctx.setMensajePerfil("");
+              const oversizeMessage = buildOversizeMessage();
+              if (ctx.avatarFile && ctx.avatarFile.size > MAX_AVATAR_FILE_BYTES) {
+                ctx.setMensajePerfil(oversizeMessage);
+                ctx.setAvatarFile(null);
+                const inputFile = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement | null;
+                if (inputFile) inputFile.value = '';
+                setTimeout(() => ctx.setMensajePerfil(""), 3000);
+                return;
+              }
+              ctx.setCargandoPerfil(true);
               try {
                 if (!ctx.medicoData) throw new Error("No hay datos de usuario");
                 if (!ctx.avatarFile) throw new Error('Seleccione una imagen');
                 const fd = new FormData();
                 fd.append('archivo', ctx.avatarFile);
-                fd.append('tipo', 'medico');
-                fd.append('id', ctx.medicoData.email);
-                const res = await fetch('/api/perfil/upload', { method: 'POST', body: fd });
+                fd.append('uso', 'avatar');
+                const res = await fetch(`/api/medico/${encodeURIComponent(ctx.medicoData.email)}/archivo`, {
+                  method: 'POST',
+                  body: fd,
+                  credentials: 'include',
+                  cache: 'no-store',
+                });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data?.message || 'Error al subir imagen');
-                const url = data?.url as string | undefined;
-                if (url) {
-                  ctx.setPerfil((prev: any) => ({ ...prev, avatar: url }));
-                  ctx.setFormPerfil((prev: any) => ({ ...prev, avatar: url }));
-                  try { await ctx.updateMedicoAvatar(ctx.medicoData.email, url); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
+                if (!res.ok) {
+                  const serverMessage = (data as { message?: string })?.message;
+                  const errorMessage = res.status === 413 ? oversizeMessage : serverMessage || `Error ${res.status}`;
+                  throw new Error(errorMessage);
                 }
+
+                const parseAvatarUrl = (payload: unknown): string | null => {
+                  if (!payload) return null;
+
+                  const pickString = (value: unknown): string | null => {
+                    if (typeof value === 'string' && value.length > 0) return value;
+                    if (Array.isArray(value)) {
+                      const first = value.find((item) => typeof item === 'string' && item.length > 0);
+                      if (typeof first === 'string') return first;
+                    }
+                    return null;
+                  };
+
+                  if (typeof payload === 'string') return payload;
+                  if (Array.isArray(payload)) {
+                    const first = payload.find((item) => typeof item === 'string' && item.length > 0);
+                    if (typeof first === 'string') return first;
+                  }
+
+                  if (typeof payload === 'object') {
+                    const record = payload as Record<string, unknown>;
+                    const directKeys = ['url', 'avatar', 'avatar_path', 'path', 'location', 'perfil', 'archivo', 'file'];
+                    for (const key of directKeys) {
+                      const candidate = pickString(record[key]);
+                      if (candidate) return candidate;
+                    }
+
+                    const nestedKeys = ['data', 'result', 'resultado', 'response'];
+                    for (const key of nestedKeys) {
+                      const nestedCandidate = pickString(record[key]);
+                      if (nestedCandidate) return nestedCandidate;
+                      const nestedValue = record[key];
+                      if (nestedValue && typeof nestedValue === 'object') {
+                        const nestedRecord = nestedValue as Record<string, unknown>;
+                        for (const nestedKey of directKeys) {
+                          const candidate = pickString(nestedRecord[nestedKey]);
+                          if (candidate) return candidate;
+                        }
+                      }
+                    }
+                  }
+
+                  return null;
+                };
+
+                const parsedUrl = parseAvatarUrl(data);
+                let avatarInfo = resolveMedicoAvatarUrls(ctx.medicoData.email, parsedUrl);
+                let url = avatarInfo.displayUrl || '';
+                if (!url && ctx.medicoData?.email) {
+                  try {
+                    const refreshed = await getMedicoPerfil(ctx.medicoData.email);
+                    avatarInfo = resolveMedicoAvatarUrls(ctx.medicoData.email, refreshed?.avatar ?? null);
+                    url = avatarInfo.displayUrl || '';
+                  } catch (refetchError) {
+                    console.warn('No se pudo refrescar el perfil tras subir avatar:', refetchError);
+                  }
+                }
+                if (!url) {
+                  console.warn('Respuesta de avatar sin URL reconocible:', data);
+                  ctx.setMensajePerfil('La imagen se guardó, pero no recibimos la URL. Refresca la página para verla.');
+                  return;
+                }
+
+                ctx.setPerfil((prev: any) => ({ ...prev, avatar: url }));
+                ctx.setFormPerfil((prev: any) => ({ ...prev, avatar: url }));
+                const persistValue = avatarInfo.storagePath ?? avatarInfo.original ?? url;
+                try { await ctx.updateMedicoAvatar(ctx.medicoData.email, persistValue); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
                 ctx.setMensajePerfil("¡Avatar actualizado correctamente!");
                 ctx.setAvatarFile(null);
               } catch (error: any) {
@@ -97,7 +184,20 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                 type="file"
                 accept="image/*"
                 className="w-full border border-slate-200 rounded-md px-3 py-2 text-gray-700 focus:outline-none text-sm"
-                onChange={e => { if (e.target.files && e.target.files[0]) { ctx.setAvatarFile(e.target.files[0]); } }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  if (!file) return;
+                  if (file.size > MAX_AVATAR_FILE_BYTES) {
+                    const message = buildOversizeMessage();
+                    ctx.setMensajePerfil(message);
+                    ctx.setAvatarFile(null);
+                    e.target.value = '';
+                    setTimeout(() => ctx.setMensajePerfil(''), 3000);
+                    return;
+                  }
+                  ctx.setMensajePerfil('');
+                  ctx.setAvatarFile(file);
+                }}
               />
               <button type="submit" disabled={ctx.cargandoPerfil || !ctx.avatarFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 font-semibold transition disabled:opacity-60">Subir foto</button>
               {ctx.mensajePerfil && <div className="text-green-600 text-center font-semibold mt-1 text-sm">{ctx.mensajePerfil}</div>}

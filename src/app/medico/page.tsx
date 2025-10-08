@@ -18,6 +18,7 @@ import {
   cambiarContrasena, updateMedicoAvatar, resolverAvatarDeterministaMedico,
   type Medico, type Horario, type Cita, type Paciente, type Pago
 } from './services';
+import { resolveMedicoAvatarUrls } from '../usuario/services/perfil';
 import { getSession as getSessionFromApi } from './services/api';
 import {
   getBillingProfileByOwner, createOrUpdateBillingProfile, listPaymentMethodsByProfile,
@@ -419,12 +420,21 @@ export default function MedicoDashboard() {
         });
 
         setMedicoData(medicoData);
-        // Resolver avatar determinista si el back no lo provee
-        const avatarDet = await resolverAvatarDeterministaMedico(medicoData.email);
+        const avatarInfo = resolveMedicoAvatarUrls(medicoData.email, medicoData?.avatar ?? null);
+        let avatarUrl = avatarInfo.displayUrl;
+        if (!avatarUrl) {
+          const avatarDet = await resolverAvatarDeterministaMedico(medicoData.email);
+          if (avatarDet) {
+            avatarUrl = avatarDet;
+          }
+        }
+        if (!avatarUrl) {
+          avatarUrl = "https://randomuser.me/api/portraits/men/45.jpg";
+        }
         setPerfil({
           nombre: medicoData.nombre,
           apellido: medicoData.apellido,
-          avatar: avatarDet || "https://randomuser.me/api/portraits/men/45.jpg",
+          avatar: avatarUrl,
           email: medicoData.email,
           especialidad: medicoData.especializacion.toString()
         });

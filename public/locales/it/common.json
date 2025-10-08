@@ -290,6 +290,8 @@
   "resend_reminder": "Invia nuovamente promemoria",
   "email_reminder_enabled": "Riceverai un promemoria via email.",
   "email_reminder_disabled": "La notifica email è stata disabilitata.",
+  "reminder_processing_title": "Elaborazione del promemoria...",
+  "reminder_sending_label": "Invio...",
   "report": "Rapporto",
   "save_changes": "Salva modifiche",
   "saving_changes": "Salvataggio modifiche",
@@ -384,5 +386,139 @@
   "chatbot_kw_book": "prenota",
   "chatbot_kw_schedule": "programma",
   "chatbot_kw_specialty": "specialità",
-  "chatbot_kw_phone": "telefono"
+  "chatbot_kw_phone": "telefono",
+  "toast_close_notification": "Chiudi notifica",
+  "legal_modal_close": "Chiudi",
+  "footer": {
+    "copy": "Copyright © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Sviluppato con ❤️ da ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Informativa sulla privacy",
+      "terms": "Termini di utilizzo"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Informativa sulla privacy",
+      "highlight": "In VirtualAid proteggiamo i tuoi dati personali con la massima cura. Di seguito trovi un riepilogo chiaro di come li raccogliamo, utilizziamo e mettiamo al sicuro.",
+      "sections": [
+        {
+          "title": "1. Introduzione",
+          "paragraphs": [
+            "Valorizziamo la tua privacy e ci impegniamo a garantire la sicurezza dei tuoi dati personali. Questa informativa descrive le misure adottate per proteggerli e il modo in cui vengono utilizzati all'interno della piattaforma."
+          ]
+        },
+        {
+          "title": "2. Informazioni che raccogliamo",
+          "list": [
+            "Dati di registrazione come nome, email e password crittografata.",
+            "Informazioni d'uso su appuntamenti, specialità consultate e messaggi scambiati.",
+            "Dati tecnici come indirizzo IP, tipo di dispositivo e browser utilizzato."
+          ]
+        },
+        {
+          "title": "3. Come utilizziamo le informazioni",
+          "list": [
+            "Gestire il tuo account, gli appuntamenti medici e i relativi promemoria.",
+            "Migliorare i nostri servizi e personalizzare l'esperienza sulla piattaforma.",
+            "Inviarti comunicazioni pertinenti sulla tua attività o su aggiornamenti di VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Condivisione delle informazioni",
+          "paragraphs": [
+            "Condividiamo i tuoi dati personali con terze parti solo quando è strettamente necessario per erogare il servizio (ad esempio con i medici associati al tuo appuntamento) o quando la legge lo richiede."
+          ]
+        },
+        {
+          "title": "5. Sicurezza",
+          "paragraphs": [
+            "Applichiamo misure tecniche e organizzative — inclusi crittografia, controlli di accesso e audit periodici — per prevenire accessi non autorizzati, perdite o usi impropri delle informazioni."
+          ]
+        },
+        {
+          "title": "6. I tuoi diritti",
+          "paragraphs": [
+            "Puoi richiedere in qualsiasi momento l'accesso, la rettifica o la cancellazione dei tuoi dati personali. Contatta il nostro supporto e tratteremo la tua richiesta con priorità."
+          ]
+        },
+        {
+          "title": "7. Modifiche all'informativa",
+          "paragraphs": [
+            "Possiamo aggiornare questa informativa quando introduciamo nuovi servizi o per soddisfare requisiti legali. In caso di cambiamenti rilevanti sarai informato prima dell'entrata in vigore."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Termini di utilizzo",
+      "highlight": "Utilizzando VirtualAid accetti questi termini, pensati per garantire un servizio sicuro e affidabile per pazienti e professionisti sanitari.",
+      "sections": [
+        {
+          "title": "1. Accettazione dei termini",
+          "paragraphs": [
+            "L'accesso o l'uso della piattaforma implica l'accettazione totale di questi termini. Se non concordi con uno di essi, devi interrompere l'uso di VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Uso della piattaforma",
+          "list": [
+            "Devi fornire informazioni veritiere, complete e aggiornate nel tuo account.",
+            "È vietato un uso fraudolento, abusivo o che danneggi altri utenti.",
+            "Possiamo sospendere o limitare l'accesso se rileviamo irregolarità."
+          ]
+        },
+        {
+          "title": "3. Proprietà intellettuale",
+          "paragraphs": [
+            "I contenuti, i marchi e gli sviluppi tecnologici di VirtualAid appartengono alla piattaforma o ai suoi licenziatari. Qualsiasi riproduzione senza autorizzazione scritta preventiva è vietata."
+          ]
+        },
+        {
+          "title": "4. Responsabilità",
+          "paragraphs": [
+            "VirtualAid agisce come intermediario tecnologico e non si assume responsabilità per decisioni cliniche o informazioni fornite direttamente dal personale medico."
+          ]
+        },
+        {
+          "title": "5. Modifiche",
+          "paragraphs": [
+            "Ci riserviamo il diritto di aggiornare questi termini per riflettere miglioramenti del servizio o cambiamenti normativi. Sarai avvisato con un adeguato preavviso di modifiche significative."
+          ]
+        },
+        {
+          "title": "6. Legge applicabile",
+          "paragraphs": [
+            "Questi termini sono regolati dalle leggi del tuo paese di residenza e le controversie saranno sottoposte ai tribunali competenti."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Impossibile elaborare il promemoria: l'appuntamento non ha un identificativo valido.",
+    "reminder_resent": "🔁 Promemoria inviato nuovamente via email",
+    "reminder_enabled": "🔔 Promemoria attivato. Verrà inviato automaticamente prima dell'appuntamento",
+    "reminder_manage_error": "❌ Errore nella gestione del promemoria. Riprova.",
+    "reminder_disabled_success_plain": "Promemoria disattivato con successo",
+    "reminder_disable_error": "❌ Errore durante la disattivazione del promemoria. Riprova.",
+    "select_doctor_date_time": "Seleziona medico, data e ora",
+    "appointment_created": "Appuntamento creato",
+    "appointment_create_error": "Errore nella creazione dell'appuntamento",
+    "avatar_updated": "Foto aggiornata",
+    "avatar_upload_error": "Errore nel caricamento dell'immagine",
+    "avatar_upload_too_large": "L'immagine supera la dimensione massima di {{max}} MB",
+    "payment_completed": "Pagamento completato",
+    "payment_not_completed": "Pagamento non completato",
+    "payment_not_yours": "Questo pagamento non appartiene al tuo account.",
+    "payment_already_processed": "Il pagamento è già stato elaborato.",
+    "payment_capture_error": "Errore nella cattura del pagamento",
+    "paypal_error": "Errore PayPal",
+    "payment_cancelled": "Pagamento annullato",
+    "password_changed": "Password modificata",
+    "password_change_error": "Errore durante la modifica della password"
+  },
+  "profile_password_change_success": "Password modificata con successo"
 }

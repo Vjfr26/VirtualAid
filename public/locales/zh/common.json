@@ -271,6 +271,8 @@
   "resend_reminder": "重新发送提醒",
   "email_reminder_enabled": "您将通过邮件收到提醒。",
   "email_reminder_disabled": "邮件通知已禁用。",
+  "reminder_processing_title": "正在处理提醒...",
+  "reminder_sending_label": "发送中...",
   "report": "报告",
   "save_changes": "保存更改",
   "saving_changes": "保存更改",
@@ -384,5 +386,139 @@
   "total": "总计",
   "coupon": "优惠券",
   "no_active_coupon": "您没有活跃优惠券。",
-  "redeem_coupon": "兑换优惠券"
+  "redeem_coupon": "兑换优惠券",
+  "toast_close_notification": "关闭通知",
+  "legal_modal_close": "关闭",
+  "footer": {
+    "copy": "版权 © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 由 ❤️ 驱动：",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "隐私政策",
+      "terms": "使用条款"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "隐私政策",
+      "highlight": "在 VirtualAid，我们对您的个人数据给予最高程度的保护。以下是我们如何收集、使用并保护这些数据的清晰概述。",
+      "sections": [
+        {
+          "title": "1. 引言",
+          "paragraphs": [
+            "我们重视您的隐私，并承诺确保您的个人数据安全。本政策说明我们为保护您的信息所采取的措施，以及在平台内如何使用这些信息。"
+          ]
+        },
+        {
+          "title": "2. 我们收集哪些信息",
+          "list": [
+            "注册信息，如姓名、邮箱和加密密码。",
+            "使用信息，包括您的预约、查看的专科以及交流记录。",
+            "技术信息，如 IP 地址、设备类型和浏览器。"
+          ]
+        },
+        {
+          "title": "3. 信息的使用方式",
+          "list": [
+            "管理您的账户、医疗预约及相关提醒。",
+            "改进我们的服务，并为您提供个性化的平台体验。",
+            "向您发送与活动或 VirtualAid 更新相关的重要通知。"
+          ]
+        },
+        {
+          "title": "4. 信息共享",
+          "paragraphs": [
+            "我们仅在必要时（例如为提供服务与您的预约相关的医生）或在法律要求的情况下与第三方共享个人数据。"
+          ]
+        },
+        {
+          "title": "5. 安全保障",
+          "paragraphs": [
+            "我们采用技术和组织措施（包括加密、访问控制和定期审计）来防止未经授权的访问、遗失或滥用。"
+          ]
+        },
+        {
+          "title": "6. 您的权利",
+          "paragraphs": [
+            "您可随时请求访问、更正或删除您的个人数据。请联系支持团队，我们将优先处理您的请求。"
+          ]
+        },
+        {
+          "title": "7. 政策变更",
+          "paragraphs": [
+            "当我们推出新服务或满足法律要求时，可能会更新本政策。重大变更将在生效前通知您。"
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "使用条款",
+      "highlight": "使用 VirtualAid 即表示您接受这些条款，它们旨在为患者和医疗专业人员提供安全可靠的服务。",
+      "sections": [
+        {
+          "title": "1. 条款接受",
+          "paragraphs": [
+            "访问或使用平台意味着您完全同意这些条款。如果您不同意其中任何内容，请停止使用 VirtualAid。"
+          ]
+        },
+        {
+          "title": "2. 平台使用",
+          "list": [
+            "您必须在账户中提供真实、完整且最新的信息。",
+            "禁止任何欺诈、滥用或可能伤害其他用户的行为。",
+            "如发现违规情况，我们可能暂停或限制您的访问。"
+          ]
+        },
+        {
+          "title": "3. 知识产权",
+          "paragraphs": [
+            "VirtualAid 的内容、商标和技术开发归平台或其许可方所有。未经书面许可禁止复制。"
+          ]
+        },
+        {
+          "title": "4. 责任",
+          "paragraphs": [
+            "VirtualAid 作为技术中介，不对医疗专业人员直接提供的临床决策或信息承担责任。"
+          ]
+        },
+        {
+          "title": "5. 变更",
+          "paragraphs": [
+            "我们保留更新这些条款的权利，以反映服务改进或监管变化。对于重大调整，我们会提前通知您。"
+          ]
+        },
+        {
+          "title": "6. 适用法律",
+          "paragraphs": [
+            "这些条款受您居住国家的法律管辖，相关争议由相应法院处理。"
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ 无法处理提醒：该预约没有有效的标识。",
+    "reminder_resent": "🔁 提醒已重新通过电子邮件发送",
+    "reminder_enabled": "🔔 提醒已启用，将在预约前自动发送",
+    "reminder_manage_error": "❌ 管理提醒时出错，请重试。",
+    "reminder_disabled_success_plain": "提醒已成功停用",
+    "reminder_disable_error": "❌ 停用提醒时出错，请重试。",
+    "select_doctor_date_time": "请选择医生、日期和时间",
+    "appointment_created": "预约已创建",
+    "appointment_create_error": "创建预约时出错",
+    "avatar_updated": "头像已更新",
+    "avatar_upload_error": "上传图片时出错",
+    "avatar_upload_too_large": "图片超出最大 {{max}} MB 大小限制",
+    "payment_completed": "付款已完成",
+    "payment_not_completed": "付款未完成",
+    "payment_not_yours": "该付款不属于您的账户。",
+    "payment_already_processed": "该付款已处理。",
+    "payment_capture_error": "捕获付款时出错",
+    "paypal_error": "PayPal 错误",
+    "payment_cancelled": "付款已取消",
+    "password_changed": "密码已更改",
+    "password_change_error": "更改密码时出错"
+  },
+  "profile_password_change_success": "密码已成功更改"
 }

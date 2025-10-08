@@ -271,6 +271,8 @@
   "resend_reminder": "Reenviar lembrete",
   "email_reminder_enabled": "Você será lembrado por email.",
   "email_reminder_disabled": "Notificações por email foram desabilitadas.",
+  "reminder_processing_title": "Processando lembrete...",
+  "reminder_sending_label": "Enviando...",
   "report": "Relatório",
   "save_changes": "Salvar alterações",
   "saving_changes": "Salvando alterações",
@@ -384,5 +386,139 @@
   "total": "Total",
   "coupon": "Cupom",
   "no_active_coupon": "Você não tem um cupom ativo.",
-  "redeem_coupon": "Resgatar cupom"
+  "redeem_coupon": "Resgatar cupom",
+  "toast_close_notification": "Fechar notificação",
+  "legal_modal_close": "Fechar",
+  "footer": {
+    "copy": "Copyright © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Desenvolvido com ❤️ por ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Política de Privacidade",
+      "terms": "Termos de Uso"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de Privacidade",
+      "highlight": "Na VirtualAid protegemos suas informações pessoais com o máximo cuidado. A seguir você encontra um resumo claro de como coletamos, utilizamos e protegemos seus dados.",
+      "sections": [
+        {
+          "title": "1. Introdução",
+          "paragraphs": [
+            "Valorizamos sua privacidade e nos comprometemos a garantir a segurança dos seus dados pessoais. Esta política descreve as medidas que aplicamos para proteger suas informações e como as utilizamos dentro da plataforma."
+          ]
+        },
+        {
+          "title": "2. Informações que Coletamos",
+          "list": [
+            "Dados de cadastro como nome, e-mail e senha criptografada.",
+            "Informações de uso relacionadas às suas consultas, especialidades acessadas e mensagens.",
+            "Dados técnicos como endereço IP, tipo de dispositivo e navegador utilizado."
+          ]
+        },
+        {
+          "title": "3. Uso das Informações",
+          "list": [
+            "Gerenciar sua conta, suas consultas médicas e lembretes associados.",
+            "Aprimorar nossos serviços e personalizar a experiência na plataforma.",
+            "Enviar comunicações relevantes sobre sua atividade ou mudanças no VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Compartilhamento de Informações",
+          "paragraphs": [
+            "Não compartilhamos seus dados pessoais com terceiros, exceto quando for indispensável para prestar o serviço (por exemplo, com profissionais de saúde vinculados à sua consulta) ou quando houver obrigação legal."
+          ]
+        },
+        {
+          "title": "5. Segurança",
+          "paragraphs": [
+            "Implementamos medidas técnicas e organizacionais — incluindo criptografia, controles de acesso e auditorias periódicas — para evitar acessos não autorizados, perdas ou usos indevidos das informações."
+          ]
+        },
+        {
+          "title": "6. Seus Direitos",
+          "paragraphs": [
+            "Você pode solicitar acesso, retificação ou exclusão dos seus dados pessoais a qualquer momento. Entre em contato com nosso canal de suporte e atenderemos sua solicitação com prioridade."
+          ]
+        },
+        {
+          "title": "7. Alterações na Política",
+          "paragraphs": [
+            "Podemos atualizar esta política quando incorporarmos novos serviços ou por exigências regulatórias. Caso façamos mudanças relevantes, notificaremos você antes de entrarem em vigor."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Termos de Uso",
+      "highlight": "Ao utilizar o VirtualAid você aceita estas condições, pensadas para garantir um serviço seguro e confiável tanto para pacientes quanto para profissionais de saúde.",
+      "sections": [
+        {
+          "title": "1. Aceitação dos Termos",
+          "paragraphs": [
+            "O acesso ou uso da plataforma implica a aceitação integral destes termos. Se você não concordar com alguma das condições descritas, deve deixar de usar o VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Uso da Plataforma",
+          "list": [
+            "Você deve fornecer informações verdadeiras, completas e atualizadas na sua conta.",
+            "É proibido o uso fraudulento, abusivo ou que prejudique outros usuários.",
+            "Podemos suspender ou limitar o acesso caso sejam detectadas atividades irregulares."
+          ]
+        },
+        {
+          "title": "3. Propriedade Intelectual",
+          "paragraphs": [
+            "O conteúdo, as marcas e os desenvolvimentos tecnológicos do VirtualAid pertencem à plataforma ou aos seus licenciadores. É proibida a reprodução sem autorização prévia por escrito."
+          ]
+        },
+        {
+          "title": "4. Responsabilidade",
+          "paragraphs": [
+            "O VirtualAid atua como intermediário tecnológico e não se responsabiliza por decisões clínicas nem pelas informações fornecidas diretamente pelos profissionais de saúde."
+          ]
+        },
+        {
+          "title": "5. Modificações",
+          "paragraphs": [
+            "Reservamo-nos o direito de atualizar estes termos para refletir melhorias no serviço ou mudanças regulatórias. Notificaremos modificações significativas com antecedência razoável."
+          ]
+        },
+        {
+          "title": "6. Lei Aplicável",
+          "paragraphs": [
+            "Estes termos são regidos pela legislação vigente no seu país de residência e qualquer conflito será submetido aos tribunais competentes, conforme aplicável."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Não é possível gerenciar o lembrete: a consulta não tem um identificador válido.",
+    "reminder_resent": "🔁 Lembrete reenviado por e-mail",
+    "reminder_enabled": "🔔 Lembrete ativado. Ele será enviado automaticamente antes da consulta",
+    "reminder_manage_error": "❌ Erro ao gerenciar o lembrete. Tente novamente.",
+    "reminder_disabled_success_plain": "Lembrete desativado com sucesso",
+    "reminder_disable_error": "❌ Erro ao desativar o lembrete. Tente novamente.",
+    "select_doctor_date_time": "Selecione médico, data e horário",
+    "appointment_created": "Consulta criada",
+    "appointment_create_error": "Erro ao criar consulta",
+    "avatar_updated": "Foto atualizada",
+    "avatar_upload_error": "Erro ao enviar imagem",
+    "avatar_upload_too_large": "A imagem excede o tamanho máximo de {{max}} MB",
+    "payment_completed": "Pagamento concluído",
+    "payment_not_completed": "Pagamento não concluído",
+    "payment_not_yours": "Este pagamento não pertence à sua conta.",
+    "payment_already_processed": "O pagamento já foi processado.",
+    "payment_capture_error": "Erro ao capturar o pagamento",
+    "paypal_error": "Erro do PayPal",
+    "payment_cancelled": "Pagamento cancelado",
+    "password_changed": "Senha alterada",
+    "password_change_error": "Erro ao alterar senha"
+  },
+  "profile_password_change_success": "Senha alterada com sucesso"
 }

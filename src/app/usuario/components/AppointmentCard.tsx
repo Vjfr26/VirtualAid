@@ -19,9 +19,8 @@ export default function AppointmentCard({
 }: AppointmentCardProps) {
   const { t } = useTranslation('common');
   const [procesandoEnvio, setProcesandoEnvio] = React.useState(false);
-  const [procesandoDesactivacion, setProcesandoDesactivacion] = React.useState(false);
   const reminderActive = isRecordatorioOn(cita);
-  const reminderLabel = reminderActive ? t('resend_reminder') : t('enable_reminder');
+  const reminderLabel = reminderActive ? t('disable_reminder') : t('enable_reminder');
 
   const hoy = new Date();
   const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
@@ -118,12 +117,16 @@ export default function AppointmentCard({
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <button
                 type="button"
-                className={`${usuarioStyles.citaCardAction} ${reminderActive ? usuarioStyles.citaCardActionSuccess : usuarioStyles.citaCardActionPrimary} ${procesandoEnvio ? 'opacity-70 cursor-wait' : ''}`}
+                className={`${usuarioStyles.citaCardAction} ${reminderActive ? usuarioStyles.citaCardActionSecondary : usuarioStyles.citaCardActionPrimary} ${procesandoEnvio ? 'opacity-70 cursor-wait' : ''}`}
                 onClick={async () => {
                   if (procesandoEnvio) return;
                   setProcesandoEnvio(true);
                   try {
-                    await enviarRecordatorio(cita);
+                    if (reminderActive) {
+                      await desactivarRecordatorio(cita);
+                    } else {
+                      await enviarRecordatorio(cita);
+                    }
                   } finally {
                     setProcesandoEnvio(false);
                   }
@@ -132,7 +135,7 @@ export default function AppointmentCard({
                 aria-pressed={reminderActive}
                 title={
                   procesandoEnvio
-                    ? 'Procesando recordatorio...'
+                    ? t('reminder_processing_title')
                     : (reminderLabel as string)
                 }
               >
@@ -150,43 +153,8 @@ export default function AppointmentCard({
                     )}
                   </svg>
                 )}
-                {procesandoEnvio ? 'Enviando...' : reminderLabel}
+                {procesandoEnvio ? t('reminder_sending_label') : reminderLabel}
               </button>
-
-              {reminderActive && (
-                <button
-                  type="button"
-                  className={`${usuarioStyles.citaCardAction} ${usuarioStyles.citaCardActionSecondary} ${procesandoDesactivacion ? 'opacity-70 cursor-wait' : ''}`}
-                  onClick={async () => {
-                    if (procesandoDesactivacion) return;
-                    setProcesandoDesactivacion(true);
-                    try {
-                      await desactivarRecordatorio(cita);
-                    } finally {
-                      setProcesandoDesactivacion(false);
-                    }
-                  }}
-                  disabled={procesandoDesactivacion}
-                  title={
-                    procesandoDesactivacion
-                      ? 'Procesando recordatorio...'
-                      : (t('disable_reminder') as string)
-                  }
-                >
-                  {procesandoDesactivacion ? (
-                    <svg className="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 13v5a2 2 0 01-2 2H8a2 2 0 01-2-2v-5" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 9l7-7 7 7" />
-                    </svg>
-                  )}
-                  {procesandoDesactivacion ? 'Procesando...' : t('disable_reminder')}
-                </button>
-              )}
             </div>
 
             {reminderActive && (

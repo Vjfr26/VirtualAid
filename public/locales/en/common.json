@@ -271,6 +271,8 @@
    "resend_reminder": "Resend reminder",
   "email_reminder_enabled": "You will be reminded by email.",
   "email_reminder_disabled": "Email notification has been disabled.",
+  "reminder_processing_title": "Processing reminder...",
+  "reminder_sending_label": "Sending...",
   "report": "Report",
   "save_changes": "Save changes",
   "saving_changes": "Saving changes",
@@ -384,5 +386,139 @@
   "total": "Total",
   "coupon": "Coupon",
   "no_active_coupon": "You don't have an active coupon.",
-  "redeem_coupon": "Redeem coupon"
+  "redeem_coupon": "Redeem coupon",
+  "toast_close_notification": "Close notification",
+  "legal_modal_close": "Close",
+  "footer": {
+    "copy": "Copyright © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Built with ❤️ by ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Use"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "highlight": "At VirtualAid we protect your personal information with the greatest care. Below you'll find a clear summary of how we collect, use, and safeguard your data.",
+      "sections": [
+        {
+          "title": "1. Introduction",
+          "paragraphs": [
+            "We value your privacy and are committed to keeping your personal data secure. This policy describes the measures we apply to protect your information and the way we use it within the platform."
+          ]
+        },
+        {
+          "title": "2. Information We Collect",
+          "list": [
+            "Registration data such as name, email address, and encrypted password.",
+            "Usage information related to your appointments, specialties consulted, and messages.",
+            "Technical data such as IP address, device type, and browser used."
+          ]
+        },
+        {
+          "title": "3. How We Use the Information",
+          "list": [
+            "Manage your account, medical appointments, and associated reminders.",
+            "Improve our services and personalize the platform experience.",
+            "Send relevant communications about your activity or updates to VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Sharing Information",
+          "paragraphs": [
+            "We do not share your personal data with third parties unless it is essential to provide the service (for example, with healthcare professionals linked to your appointment) or when there is a legal obligation."
+          ]
+        },
+        {
+          "title": "5. Security",
+          "paragraphs": [
+            "We implement technical and organizational measures—including encryption, access controls, and periodic audits—to prevent unauthorized access, loss, or misuse of information."
+          ]
+        },
+        {
+          "title": "6. Your Rights",
+          "paragraphs": [
+            "You can request access to, rectification of, or deletion of your personal data at any time. Contact our support channel and we will prioritise your request."
+          ]
+        },
+        {
+          "title": "7. Changes to the Policy",
+          "paragraphs": [
+            "We may update this policy when we introduce new services or due to regulatory requirements. If we make significant changes, we will notify you before they take effect."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "highlight": "By using VirtualAid you agree to these conditions, designed to ensure a safe and reliable service for both patients and healthcare professionals.",
+      "sections": [
+        {
+          "title": "1. Acceptance of the Terms",
+          "paragraphs": [
+            "Accessing or using the platform implies full acceptance of these terms. If you disagree with any of the conditions described, you must refrain from using VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Use of the Platform",
+          "list": [
+            "You must provide truthful, complete, and up-to-date information in your account.",
+            "Fraudulent, abusive, or harmful use that affects other users is prohibited.",
+            "We may suspend or limit access if irregular activities are detected."
+          ]
+        },
+        {
+          "title": "3. Intellectual Property",
+          "paragraphs": [
+            "The content, trademarks, and technological developments of VirtualAid belong to the platform or its licensors. Reproduction without prior written authorisation is prohibited."
+          ]
+        },
+        {
+          "title": "4. Liability",
+          "paragraphs": [
+            "VirtualAid acts as a technological intermediary and is not responsible for clinical decisions or information provided directly by healthcare professionals."
+          ]
+        },
+        {
+          "title": "5. Modifications",
+          "paragraphs": [
+            "We reserve the right to update these terms to reflect service improvements or regulatory changes. We will notify you of significant modifications with reasonable notice."
+          ]
+        },
+        {
+          "title": "6. Governing Law",
+          "paragraphs": [
+            "These terms are governed by the legislation in force in your country of residence and any dispute will be submitted to the competent courts accordingly."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Unable to manage the reminder: the appointment doesn't have a valid identifier.",
+    "reminder_resent": "🔁 Reminder resent via email",
+    "reminder_enabled": "🔔 Reminder enabled. It will be sent automatically before the appointment",
+    "reminder_manage_error": "❌ Error managing the reminder. Please try again.",
+    "reminder_disabled_success_plain": "Reminder disabled successfully",
+    "reminder_disable_error": "❌ Error disabling the reminder. Please try again.",
+    "select_doctor_date_time": "Select doctor, date, and time",
+    "appointment_created": "Appointment created",
+    "appointment_create_error": "Error creating appointment",
+    "avatar_updated": "Photo updated",
+    "avatar_upload_error": "Error uploading image",
+  "avatar_upload_too_large": "The image exceeds the maximum size of {{max}} MB",
+    "payment_completed": "Payment completed",
+    "payment_not_completed": "Payment not completed",
+    "payment_not_yours": "This payment doesn't belong to your account.",
+    "payment_already_processed": "Payment has already been processed.",
+    "payment_capture_error": "Error capturing payment",
+    "paypal_error": "PayPal error",
+    "payment_cancelled": "Payment cancelled",
+    "password_changed": "Password changed",
+    "password_change_error": "Error changing password"
+  },
+  "profile_password_change_success": "Password changed successfully"
 }

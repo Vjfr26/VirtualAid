@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './legalModal.module.css';
 
 type LegalModalProps = {
@@ -12,6 +13,7 @@ type LegalModalProps = {
 };
 
 export default function LegalModal({ open, title, onClose, children, dialogId }: LegalModalProps) {
+  const { t } = useTranslation('common');
   const generatedId = useId();
   const modalId = dialogId ?? `legal-modal-${generatedId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const titleId = `${modalId}-title`;
@@ -69,7 +71,7 @@ export default function LegalModal({ open, title, onClose, children, dialogId }:
             type="button"
             className={styles.closeButton}
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t('legal_modal_close')}
           >
             ×
           </button>

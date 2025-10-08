@@ -271,6 +271,8 @@
   "resend_reminder": "Renvoyer le rappel",
   "email_reminder_enabled": "Vous serez prévenu par e-mail.",
   "email_reminder_disabled": "La notification par e-mail a été désactivée.",
+  "reminder_processing_title": "Rappel en cours de traitement...",
+  "reminder_sending_label": "Envoi...",
   "report": "Rapport",
   "save_changes": "Enregistrer les modifications",
   "saving_changes": "Enregistrement en cours",
@@ -379,5 +381,139 @@
   "total": "Total",
   "coupon": "Code promo",
   "no_active_coupon": "Vous n'avez pas de code promo actif.",
-  "redeem_coupon": "Utiliser un code promo"
+  "redeem_coupon": "Utiliser un code promo",
+  "toast_close_notification": "Fermer la notification",
+  "legal_modal_close": "Fermer",
+  "footer": {
+    "copy": "Droits d’auteur © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Développé avec ❤️ par ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Politique de confidentialité",
+      "terms": "Conditions d'utilisation"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "highlight": "Chez VirtualAid, nous protégeons vos données personnelles avec le plus grand soin. Voici un aperçu clair de la manière dont nous les collectons, les utilisons et les sécurisons.",
+      "sections": [
+        {
+          "title": "1. Introduction",
+          "paragraphs": [
+            "Nous accordons une grande importance à votre vie privée et nous engageons à garantir la sécurité de vos données personnelles. Cette politique décrit les mesures que nous mettons en place pour protéger vos informations et la façon dont elles sont utilisées au sein de la plateforme."
+          ]
+        },
+        {
+          "title": "2. Informations que nous collectons",
+          "list": [
+            "Données d’inscription comme votre nom, votre e-mail et votre mot de passe chiffré.",
+            "Informations d’usage sur vos rendez-vous, spécialités consultées et messages échangés.",
+            "Données techniques telles que l’adresse IP, le type d’appareil et le navigateur utilisé."
+          ]
+        },
+        {
+          "title": "3. Comment nous utilisons les informations",
+          "list": [
+            "Gérer votre compte, vos rendez-vous médicaux et les rappels associés.",
+            "Améliorer nos services et personnaliser votre expérience sur la plateforme.",
+            "Vous envoyer des communications pertinentes sur votre activité ou sur les évolutions de VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Partage des informations",
+          "paragraphs": [
+            "Nous ne partageons vos données personnelles avec des tiers que lorsqu’il est indispensable de le faire pour vous fournir le service (par exemple avec les médecins liés à votre rendez-vous) ou lorsque la loi l’exige."
+          ]
+        },
+        {
+          "title": "5. Sécurité",
+          "paragraphs": [
+            "Nous appliquons des mesures techniques et organisationnelles — chiffrement, contrôles d’accès et audits réguliers — pour empêcher tout accès non autorisé, perte ou mauvaise utilisation de vos informations."
+          ]
+        },
+        {
+          "title": "6. Vos droits",
+          "paragraphs": [
+            "Vous pouvez, à tout moment, demander l’accès, la rectification ou la suppression de vos données personnelles. Contactez notre support et nous traiterons votre demande en priorité."
+          ]
+        },
+        {
+          "title": "7. Modifications de la politique",
+          "paragraphs": [
+            "Nous pouvons mettre à jour cette politique lorsque nous lançons de nouveaux services ou pour respecter des exigences légales. En cas de changements importants, vous serez informé avant leur entrée en vigueur."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Conditions d'utilisation",
+      "highlight": "En utilisant VirtualAid, vous acceptez ces conditions, conçues pour garantir un service sûr et fiable pour les patients et les professionnels de santé.",
+      "sections": [
+        {
+          "title": "1. Acceptation des conditions",
+          "paragraphs": [
+            "L’accès ou l’utilisation de la plateforme implique l’acceptation totale de ces conditions. Si vous n’êtes pas d’accord avec l’une d’elles, vous devez cesser d’utiliser VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Utilisation de la plateforme",
+          "list": [
+            "Vous devez fournir des informations véridiques, complètes et à jour dans votre compte.",
+            "Toute utilisation frauduleuse, abusive ou susceptible de nuire aux autres utilisateurs est interdite.",
+            "Nous pouvons suspendre ou restreindre l’accès si nous détectons des irrégularités."
+          ]
+        },
+        {
+          "title": "3. Propriété intellectuelle",
+          "paragraphs": [
+            "Les contenus, marques et développements technologiques de VirtualAid appartiennent à la plateforme ou à ses licenciés. Toute reproduction sans autorisation écrite préalable est interdite."
+          ]
+        },
+        {
+          "title": "4. Responsabilité",
+          "paragraphs": [
+            "VirtualAid agit comme intermédiaire technologique et n’assume aucune responsabilité quant aux décisions cliniques ou aux informations fournies directement par les professionnels de santé."
+          ]
+        },
+        {
+          "title": "5. Modifications",
+          "paragraphs": [
+            "Nous nous réservons le droit de mettre à jour ces conditions afin de refléter l’amélioration des services ou des changements réglementaires. Vous serez averti de toute modification importante dans un délai raisonnable."
+          ]
+        },
+        {
+          "title": "6. Droit applicable",
+          "paragraphs": [
+            "Ces conditions sont régies par les lois de votre pays de résidence et tout litige sera soumis aux tribunaux compétents correspondants."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Impossible de traiter le rappel : le rendez-vous ne possède pas d'identifiant valide.",
+    "reminder_resent": "🔁 Rappel renvoyé par e-mail",
+    "reminder_enabled": "🔔 Rappel activé. Il sera envoyé automatiquement avant le rendez-vous",
+    "reminder_manage_error": "❌ Erreur lors de la gestion du rappel. Veuillez réessayer.",
+    "reminder_disabled_success_plain": "Rappel désactivé avec succès",
+    "reminder_disable_error": "❌ Erreur lors de la désactivation du rappel. Veuillez réessayer.",
+    "select_doctor_date_time": "Veuillez sélectionner un médecin, une date et une heure",
+    "appointment_created": "Rendez-vous créé",
+    "appointment_create_error": "Erreur lors de la création du rendez-vous",
+    "avatar_updated": "Photo mise à jour",
+  "avatar_upload_error": "Erreur lors du téléversement de l'image",
+  "avatar_upload_too_large": "L'image dépasse la taille maximale de {{max}} Mo",
+    "payment_completed": "Paiement finalisé",
+    "payment_not_completed": "Paiement non finalisé",
+    "payment_not_yours": "Ce paiement n'appartient pas à votre compte.",
+    "payment_already_processed": "Le paiement a déjà été traité.",
+    "payment_capture_error": "Erreur lors de la capture du paiement",
+    "paypal_error": "Erreur PayPal",
+    "payment_cancelled": "Paiement annulé",
+    "password_changed": "Mot de passe modifié",
+    "password_change_error": "Erreur lors du changement de mot de passe"
+  },
+  "profile_password_change_success": "Mot de passe modifié avec succès"
 }

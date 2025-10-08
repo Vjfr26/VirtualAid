@@ -292,6 +292,8 @@
   "enable_reminder": "Activar recordatorio",
   "disable_reminder": "Desactivar recordatorio",
   "resend_reminder": "Reenviar recordatorio",
+  "reminder_processing_title": "Procesando recordatorio...",
+  "reminder_sending_label": "Enviando...",
   "email_reminder_enabled": "Se te recordará por correo electrónico.",
   "email_reminder_disabled": "La notificación por correo está desactivada.",
   "specialists_header": "Especialistas Médicos",
@@ -397,5 +399,139 @@
   "card_cvc_placeholder": "CVC/CVV",
   "card_payment_note": "La integración de tarjeta requiere un gateway (Stripe/Adyen) en backend.",
   "pay_with_card": "Pagar con tarjeta",
-  "card_flow_not_implemented": "Integración de tarjeta no implementada"
+  "card_flow_not_implemented": "Integración de tarjeta no implementada",
+  "toast_close_notification": "Cerrar notificación",
+  "legal_modal_close": "Cerrar",
+  "footer": {
+    "copy": "Copyright © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 Desarrollado con ❤️ por ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Uso"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de Privacidad",
+      "highlight": "En VirtualAid protegemos tu información personal con el máximo cuidado. A continuación encontrarás un resumen claro de cómo recopilamos, utilizamos y resguardamos tus datos.",
+      "sections": [
+        {
+          "title": "1. Introducción",
+          "paragraphs": [
+            "Valoramos tu privacidad y nos comprometemos a garantizar la seguridad de tus datos personales. Esta política describe las medidas que aplicamos para proteger tu información y la forma en que la utilizamos dentro de la plataforma."
+          ]
+        },
+        {
+          "title": "2. Información que Recopilamos",
+          "list": [
+            "Datos de registro como nombre, correo electrónico y contraseña cifrada.",
+            "Información de uso relacionada con tus citas, especialidades consultadas y mensajes.",
+            "Datos técnicos como dirección IP, tipo de dispositivo y navegador empleado."
+          ]
+        },
+        {
+          "title": "3. Uso de la Información",
+          "list": [
+            "Gestionar tu cuenta, tus citas médicas y recordatorios asociados.",
+            "Mejorar nuestros servicios y personalizar la experiencia de la plataforma.",
+            "Enviar comunicaciones relevantes sobre tu actividad o cambios en VirtualAid."
+          ]
+        },
+        {
+          "title": "4. Compartir Información",
+          "paragraphs": [
+            "No compartimos tus datos personales con terceros excepto cuando sea imprescindible para prestar el servicio (por ejemplo, con profesionales sanitarios vinculados a tu cita) o cuando exista una obligación legal."
+          ]
+        },
+        {
+          "title": "5. Seguridad",
+          "paragraphs": [
+            "Implementamos medidas técnicas y organizativas —incluyendo cifrado, controles de acceso y auditorías periódicas— para prevenir accesos no autorizados, pérdidas o usos indebidos de la información."
+          ]
+        },
+        {
+          "title": "6. Tus Derechos",
+          "paragraphs": [
+            "Puedes solicitar acceso, rectificación o eliminación de tus datos personales en cualquier momento. Escríbenos a nuestro canal de soporte y atenderemos tu solicitud con prioridad."
+          ]
+        },
+        {
+          "title": "7. Cambios en la Política",
+          "paragraphs": [
+            "Podremos actualizar esta política cuando incorporemos nuevos servicios o por exigencias regulatorias. Si realizamos cambios relevantes, te lo notificaremos antes de que entren en vigor."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Términos de Uso",
+      "highlight": "Al utilizar VirtualAid aceptas estas condiciones que buscan garantizar un servicio seguro y confiable tanto para pacientes como para profesionales de la salud.",
+      "sections": [
+        {
+          "title": "1. Aceptación de los Términos",
+          "paragraphs": [
+            "El acceso o uso de la plataforma implica la aceptación íntegra de estos términos. Si no estás de acuerdo con alguna de las condiciones descritas, deberás abstenerte de usar VirtualAid."
+          ]
+        },
+        {
+          "title": "2. Uso de la Plataforma",
+          "list": [
+            "Debes proporcionar información veraz, completa y actualizada en tu cuenta.",
+            "Está prohibido el uso fraudulento, abusivo o que afecte a otros usuarios.",
+            "Podemos suspender o limitar el acceso ante detección de actividades irregulares."
+          ]
+        },
+        {
+          "title": "3. Propiedad Intelectual",
+          "paragraphs": [
+            "El contenido, las marcas y los desarrollos tecnológicos de VirtualAid pertenecen a la plataforma o a sus licenciantes. Queda prohibida su reproducción sin autorización previa por escrito."
+          ]
+        },
+        {
+          "title": "4. Responsabilidad",
+          "paragraphs": [
+            "VirtualAid actúa como intermediario tecnológico y no se responsabiliza de decisiones clínicas ni de información proporcionada directamente por los profesionales sanitarios."
+          ]
+        },
+        {
+          "title": "5. Modificaciones",
+          "paragraphs": [
+            "Nos reservamos el derecho de actualizar estos términos para reflejar mejoras del servicio o cambios regulatorios. Notificaremos las modificaciones sustanciales con antelación razonable."
+          ]
+        },
+        {
+          "title": "6. Ley Aplicable",
+          "paragraphs": [
+            "Estos términos se rigen por la legislación vigente en tu país de residencia y cualquier conflicto será sometido a los tribunales competentes según corresponda."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ No se puede gestionar el recordatorio: la cita no tiene identificador válido.",
+    "reminder_resent": "🔁 Recordatorio reenviado por correo electrónico",
+    "reminder_enabled": "🔔 Recordatorio activado. Se enviará automáticamente antes de la cita",
+    "reminder_manage_error": "❌ Error al gestionar el recordatorio. Inténtalo de nuevo.",
+    "reminder_disabled_success_plain": "Recordatorio desactivado correctamente",
+    "reminder_disable_error": "❌ Error al desactivar el recordatorio. Inténtalo de nuevo.",
+    "select_doctor_date_time": "Selecciona médico, fecha y hora",
+    "appointment_created": "Cita creada",
+    "appointment_create_error": "Error al crear cita",
+    "avatar_updated": "Foto actualizada",
+    "avatar_upload_error": "Error al subir imagen",
+  "avatar_upload_too_large": "La imagen supera el límite de {{max}} MB",
+    "payment_completed": "Pago completado",
+    "payment_not_completed": "Pago no completado",
+    "payment_not_yours": "Este pago no pertenece a tu cuenta.",
+    "payment_already_processed": "El pago ya fue procesado.",
+    "payment_capture_error": "Error al capturar el pago",
+    "paypal_error": "Error de PayPal",
+    "payment_cancelled": "Pago cancelado",
+    "password_changed": "Contraseña cambiada",
+    "password_change_error": "Error al cambiar contraseña"
+  },
+  "profile_password_change_success": "Contraseña cambiada correctamente"
 }

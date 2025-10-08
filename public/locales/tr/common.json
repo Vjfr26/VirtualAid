@@ -271,6 +271,8 @@
   "resend_reminder": "Hatırlatmayı Tekrar Gönder",
   "email_reminder_enabled": "E-posta ile hatırlatılacaksınız.",
   "email_reminder_disabled": "E-posta bildirimleri devre dışı bırakıldı.",
+  "reminder_processing_title": "Hatırlatma işleniyor...",
+  "reminder_sending_label": "Gönderiliyor...",
   "report": "Rapor",
   "save_changes": "Değişiklikleri Kaydet",
   "saving_changes": "Değişiklikler Kaydediliyor",
@@ -384,5 +386,139 @@
   "total": "Toplam",
   "coupon": "Kupon",
   "no_active_coupon": "Aktif kuponunuz yok.",
-  "redeem_coupon": "Kuponu Kullan"
+  "redeem_coupon": "Kuponu Kullan",
+  "toast_close_notification": "Bildirimi kapat",
+  "legal_modal_close": "Kapat",
+  "footer": {
+    "copy": "Telif hakkı © {{year}}",
+    "brand": "VirtualAid",
+    "powered_prefix": "🚀 ❤️ ile geliştirildi: ",
+    "powered_company": "Victecnology",
+    "links": {
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Gizlilik Politikası",
+      "highlight": "VirtualAid'de kişisel verilerinizi büyük bir özenle koruyoruz. Aşağıda verilerinizi nasıl topladığımızı, kullandığımızı ve güvence altına aldığımızı net bir şekilde özetledik.",
+      "sections": [
+        {
+          "title": "1. Giriş",
+          "paragraphs": [
+            "Gizliliğinize değer veriyor ve kişisel verilerinizin güvenliğini sağlamayı taahhüt ediyoruz. Bu politika, bilgilerinizi korumak için aldığımız önlemleri ve platform içerisinde nasıl kullandığımızı açıklar."
+          ]
+        },
+        {
+          "title": "2. Topladığımız bilgiler",
+          "list": [
+            "Ad, soyad, e-posta ve şifrelenmiş parola gibi kayıt bilgileri.",
+            "Randevularınız, danıştığınız uzmanlıklar ve mesajlarınız gibi kullanım bilgileri.",
+            "IP adresi, cihaz türü ve kullanılan tarayıcı gibi teknik veriler."
+          ]
+        },
+        {
+          "title": "3. Bilgileri nasıl kullanıyoruz",
+          "list": [
+            "Hesabınızı, tıbbi randevularınızı ve ilgili hatırlatmaları yönetmek.",
+            "Hizmetlerimizi geliştirmek ve platform deneyiminizi kişiselleştirmek.",
+            "Aktiviteniz veya VirtualAid'deki değişikliklerle ilgili önemli bildirimleri göndermek."
+          ]
+        },
+        {
+          "title": "4. Bilgi paylaşımı",
+          "paragraphs": [
+            "Kişisel verilerinizi, hizmeti sunmak için kesinlikle gerekli olduğu durumlarda (örneğin randevunuzla ilgili doktorlarla) veya yasal bir zorunluluk olduğunda üçüncü taraflarla paylaşırız."
+          ]
+        },
+        {
+          "title": "5. Güvenlik",
+          "paragraphs": [
+            "Yetkisiz erişimi, kaybı veya kötüye kullanımı önlemek için şifreleme, erişim kontrolleri ve düzenli denetimler dahil teknik ve organizasyonel önlemler uyguluyoruz."
+          ]
+        },
+        {
+          "title": "6. Haklarınız",
+          "paragraphs": [
+            "Kişisel verilerinize erişim, düzeltme veya silme talebinde bulunabilirsiniz. Destek ekibimizle iletişime geçin, talebinizi öncelikli olarak ele alalım."
+          ]
+        },
+        {
+          "title": "7. Politika değişiklikleri",
+          "paragraphs": [
+            "Yeni hizmetler sunduğumuzda veya yasal gereklilikler nedeniyle bu politikayı güncelleyebiliriz. Önemli değişikliklerde yürürlüğe girmeden önce sizi bilgilendireceğiz."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Kullanım Şartları",
+      "highlight": "VirtualAid'i kullanarak, hastalar ve sağlık profesyonelleri için güvenli ve güvenilir bir hizmet sunmayı amaçlayan bu şartları kabul etmiş olursunuz.",
+      "sections": [
+        {
+          "title": "1. Şartların kabulü",
+          "paragraphs": [
+            "Platforma erişim veya platformu kullanmak, bu şartların tamamını kabul ettiğiniz anlamına gelir. Herhangi bir maddeye katılmıyorsanız VirtualAid'i kullanmayı bırakmalısınız."
+          ]
+        },
+        {
+          "title": "2. Platformun kullanımı",
+          "list": [
+            "Hesabınızda doğru, eksiksiz ve güncel bilgiler sağlamalısınız.",
+            "Diğer kullanıcılara zarar verebilecek dolandırıcılık veya kötüye kullanım yasaktır.",
+            "Usulsüzlük tespit edersek erişiminizi askıya alabilir veya kısıtlayabiliriz."
+          ]
+        },
+        {
+          "title": "3. Fikri mülkiyet",
+          "paragraphs": [
+            "VirtualAid'in içerikleri, markaları ve teknolojik geliştirmeleri platforma veya lisans verenlerine aittir. Önceden yazılı izin olmadan çoğaltmak yasaktır."
+          ]
+        },
+        {
+          "title": "4. Sorumluluk",
+          "paragraphs": [
+            "VirtualAid, teknolojik bir aracı olarak hizmet verir ve sağlık profesyonellerinin doğrudan sunduğu klinik kararlar veya bilgilerden sorumlu değildir."
+          ]
+        },
+        {
+          "title": "5. Değişiklikler",
+          "paragraphs": [
+            "Hizmet iyileştirmelerini veya düzenleyici değişiklikleri yansıtmak için bu şartları güncelleme hakkımız saklıdır. Önemli değişiklikler konusunda sizi uygun bir süre önce bilgilendiririz."
+          ]
+        },
+        {
+          "title": "6. Uygulanacak hukuk",
+          "paragraphs": [
+            "Bu şartlar ikamet ettiğiniz ülkenin yasalarına tabidir ve çıkan uyuşmazlıklar ilgili mahkemelerde çözümlenir."
+          ]
+        }
+      ]
+    }
+  },
+  "toasts": {
+    "reminder_invalid_id": "❌ Hatırlatma işlenemedi: randevunun geçerli bir kimliği yok.",
+    "reminder_resent": "🔁 Hatırlatma e-posta ile tekrar gönderildi",
+    "reminder_enabled": "🔔 Hatırlatma etkinleştirildi. Randevudan önce otomatik olarak gönderilecek",
+    "reminder_manage_error": "❌ Hatırlatma yönetilirken hata oluştu. Lütfen tekrar deneyin.",
+    "reminder_disabled_success_plain": "Hatırlatma başarıyla devre dışı bırakıldı",
+    "reminder_disable_error": "❌ Hatırlatma devre dışı bırakılırken hata oluştu. Lütfen tekrar deneyin.",
+    "select_doctor_date_time": "Lütfen doktor, tarih ve saati seçin",
+    "appointment_created": "Randevu oluşturuldu",
+    "appointment_create_error": "Randevu oluşturulurken hata oluştu",
+    "avatar_updated": "Fotoğraf güncellendi",
+    "avatar_upload_error": "Görüntü yüklenirken hata oluştu",
+    "avatar_upload_too_large": "Görsel en fazla {{max}} MB sınırını aşıyor",
+    "payment_completed": "Ödeme tamamlandı",
+    "payment_not_completed": "Ödeme tamamlanmadı",
+    "payment_not_yours": "Bu ödeme hesabınıza ait değil.",
+    "payment_already_processed": "Bu ödeme zaten işlendi.",
+    "payment_capture_error": "Ödeme alınırken hata oluştu",
+    "paypal_error": "PayPal hatası",
+    "payment_cancelled": "Ödeme iptal edildi",
+    "password_changed": "Şifre değiştirildi",
+    "password_change_error": "Şifre değiştirilirken hata oluştu"
+  },
+  "profile_password_change_success": "Şifre başarıyla değiştirildi"
 }

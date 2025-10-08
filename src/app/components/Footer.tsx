@@ -1,6 +1,7 @@
 "use client";
 
-import { CSSProperties, MouseEvent, ReactNode, useState } from 'react';
+import { CSSProperties, MouseEvent, ReactNode, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './footer.module.css';
 import LegalModal from './legal/LegalModal';
 import PrivacyContent from './legal/PrivacyContent';
@@ -45,9 +46,17 @@ export default function Footer({
     links,
     variant = 'medical',
 }: FooterProps) {
+    const { t } = useTranslation('common');
+    const privacyLabel = t('footer.links.privacy');
+    const termsLabel = t('footer.links.terms');
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     const [showTermsModal, setShowTermsModal] = useState(false);
     const legalHoverBackground = variant === 'gradient' ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.1)';
+
+    const translatedDefaultLinks = useMemo<FooterLink[]>(() => ([
+        { href: '/P&T/privacy', label: privacyLabel, icon: '🔒' },
+        { href: '/P&T/terms', label: termsLabel, icon: '📋' },
+    ]), [privacyLabel, termsLabel]);
     
     // Configuración de variantes
     const getVariantStyles = (): CSSProperties => {
@@ -94,11 +103,6 @@ export default function Footer({
         ...style,
     };
 
-    const defaultLinks: FooterLink[] = [
-        { href: '/P&T/privacy', label: 'Política de Privacidad', icon: '🔒' },
-        { href: '/P&T/terms', label: 'Términos de Uso', icon: '📋' },
-    ];
-
     const computeLinkStyle = (idx: number, asButton = false): CSSProperties => ({
         color: linkColor ?? (variant === 'gradient' ? '#ffffff' : '#3b82f6'),
         textDecoration: 'none',
@@ -126,7 +130,7 @@ export default function Footer({
         event.currentTarget.style.backgroundColor = 'transparent';
     };
 
-    const renderedLinks = (links ?? defaultLinks).map((l, idx) => {
+    const renderedLinks = (links ?? translatedDefaultLinks).map((l, idx) => {
         const normalizedHref = (l.href ?? '').toLowerCase();
         const isPrivacyLink = normalizedHref === '/p&t/privacy';
         const isTermsLink = normalizedHref === '/p&t/terms';
@@ -189,7 +193,7 @@ export default function Footer({
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>Copyright © {currentYear}</span>
+                    <span>{t('footer.copy', { year: currentYear })}</span>
                     <span style={{ 
                         fontWeight: '700', 
                         color: variant === 'gradient' ? '#ffffff' : '#1e293b',
@@ -197,7 +201,7 @@ export default function Footer({
                         WebkitBackgroundClip: variant !== 'gradient' ? 'text' : undefined,
                         WebkitTextFillColor: variant !== 'gradient' ? 'transparent' : undefined,
                     }}>
-                        VirtualAid
+                        {t('footer.brand')}
                     </span>
                 </div>
                 <div style={{ 
@@ -206,13 +210,13 @@ export default function Footer({
                     color: variant === 'gradient' ? '#ffffff' : '#64748b',
                     fontWeight: '500'
                 }}>
-                    <span>🚀 Desarrollado con ❤️ por </span>
+                    <span>{t('footer.powered_prefix')}</span>
                     <span style={{ 
                         fontWeight: '700',
                         color: variant === 'gradient' ? '#2468fbff' : '#0b5df5ff',
                         textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                     }}>
-                        Victecnology
+                        {t('footer.powered_company')}
                     </span>
                 </div>
             </div>
@@ -233,7 +237,7 @@ export default function Footer({
             <LegalModal
                 open={showPrivacyModal}
                 onClose={() => setShowPrivacyModal(false)}
-                title="Política de Privacidad"
+                title={t('legal.privacy.title')}
                 dialogId="privacy-legal-modal"
             >
                 <PrivacyContent />
@@ -242,7 +246,7 @@ export default function Footer({
             <LegalModal
                 open={showTermsModal}
                 onClose={() => setShowTermsModal(false)}
-                title="Términos de Uso"
+                title={t('legal.terms.title')}
                 dialogId="terms-legal-modal"
             >
                 <TermsContent />

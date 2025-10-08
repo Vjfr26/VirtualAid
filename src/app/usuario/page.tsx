@@ -10,7 +10,7 @@ import TopActions from '../components/TopActions';
 
 import 'react-calendar/dist/Calendar.css';
 import styles from './calendar.module.css';
-import { getEspecialistas, getUsuarioPerfil, getCitasDeUsuario, getPagosDeUsuario, getSession, fetchJSON, type Cita as TCita, createOrUpdateBillingProfile, type BillingProfile, createAddress, updateAddress, type Address, listPaymentMethodsByProfile, createPaymentMethod, updatePaymentMethod, deletePaymentMethod, type PaymentMethod, crearCita, changeUsuarioPassword, updateUsuarioAvatar, getCitasDeMedico, marcarPagoGratis, descargarRecibo } from './services';
+import { getEspecialistas, getUsuarioPerfil, getCitasDeUsuario, getPagosDeUsuario, getSession, fetchJSON, type Cita as TCita, createOrUpdateBillingProfile, type BillingProfile, createAddress, updateAddress, type Address, listPaymentMethodsByProfile, createPaymentMethod, updatePaymentMethod, deletePaymentMethod, type PaymentMethod, crearCita, changeUsuarioPassword, updateUsuarioAvatar, getCitasDeMedico, marcarPagoGratis, descargarRecibo, resolveUsuarioAvatarUrls } from './services';
 // Definimos un tipo compatible con el requerido por BillingView (structural typing)
 interface BillingInvoice { id: string; amount: number; currency: string; status: string; created_at: string; paid_at?: string }
 import { createOrder as paypalCreateOrder, captureOrder as paypalCaptureOrder } from './services/paypal';
@@ -51,6 +51,9 @@ type CitaAgendada = {
 };
 
 const especialistasEjemplo: MedicoResumen[] = [];
+
+const MAX_AVATAR_FILE_BYTES = 3 * 1024 * 1024; // 3 MB
+const MAX_AVATAR_FILE_MB = Math.round(MAX_AVATAR_FILE_BYTES / (1024 * 1024));
 
 // EmailJS ya no se usa, se envían correos desde el backend
 
@@ -471,7 +474,7 @@ export default function DashboardPaciente() {
 
   const enviarRecordatorioCita = useCallback(async (c: CitaAgendada) => {
     if (!c.id) {
-      addToast('❌ No se puede gestionar el recordatorio: la cita no tiene identificador válido.', 'error');
+      addToast(t('toasts.reminder_invalid_id'), 'error');
       return;
     }
 
@@ -514,19 +517,19 @@ export default function DashboardPaciente() {
 
       addToast(
         reenviar
-          ? '🔁 Recordatorio reenviado por correo electrónico'
-          : '🔔 Recordatorio activado. Se enviará automáticamente antes de la cita',
+          ? t('toasts.reminder_resent')
+          : t('toasts.reminder_enabled'),
         'success'
       );
     } catch (error) {
-      addToast('❌ Error al gestionar el recordatorio. Inténtalo de nuevo.', 'error');
+      addToast(t('toasts.reminder_manage_error'), 'error');
       console.error('Error al enviar recordatorio:', error);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   const desactivarRecordatorioCita = useCallback(async (c: CitaAgendada) => {
     if (!c.id) {
-      addToast('❌ No se puede gestionar el recordatorio: la cita no tiene identificador válido.', 'error');
+      addToast(t('toasts.reminder_invalid_id'), 'error');
       return;
     }
 
@@ -555,13 +558,14 @@ export default function DashboardPaciente() {
         };
       }));
 
-  const successMsg = resultado.message?.trim() ? resultado.message : 'Recordatorio desactivado correctamente';
+  const fallbackSuccessMsg = t('toasts.reminder_disabled_success_plain');
+  const successMsg = resultado.message?.trim() ? resultado.message : fallbackSuccessMsg;
   addToast(successMsg.startsWith('🔕') ? successMsg : `🔕 ${successMsg}`, 'info');
     } catch (error) {
-      addToast('❌ Error al desactivar el recordatorio. Inténtalo de nuevo.', 'error');
+      addToast(t('toasts.reminder_disable_error'), 'error');
       console.error('Error al desactivar recordatorio:', error);
     }
-  }, [addToast]);
+  }, [addToast, t]);
   const filtrarEspecialistas = especialistas.filter((m) => {
     const q = busqueda.trim().toLowerCase();
     const especialidadMatch = !especialidadFiltro || (m.especialidad && m.especialidad.toLowerCase() === especialidadFiltro.toLowerCase());
@@ -609,7 +613,7 @@ export default function DashboardPaciente() {
   });
   const solicitarCita = () => {
     if (!medicoSeleccionado || !fecha || !horaSeleccionada) {
-      addToast('Selecciona médico, fecha y hora', 'error');
+      addToast(t('toasts.select_doctor_date_time'), 'error');
       return;
     }
     setMostrarConfirmacion(true);
@@ -682,48 +686,132 @@ export default function DashboardPaciente() {
       setHoraSeleccionada('');
       setFecha(null);
       setMostrarCalendario(false);
-      addToast('Cita creada', 'success');
+      addToast(t('toasts.appointment_created'), 'success');
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Error al crear cita', 'error');
+      const fallbackMsg = t('toasts.appointment_create_error');
+      addToast(e instanceof Error ? e.message : fallbackMsg, 'error');
     } finally {
       setCreandoCita(false);
       setMostrarConfirmacion(false);
     }
   };
 
+  const extractAvatarUrl = (payload: unknown): string | null => {
+    if (!payload || typeof payload !== 'object') return null;
+    const record = payload as Record<string, unknown>;
+    const directCandidates = [
+      record.avatar_url,
+      record.url,
+      record.avatar,
+      record.ruta,
+      record.avatar_path,
+      record.path,
+      record.location,
+      record.file,
+      record.perfil,
+    ];
+    for (const candidate of directCandidates) {
+      if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+    }
+    const dataNs = record.data;
+    if (dataNs && typeof dataNs === 'object') {
+      const dataRecord = dataNs as Record<string, unknown>;
+      const nested = [
+        dataRecord.avatar_url,
+        dataRecord.url,
+        dataRecord.avatar,
+        dataRecord.ruta,
+        dataRecord.avatar_path,
+        dataRecord.path,
+      ];
+      for (const candidate of nested) {
+        if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+      }
+    }
+    const archivo = record.archivo;
+    if (archivo && typeof archivo === 'object') {
+      const archivoRecord = archivo as Record<string, unknown>;
+      const nested = [
+        archivoRecord.avatar_url,
+        archivoRecord.url,
+        archivoRecord.avatar,
+        archivoRecord.ruta,
+        archivoRecord.path,
+      ];
+      for (const candidate of nested) {
+        if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+      }
+    }
+    return null;
+  };
+
   const onAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!usuario.email) return;
-    const file = e.target.files?.[0];
+    const inputEl = e.target;
+    const file = inputEl?.files?.[0];
     if (!file) return;
+    if (file.size > MAX_AVATAR_FILE_BYTES) {
+      addToast(t('toasts.avatar_upload_too_large', { max: MAX_AVATAR_FILE_MB }), 'error');
+      inputEl.value = '';
+      return;
+    }
     try {
       setSubiendoAvatar(true);
       const form = new FormData();
       form.append('archivo', file);
-      // Nuevo backend: guardamos en el front
-      form.append('tipo', 'usuario');
-      form.append('id', usuario.email);
-      const res = await fetch(`/api/perfil/upload`, { method: 'POST', body: form });
+      form.append('uso', 'avatar');
+      const res = await fetch(`/api/usuario/${encodeURIComponent(usuario.email)}/archivo`, {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+        cache: 'no-store',
+      });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || 'Error al subir imagen');
-      const url: string | undefined = data?.url;
+      if (!res.ok) {
+        const serverMessage = (data as { message?: string })?.message;
+        const errorMessage = res.status === 413
+          ? t('toasts.avatar_upload_too_large', { max: MAX_AVATAR_FILE_MB })
+          : serverMessage || `Error ${res.status}`;
+        throw new Error(errorMessage);
+      }
+      const rawUrl = extractAvatarUrl(data);
+      const maybeRuta = (data && typeof data === 'object') ? (data as Record<string, unknown>).ruta : undefined;
+      const avatarInfo = resolveUsuarioAvatarUrls(usuario.email, typeof rawUrl === 'string' && rawUrl.length > 0 ? rawUrl : typeof maybeRuta === 'string' ? maybeRuta : null);
+      let url = avatarInfo.displayUrl || '';
+      if (!url) {
+        try {
+          const perfilActualizado = await getUsuarioPerfil(usuario.email);
+          if (perfilActualizado?.avatar) {
+            url = perfilActualizado.avatar;
+          }
+        } catch (fetchErr) {
+          console.warn('No se pudo refrescar el perfil tras subir avatar:', fetchErr);
+        }
+      }
       if (url) {
         setUsuario(prev => ({ ...prev, avatar: url }));
         setFormPerfil(prev => ({ ...prev, avatar: url }));
-  // Persistir en backend (campo avatar únicamente)
-  try { await updateUsuarioAvatar(usuario.email, url); } catch (e) { console.warn('No se pudo persistir avatar en backend:', e); }
-        // Persistir avatar local para futuras sesiones
+        const rawRuta = typeof maybeRuta === 'string' && maybeRuta.length > 0 ? maybeRuta : null;
+        const persistValue = rawRuta
+          ?? (avatarInfo.storagePath ? avatarInfo.storagePath : (typeof rawUrl === 'string' && rawUrl.length > 0 ? rawUrl : url));
+        try { await updateUsuarioAvatar(usuario.email, persistValue || url); } catch (e) { console.warn('No se pudo persistir avatar en backend:', e); }
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem(`virtualaid_avatar_usuario_${usuario.email}`, url);
           }
         } catch {}
-        addToast('Foto actualizada', 'success');
+        addToast(t('toasts.avatar_updated'), 'success');
+      } else {
+        throw new Error('No se pudo obtener la URL del avatar');
       }
     } catch (err) {
-      addToast(err instanceof Error ? err.message : 'Error al subir imagen', 'error');
+      const fallbackMsg = t('toasts.avatar_upload_error');
+      addToast(err instanceof Error ? err.message : fallbackMsg, 'error');
     } finally {
       setSubiendoAvatar(false);
-      e.currentTarget.value = '';
+      if (inputEl) {
+        inputEl.value = '';
+      }
     }
   };
 
@@ -880,7 +968,7 @@ const loadPaypalSdk = useCallback(() => {
           const cap = await paypalCaptureOrder(data.orderID, pagoId);
           console.log('Capture result:', cap);
           if (cap?.status && cap.status.toLowerCase() === 'completed') {
-            addToast('Pago completado', 'success');
+            addToast(t('toasts.payment_completed'), 'success');
             await refreshPagos();
             if (cap.tokenSala) {
               try {
@@ -890,13 +978,13 @@ const loadPaypalSdk = useCallback(() => {
               } catch {}
             }
           } else {
-            addToast('Pago no completado', 'error');
+            addToast(t('toasts.payment_not_completed'), 'error');
           }
         } catch (e: unknown) {
           const err = e as { status?: number; message?: string };
-          if (err?.status === 403) addToast('Este pago no pertenece a tu cuenta.', 'error');
-          else if (err?.status === 409) { addToast('El pago ya fue procesado.', 'info'); await refreshPagos(); }
-          else addToast(err?.message || 'Error al capturar el pago', 'error');
+          if (err?.status === 403) addToast(t('toasts.payment_not_yours'), 'error');
+          else if (err?.status === 409) { addToast(t('toasts.payment_already_processed'), 'info'); await refreshPagos(); }
+          else addToast(err?.message || t('toasts.payment_capture_error'), 'error');
           setLastError(err?.message || 'Error al capturar');
         } finally {
           setCapturing(false);
@@ -904,10 +992,10 @@ const loadPaypalSdk = useCallback(() => {
       },
       onError: (err: unknown) => {
         console.error('PayPal error:', err);
-        addToast('Error de PayPal', 'error');
+  addToast(t('toasts.paypal_error'), 'error');
       },
       onCancel: () => {
-        addToast('Pago cancelado', 'info');
+  addToast(t('toasts.payment_cancelled'), 'info');
       }
     });
 
@@ -1011,22 +1099,18 @@ const loadPaypalSdk = useCallback(() => {
           let avatar: string | undefined = undefined;
           try {
             const key = `virtualaid_avatar_usuario_${u.email}`;
-            const local = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-            if (local && local.startsWith('/perfiles/')) {
-              avatar = local;
-            } else if (u.avatar) {
-              const raw: string = u.avatar as string;
-              if (raw?.startsWith('/perfiles/')) {
-                avatar = raw;
-              } else if (raw?.startsWith('/storage/') || raw?.startsWith('http')) {
-                avatar = raw;
-              } else if (raw) {
-                avatar = `/storage/${raw}`;
-              }
-            } else if (usuario.avatar && usuario.avatar.startsWith('/perfiles/')) {
+            const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+            const avatarInfo = resolveUsuarioAvatarUrls(u.email, typeof u.avatar === 'string' ? u.avatar : null);
+            const backendAvatar = avatarInfo.displayUrl ?? null;
+
+            if (stored && stored.startsWith('/perfiles/')) {
+              avatar = stored;
+            } else if (backendAvatar) {
+              avatar = backendAvatar;
+            } else if (typeof u.avatar === 'string' && u.avatar.length > 0) {
+              avatar = u.avatar;
+            } else if (usuario.avatar) {
               avatar = usuario.avatar;
-            } else {
-              avatar = usuario.avatar || undefined;
             }
           } catch {
             avatar = usuario.avatar || undefined;
@@ -1591,14 +1675,15 @@ const loadPaypalSdk = useCallback(() => {
                               try {
                                 setCambiandoPwd(true);
                                 await changeUsuarioPassword(usuario.email, pwdActual, pwdNueva);
-                                addToast('Contraseña cambiada', 'success');
-                                setMsgPwd('Contraseña cambiada correctamente');
+                                addToast(t('toasts.password_changed'), 'success');
+                                setMsgPwd(t('profile_password_change_success'));
                                 setPwdActual(''); setPwdNueva(''); setPwdConfirm('');
                                 setMostrarPwd(false);
                               } catch (e: unknown) {
-                                const msg = e instanceof Error ? e.message : 'Error al cambiar contraseña';
+                                const fallbackMsg = t('toasts.password_change_error');
+                                const msg = e instanceof Error ? e.message : fallbackMsg;
                                 setMsgPwd(msg);
-                                addToast(msg, 'error');
+                                addToast(e instanceof Error ? msg : fallbackMsg, 'error');
                               } finally {
                                 setCambiandoPwd(false);
                               }
