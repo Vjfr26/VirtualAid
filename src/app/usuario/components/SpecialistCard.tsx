@@ -22,22 +22,35 @@ export default function SpecialistCard({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <div className="flex items-center space-x-3 flex-1 min-w-0">
           <div className="relative">
-            {medico.avatar ? (
-              <Image
-                src={medico.avatar && medico.avatar.startsWith('http') ? medico.avatar : medico.avatar ? medico.avatar : 'https://randomuser.me/api/portraits/lego/1.jpg'}
-                alt={medico.nombre + ' avatar'}
-                width={48}
-                height={48}
-                className="rounded-full object-cover border-2 border-orange-200 group-hover:border-orange-400 transition-colors"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://randomuser.me/api/portraits/lego/1.jpg'; }}
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center border-2 border-orange-200 group-hover:border-orange-400 transition-colors">
-                <span className="text-orange-600 font-bold text-lg">
-                  {medico.nombre?.charAt(0).toUpperCase() || 'D'}
-                </span>
-              </div>
-            )}
+            {(() => {
+              let avatarSrc = medico.avatar || '';
+              // Normalizar URL del avatar
+              if (avatarSrc.startsWith('/perfiles/') || avatarSrc.startsWith('/storage/') || avatarSrc.startsWith('http')) {
+                // Ya tiene prefijo correcto o es URL absoluta
+              } else if (avatarSrc) {
+                // Agregar /storage/ solo si no lo tiene
+                avatarSrc = `/storage/${avatarSrc}`;
+              } else {
+                avatarSrc = 'https://randomuser.me/api/portraits/lego/1.jpg';
+              }
+              
+              return avatarSrc ? (
+                <Image
+                  src={avatarSrc}
+                  alt={medico.nombre + ' avatar'}
+                  width={48}
+                  height={48}
+                  className="rounded-full object-cover border-2 border-orange-200 group-hover:border-orange-400 transition-colors"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://randomuser.me/api/portraits/lego/1.jpg'; }}
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center border-2 border-orange-200 group-hover:border-orange-400 transition-colors">
+                  <span className="text-orange-600 font-bold text-lg">
+                    {medico.nombre?.charAt(0).toUpperCase() || 'D'}
+                  </span>
+                </div>
+              );
+            })()}
             <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${
               medico.disponible ? 'bg-green-500' : 'bg-red-500'
             }`}>

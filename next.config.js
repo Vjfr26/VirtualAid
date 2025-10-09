@@ -52,6 +52,12 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      // IMPORTANTE: /api/reunion NO se redirige (usa Next.js local para WebRTC)
+      // Todos los demás /api/* se redirigen al backend Laravel
+      {
+        source: '/api/reunion/:path*',
+        destination: '/api/reunion/:path*', // Mantener en Next.js
+      },
       {
         source: '/api/:path*',
         destination: `${backendBase.replace(/\/$/, '')}/api/:path*`,
@@ -59,6 +65,10 @@ const nextConfig = {
       {
         source: '/storage/:path*',
         destination: `${backendBase.replace(/\/$/, '')}/storage/:path*`,
+      },
+      {
+        source: '/perfiles/:path*',
+        destination: `${backendBase.replace(/\/$/, '')}/perfiles/:path*`,
       },
     ];
   },

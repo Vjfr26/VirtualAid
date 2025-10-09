@@ -789,15 +789,20 @@ export default function DashboardPaciente() {
         }
       }
       if (url) {
-        setUsuario(prev => ({ ...prev, avatar: url }));
-        setFormPerfil(prev => ({ ...prev, avatar: url }));
+        // Agregar cache-busting para forzar recarga de imagen
+        const urlWithCacheBust = url.includes('?') 
+          ? `${url}&_cb=${Date.now()}` 
+          : `${url}?_cb=${Date.now()}`;
+        
+        setUsuario(prev => ({ ...prev, avatar: urlWithCacheBust }));
+        setFormPerfil(prev => ({ ...prev, avatar: urlWithCacheBust }));
         const rawRuta = typeof maybeRuta === 'string' && maybeRuta.length > 0 ? maybeRuta : null;
         const persistValue = rawRuta
           ?? (avatarInfo.storagePath ? avatarInfo.storagePath : (typeof rawUrl === 'string' && rawUrl.length > 0 ? rawUrl : url));
         try { await updateUsuarioAvatar(usuario.email, persistValue || url); } catch (e) { console.warn('No se pudo persistir avatar en backend:', e); }
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem(`virtualaid_avatar_usuario_${usuario.email}`, url);
+            localStorage.setItem(`virtualaid_avatar_usuario_${usuario.email}`, urlWithCacheBust);
           }
         } catch {}
         addToast(t('toasts.avatar_updated'), 'success');
@@ -1721,39 +1726,6 @@ const loadPaypalSdk = useCallback(() => {
                           )}
                         </div>
                       )}
-                    </div>
-
-                    {/* Botones de acción */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-200">
-                      <button
-                        type="submit"
-                        className="flex-1 min-w-0 bg-gradient-to-r from-blue-600 via-blue-700 to-green-600 hover:from-blue-700 hover:via-blue-800 hover:to-green-700 text-white rounded-md px-2.5 sm:px-4 py-1.5 sm:py-2 text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:scale-[1.01]"
-                        disabled={cargandoPerfil}
-                      >
-                        {cargandoPerfil ? (
-                          <>
-                            <svg className="animate-spin w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span className="text-sm">{t('saving_changes')}...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span className="text-sm">{t('save_changes')}</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md px-2.5 sm:px-4 py-1.5 sm:py-2 text-sm font-semibold transition-all border border-gray-200 hover:border-gray-300 cursor-pointer"
-                        onClick={cerrarEditarPerfil}
-                        disabled={cargandoPerfil}
-                      >
-                        {t('cancel')}
-                      </button>
                     </div>
 
                     {mensajePerfil && (

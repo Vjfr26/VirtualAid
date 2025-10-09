@@ -272,7 +272,6 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                                 onClick={async () => {
                                   // Encontrar el horario crudo correspondiente
                                   if (!medicoData) return;
-                                  console.log('Intentando eliminar franja:', h.trim());
                                   console.log('Todos los horarios disponibles:', horarios);
                                   // Buscar en `horarios` un registro que coincida con día y horas
                                   const diasIdx: any = { 'Domingo':0,'Lunes':1,'Martes':2,'Miércoles':3,'Jueves':4,'Viernes':5,'Sábado':6 };

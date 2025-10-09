@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneMissed, FiMessageSquare, FiUsers, FiMoreVertical, FiPaperclip, FiSend, FiFileText, FiMonitor } from 'react-icons/fi';
 import { postOffer, getOffer, postAnswer, getAnswer, postCandidate, getCandidates, finalizarChat, listRooms, roomLink, roomLinkWithName, getUsuario, getMedico, extractDisplayName, getState } from './services';
 import Footer from '../components/Footer';
+import DiagnosticPanel from './DiagnosticPanel';
 
 
 interface ParticipantProps {
@@ -74,7 +75,8 @@ export default function ReunionPage() {
   const roleRef = useRef<null | 'caller' | 'callee'>(null);
   const [reconnecting, setReconnecting] = useState<boolean>(false);
   const [isJoining, setIsJoining] = useState<boolean>(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const answerPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const candidatePollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Screen share
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -350,25 +352,61 @@ export default function ReunionPage() {
       }
     }
     
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection({ 
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { 
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    });
     pcRef.current = pc;
-    console.log(`[SetupPeer] RTCPeerConnection creada`);
+    console.log(`[SetupPeer] RTCPeerConnection creada con STUN + TURN`);
     
     // ICE deduplicado
     const addedCandidates = new Set<string>();
     // Buffer para candidates que llegan antes de setRemoteDescription
     const candidateBuffer: RTCIceCandidateInit[] = [];
-    let remoteSet = fromRole === 'caller';
-    console.log(`[SetupPeer] remoteSet inicial: ${remoteSet} (porque es ${fromRole})`);
+    // Para ambos roles, remoteSet empieza en false hasta que se llame setRemote()
+    let remoteSet = false;
+    console.log(`[SetupPeer] remoteSet inicial: ${remoteSet} - esperando setRemote() para ${fromRole}`);
     
     pc.onconnectionstatechange = () => {
       setConnState(pc.connectionState);
       console.log(`[SetupPeer] 🔄 connectionState cambió a: ${pc.connectionState}`);
+      
+      // 8. Confirmar conexión WebRTC (marca asistencia automática)
+      if (pc.connectionState === 'connected') {
+        console.log(`[SetupPeer] 🎉 Conexión WebRTC establecida exitosamente`);
+        // Importar confirmConnection desde services
+        import('./services').then(({ confirmConnection }) => {
+          confirmConnection(rid)
+            .then(() => {
+              console.log(`[SetupPeer] ✅ Conexión confirmada en el backend (sala ${rid})`);
+            })
+            .catch((err) => {
+              console.error(`[SetupPeer] ⚠️ Error confirmando conexión:`, err);
+            });
+        });
+      }
+      
       if (["connected","failed","disconnected","closed"].includes(pc.connectionState)) {
-        if (pollingRef.current) { 
-          console.log(`[SetupPeer] Deteniendo polling por estado: ${pc.connectionState}`);
-          clearInterval(pollingRef.current); 
-          pollingRef.current = null; 
+        if (candidatePollingRef.current) { 
+          console.log(`[SetupPeer] Deteniendo polling de candidates por estado: ${pc.connectionState}`);
+          clearInterval(candidatePollingRef.current); 
+          candidatePollingRef.current = null; 
         }
       }
     };
@@ -451,8 +489,8 @@ export default function ReunionPage() {
     if (fromRole === 'callee') {
       console.log(`[SetupPeer] Iniciando polling de ICE candidates (callee)`);
       // Polling de candidates del caller (bufferiza si no está remoteSet)
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      pollingRef.current = setInterval(async () => {
+      if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+      candidatePollingRef.current = setInterval(async () => {
         try {
           const cands = await getCandidates(rid, 'callee');
           if (cands.candidates.length > 0) {
@@ -481,11 +519,11 @@ export default function ReunionPage() {
       }, 1000);
     }
     
-    // Para el caller, polling de candidates del callee
+    // Para el caller, polling de candidates del callee (bufferiza si no está remoteSet)
     if (fromRole === 'caller') {
       console.log(`[SetupPeer] Iniciando polling de ICE candidates (caller)`);
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      pollingRef.current = setInterval(async () => {
+      if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+      candidatePollingRef.current = setInterval(async () => {
         try {
           const cands = await getCandidates(rid, 'caller');
           if (cands.candidates.length > 0) {
@@ -494,11 +532,16 @@ export default function ReunionPage() {
           for (const c of cands.candidates) {
             const key = JSON.stringify(c);
             if (!addedCandidates.has(key)) {
-              try { 
-                await pc.addIceCandidate(new RTCIceCandidate(c)); 
-                console.log('[SetupPeer] ✅ ICE candidate agregada (caller)', c); 
-              } catch (err) { 
-                console.warn('[SetupPeer] ❌ Error agregando candidate (caller)', err, c); 
+              if (remoteSet) {
+                try { 
+                  await pc.addIceCandidate(new RTCIceCandidate(c)); 
+                  console.log('[SetupPeer] ✅ ICE candidate agregada (caller)', c); 
+                } catch (err) { 
+                  console.warn('[SetupPeer] ❌ Error agregando candidate (caller)', err, c); 
+                }
+              } else {
+                candidateBuffer.push(c);
+                console.log('[SetupPeer] 📦 ICE candidate bufferizada (caller)', c);
               }
               addedCandidates.add(key);
             }
@@ -636,127 +679,217 @@ export default function ReunionPage() {
   // Eliminado flujo de creación local: las salas se crean en backend
 
   const joinAndAnswer = useCallback(async (rid: string, prefetchedOffer?: string | null) => {
-    console.log(`[CALLEE] Iniciando joinAndAnswer para sala: ${rid}`);
+    console.log(`\n🧑‍💼 ====== PACIENTE (CALLEE) UNIÉNDOSE A REUNIÓN ======`);
+    console.log(`[CALLEE] 📍 Sala: ${rid}`);
+    console.log(`[CALLEE] ⏰ Timestamp: ${new Date().toISOString()}`);
+    console.log(`[CALLEE] Offer precargada: ${!!prefetchedOffer}\n`);
+    
     setRoomId(rid);
     roleRef.current = 'callee';
-    console.log(`[CALLEE] Configurando peer como callee...`);
+    console.log(`[CALLEE] 🔧 Configurando peer como callee...`);
     const peerObj = setupPeer(rid, 'callee');
     const pc = peerObj.pc;
     const setRemote = peerObj.setRemote;
-    console.log(`[CALLEE] Peer configurado. Estado inicial: ${pc.connectionState}`);
+    console.log(`[CALLEE] ✅ Peer configurado. Estado inicial: ${pc.connectionState}`);
     
     // Adjuntar medios locales
-    console.log(`[CALLEE] Obteniendo stream local...`);
+    console.log(`[CALLEE] 📹 Obteniendo stream local...`);
     const stream = await ensureLocalStream();
     if (stream) {
-      console.log(`[CALLEE] Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      console.log(`[CALLEE] ✅ Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      console.log(`[CALLEE]    - Audio tracks: ${stream.getAudioTracks().length}`);
+      console.log(`[CALLEE]    - Video tracks: ${stream.getVideoTracks().length}`);
       stream.getTracks().forEach((trk: MediaStreamTrack) => pc.addTrack(trk, stream));
-      console.log(`[CALLEE] Tracks agregados al peer`);
+      console.log(`[CALLEE] ✅ Tracks agregados al peer`);
     }
     
     // Esperar la oferta del caller con reintentos (hasta 15s)
-    console.log(`[CALLEE] Esperando oferta del caller...`);
+    console.log(`\n[CALLEE] 📥 PASO 1: Obteniendo OFFER del médico...`);
     let offerStr: string | null = prefetchedOffer ?? null;
-    const start = Date.now();
-    while (!offerStr && Date.now() - start < 15000) {
-      try {
-        const off = await getOffer(rid);
-        console.log(`[CALLEE] Polling offer - Tiempo transcurrido: ${Date.now() - start}ms, offer presente: ${!!off.offer}`);
-        if (off.offer) { 
-          offerStr = off.offer; 
-          console.log(`[CALLEE] ✅ Oferta recibida después de ${Date.now() - start}ms`);
-          break; 
+    
+    if (offerStr) {
+      console.log(`[CALLEE] ✅ Usando offer precargada`);
+    } else {
+      console.log(`[CALLEE] 🔄 Iniciando polling de offer (máximo 15 segundos)...`);
+      const start = Date.now();
+      let attempts = 0;
+      
+      while (!offerStr && Date.now() - start < 15000) {
+        attempts++;
+        try {
+          const off = await getOffer(rid);
+          const elapsed = Date.now() - start;
+          
+          if (attempts % 3 === 0) { // Log cada 3 intentos
+            console.log(`[CALLEE] 🔄 Intento ${attempts} - Tiempo: ${elapsed}ms, Offer presente: ${!!off.offer}`);
+          }
+          
+          if (off.offer) { 
+            offerStr = off.offer; 
+            console.log(`[CALLEE] ✅✅✅ OFFER ENCONTRADA después de ${elapsed}ms (${attempts} intentos)`);
+            break; 
+          }
+        } catch (err) {
+          console.error(`[CALLEE] ⚠️ Error en intento ${attempts}:`, err);
         }
-      } catch (err) {
-        console.log(`[CALLEE] Error en polling de offer:`, err);
+        await new Promise(r => setTimeout(r, 500));
       }
-      await new Promise(r => setTimeout(r, 500));
+      
+      if (!offerStr) {
+        console.error(`[CALLEE] ❌❌❌ TIMEOUT: No se encontró offer después de ${attempts} intentos (15 segundos)`);
+        console.error(`[CALLEE] El médico debe iniciar la reunión primero`);
+        setJoinError('No se encontró la sala. Asegúrate de que el médico haya iniciado la reunión.');
+        return;
+      }
     }
-    if (!offerStr) {
-      console.warn('[CALLEE] ❌ No se encontró oferta para la sala en el tiempo esperado');
+    
+    // Parsear y validar offer
+    console.log(`[CALLEE] 🔍 Parseando offer...`);
+    let offerDesc;
+    try {
+      offerDesc = JSON.parse(offerStr);
+      console.log(`[CALLEE] ✅ Offer parseada:`, {
+        type: offerDesc.type,
+        sdpLength: offerDesc.sdp?.length || 0
+      });
+      
+      if (offerDesc.type !== 'offer') {
+        console.error(`[CALLEE] ❌ ERROR: Tipo inválido. Esperado 'offer', recibido '${offerDesc.type}'`);
+        return;
+      }
+    } catch (parseErr) {
+      console.error(`[CALLEE] ❌ ERROR al parsear offer:`, parseErr);
+      console.error(`[CALLEE] Offer raw (primeros 100 chars):`, offerStr.substring(0, 100));
       return;
     }
     
-    console.log(`[CALLEE] Configurando remote description...`);
-    await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(offerStr)));
-    console.log(`[CALLEE] Remote description configurada. Estado: ${pc.connectionState}`);
+    console.log(`\n[CALLEE] 📥 PASO 2: setRemoteDescription(offer)...`);
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
+      console.log(`[CALLEE] ✅✅✅ setRemoteDescription(offer) COMPLETADO`);
+      console.log(`[CALLEE] Estado signaling: ${pc.signalingState}`);
+      console.log(`[CALLEE] Estado conexión: ${pc.connectionState}`);
+    } catch (remoteErr) {
+      console.error(`[CALLEE] ❌ ERROR en setRemoteDescription:`, remoteErr);
+      throw remoteErr;
+    }
     
     setRemote(); // flush candidates buffer
-    console.log(`[CALLEE] Creando answer...`);
+    console.log(`[CALLEE] 🔓 Candidates buffer flushed`);
+    
+    console.log(`\n[CALLEE] 📝 PASO 3: Creando ANSWER...`);
     const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    console.log(`[CALLEE] Local description (answer) configurada`);
+    console.log(`[CALLEE] ✅ Answer creada:`, {
+      type: answer.type,
+      sdpLength: answer.sdp?.length || 0
+    });
 
-    // Validación y log antes de enviar la answer
+    // Validación exhaustiva
     if (!answer || typeof answer !== 'object') {
-      console.error('[CALLEE] ❌ La answer es null o no es un objeto:', answer);
+      console.error('[CALLEE] ❌ ERROR CRÍTICO: Answer es null o no es un objeto:', answer);
       throw new Error('La answer generada es inválida');
     }
     if (!('type' in answer) || !('sdp' in answer)) {
-      console.error('[CALLEE] ❌ La answer no tiene los campos requeridos:', answer);
+      console.error('[CALLEE] ❌ ERROR CRÍTICO: Answer no tiene campos requeridos:', answer);
       throw new Error('La answer generada no tiene los campos requeridos');
     }
-    const answerStr = JSON.stringify(answer);
-    // Log explícito antes de enviar a postAnswer
-    console.log('[CALLEE][DEBUG] Se enviará a postAnswer el siguiente contenido:', {
-      rid,
-      answerStr,
-      answerObj: answer
-    });
-    console.log(`[CALLEE] Enviando answer al servidor. Contenido:`, answer);
-    await postAnswer(rid, answerStr);
-    console.log(`[CALLEE] ✅ Answer enviada exitosamente`);
+    if (answer.type !== 'answer') {
+      console.error(`[CALLEE] ❌ ERROR: Tipo inválido. Esperado 'answer', recibido '${answer.type}'`);
+      throw new Error('Tipo de SDP inválido');
+    }
     
-    // Pequeña pausa para asegurar propagación y iniciar ICE exchange
-    console.log(`[CALLEE] Esperando propagación de answer e inicio de ICE...`);
+    await pc.setLocalDescription(answer);
+    console.log(`[CALLEE] ✅ setLocalDescription(answer) completado`);
+    console.log(`[CALLEE] Estado signaling: ${pc.signalingState}`);
+
+    const answerStr = JSON.stringify(answer);
+    console.log(`\n[CALLEE] 📤 PASO 4: POST /api/reunion/${rid}/answer`);
+    console.log(`[CALLEE] Payload:`, { 
+      type: answer.type,
+      sdpLength: answerStr.length,
+      firstChars: answerStr.substring(0, 50)
+    });
+    
+    try {
+      await postAnswer(rid, answerStr);
+      console.log(`[CALLEE] ✅✅✅ Answer enviada exitosamente al servidor`);
+    } catch (postErr) {
+      console.error(`[CALLEE] ❌ ERROR al enviar answer:`, postErr);
+      throw postErr;
+    }
+    
+    // Verificar que answer se guardó
+    console.log(`[CALLEE] 🔍 Verificando que answer se guardó...`);
     await new Promise(r => setTimeout(r, 1000));
+    
+    try {
+      const verification = await getAnswer(rid);
+      if (verification.answer) {
+        console.log(`[CALLEE] ✅ Verificación exitosa: Answer disponible en servidor`);
+      } else {
+        console.error(`[CALLEE] ❌ ERROR: Answer NO se encuentra en servidor después de POST`);
+      }
+    } catch (err) {
+      console.error(`[CALLEE] ⚠️ No se pudo verificar answer:`, err);
+    }
+    
+    console.log(`\n[CALLEE] ====== CONFIGURACIÓN INICIAL COMPLETA ======`);
+    console.log(`[CALLEE] Esperando ICE negotiation...`);
+    console.log(`[CALLEE] Estado actual:`);
+    console.log(`  - Signaling: ${pc.signalingState}`);
+    console.log(`  - Connection: ${pc.connectionState}`);
+    console.log(`  - ICE: ${pc.iceConnectionState}\n`);
     
     // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream]);
 
   // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
   const startAsCaller = useCallback(async (rid: string) => {
-    console.log(`[CALLER] Iniciando startAsCaller para sala: ${rid}`);
+    console.log(`\n🏥 ====== MÉDICO (CALLER) INICIANDO REUNIÓN ======`);
+    console.log(`[CALLER] 📍 Sala: ${rid}`);
+    console.log(`[CALLER] ⏰ Timestamp: ${new Date().toISOString()}\n`);
     
     // Protección contra múltiples llamadas
     if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
-      console.log(`[CALLER] ⚠️ Ya hay un peer activo (${pcRef.current.connectionState}), cancelando startAsCaller duplicado`);
+      console.warn(`[CALLER] ⚠️ Ya hay un peer activo (${pcRef.current.connectionState}), cancelando startAsCaller duplicado`);
       return;
     }
     
     setRoomId(rid);
     roleRef.current = 'caller';
-    console.log(`[CALLER] Configurando peer como caller...`);
+    console.log(`[CALLER] 🔧 Configurando peer como caller...`);
     const peerObj = setupPeer(rid, 'caller');
     const pc = peerObj.pc;
-    console.log(`[CALLER] Peer configurado. Estado inicial: ${pc.connectionState}`);
+    console.log(`[CALLER] ✅ Peer configurado. Estado inicial: ${pc.connectionState}`);
     
-    console.log(`[CALLER] Obteniendo stream local...`);
+    console.log(`[CALLER] 📹 Obteniendo stream local...`);
     const stream = localStreamRef.current || await ensureLocalStream();
     if (stream) {
-      console.log(`[CALLER] Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      console.log(`[CALLER] ✅ Stream local obtenido. Tracks: ${stream.getTracks().length}`);
+      console.log(`[CALLER]    - Audio tracks: ${stream.getAudioTracks().length}`);
+      console.log(`[CALLER]    - Video tracks: ${stream.getVideoTracks().length}`);
       stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
-      console.log(`[CALLER] Tracks agregados al peer`);
+      console.log(`[CALLER] ✅ Tracks agregados al peer`);
     }
     
-    console.log(`[CALLER] Creando DataChannel...`);
+    console.log(`[CALLER] 💬 Creando DataChannel...`);
     const dc = pc.createDataChannel('chat');
     dataChannelRef.current = dc;
     dc.onopen = () => { 
-      console.log(`[CALLER] ✅ DataChannel abierto`);
+      console.log(`[CALLER] ✅ DataChannel ABIERTO`);
       setDcState('open'); 
       sendPresence(); 
     };
     dc.onclose = () => {
-      console.log(`[CALLER] ❌ DataChannel cerrado`);
+      console.warn(`[CALLER] ❌ DataChannel CERRADO`);
       setDcState('closed');
     };
-    dc.onerror = () => {
-      console.log(`[CALLER] ⚠️ DataChannel error`);
+    dc.onerror = (err) => {
+      console.error(`[CALLER] ⚠️ DataChannel ERROR:`, err);
       setDcState('error');
     };
     dc.onmessage = (e: MessageEvent) => { 
-      console.log(`[CALLER] Mensaje recibido en DataChannel:`, e.data);
+      console.log(`[CALLER] 💬 Mensaje recibido en DataChannel:`, e.data);
       try { 
         const m = JSON.parse(e.data); 
         if (m?.meta === 'presence') sendPresence(); 
@@ -764,46 +897,109 @@ export default function ReunionPage() {
       } catch {} 
     };
     
-    console.log(`[CALLER] Creando oferta...`);
+    console.log(`\n[CALLER] 📝 PASO 1: Creando OFFER...`);
     const offer = await pc.createOffer();
+    console.log(`[CALLER] ✅ Offer creada:`, {
+      type: offer.type,
+      sdpLength: offer.sdp?.length || 0
+    });
+    
     await pc.setLocalDescription(offer);
-    console.log(`[CALLER] Local description (offer) configurada`);
+    console.log(`[CALLER] ✅ setLocalDescription(offer) completado`);
+    console.log(`[CALLER] Estado signaling después de setLocalDescription: ${pc.signalingState}`);
     
-    console.log(`[CALLER] Enviando oferta al servidor...`);
-    await postOffer(rid, JSON.stringify(offer));
-    console.log(`[CALLER] ✅ Oferta enviada exitosamente`);
+    console.log(`\n[CALLER] 📤 PASO 2: POST /api/reunion/${rid}/offer`);
+    const offerJSON = JSON.stringify(offer);
+    console.log(`[CALLER] Payload:`, { sdpLength: offerJSON.length });
     
-    // Pequeña pausa para asegurar que la oferta esté disponible en el backend
-    console.log(`[CALLER] Esperando propagación de oferta...`);
+    try {
+      await postOffer(rid, offerJSON);
+      console.log(`[CALLER] ✅ Offer enviada exitosamente al servidor`);
+    } catch (err) {
+      console.error(`[CALLER] ❌ ERROR al enviar offer:`, err);
+      throw err;
+    }
+    
+    // Verificar que la offer se guardó correctamente
+    console.log(`[CALLER] 🔍 Verificando que offer se guardó...`);
     await new Promise(r => setTimeout(r, 500));
     
+    try {
+      const verification = await getOffer(rid);
+      if (verification.offer) {
+        console.log(`[CALLER] ✅ Verificación exitosa: Offer disponible en servidor`);
+      } else {
+        console.error(`[CALLER] ❌ ERROR: Offer NO se encuentra en servidor después de POST`);
+      }
+    } catch (err) {
+      console.error(`[CALLER] ⚠️ No se pudo verificar offer:`, err);
+    }
+    
     // Polling de answer
-    console.log(`[CALLER] Iniciando polling para answer...`);
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(async () => {
+    console.log(`\n[CALLER] 📥 PASO 3: Esperando ANSWER del paciente...`);
+    console.log(`[CALLER] Iniciando polling cada 1 segundo...`);
+    
+    // Capturar setRemote para flush de candidates buffer después de setRemoteDescription
+    const flushCandidates = peerObj.setRemote;
+    
+    let answerAttempts = 0;
+    if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+    answerPollingRef.current = setInterval(async () => {
+      answerAttempts++;
       try {
         const ans = await getAnswer(rid);
-        console.log(`[CALLER] Polling answer - Estado signaling: ${pc.signalingState}, answer presente: ${!!ans.answer}`);
+        
+        if (answerAttempts % 5 === 0) { // Log cada 5 intentos para no saturar consola
+          console.log(`[CALLER] 🔄 Polling answer (intento ${answerAttempts}) - Signaling: ${pc.signalingState}, Answer presente: ${!!ans.answer}`);
+        }
+        
         // Solo setear remoteDescription si estamos en el estado correcto
         if (ans.answer && pc.signalingState === 'have-local-offer') {
-          console.log(`[CALLER] ✅ Answer recibida, configurando remote description...`);
-          const answerDesc = JSON.parse(ans.answer);
-          console.log(`[CALLER] Answer parseada:`, answerDesc);
-          await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
-          console.log(`[CALLER] Remote description configurada. Estado signaling: ${pc.signalingState}, Estado conexión: ${pc.connectionState}`);
-          // Detener polling de answer una vez configurada
-          if (pc.connectionState && pc.connectionState === 'connected') {
-            console.log(`[CALLER] 🎯 Negociación avanzando, deteniendo polling de answer`);
-            if (pollingRef.current) {
-              clearInterval(pollingRef.current);
-              pollingRef.current = null;
+          console.log(`\n[CALLER] ✅✅✅ ANSWER RECIBIDA (después de ${answerAttempts} intentos)`);
+          
+          let answerDesc;
+          try {
+            answerDesc = JSON.parse(ans.answer);
+            console.log(`[CALLER] Answer parseada:`, {
+              type: answerDesc.type,
+              sdpLength: answerDesc.sdp?.length || 0
+            });
+          } catch (parseErr) {
+            console.error(`[CALLER] ❌ ERROR al parsear answer:`, parseErr);
+            console.error(`[CALLER] Answer raw:`, ans.answer);
+            return;
+          }
+          
+          console.log(`[CALLER] 📥 PASO 4: setRemoteDescription(answer)...`);
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
+            console.log(`[CALLER] ✅✅✅ setRemoteDescription(answer) COMPLETADO`);
+            console.log(`[CALLER] Estado signaling: ${pc.signalingState}`);
+            console.log(`[CALLER] Estado conexión: ${pc.connectionState}`);
+            console.log(`[CALLER] Estado ICE: ${pc.iceConnectionState}`);
+            
+            // Flush candidates buffer (agregar candidates que llegaron antes del answer)
+            flushCandidates();
+            console.log(`[CALLER] 🔓 Candidates buffer flushed`);
+            
+            // Detener polling de answer una vez configurada
+            if (answerPollingRef.current) {
+              console.log(`[CALLER] 🛑 Deteniendo polling de answer`);
+              clearInterval(answerPollingRef.current);
+              answerPollingRef.current = null;
             }
+          } catch (remoteErr) {
+            console.error(`[CALLER] ❌ ERROR en setRemoteDescription:`, remoteErr);
           }
         }
       } catch (err) {
-        console.error(`[CALLER] Error en polling de answer:`, err);
+        if (answerAttempts % 10 === 0) { // Log errores cada 10 intentos
+          console.error(`[CALLER] ⚠️ Error en polling de answer (intento ${answerAttempts}):`, err);
+        }
       }
     }, 1000);
+    
+    console.log(`\n[CALLER] ====== CONFIGURACIÓN INICIAL COMPLETA ======\n`);
     // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream, sendPresence]);
 
@@ -818,7 +1014,8 @@ export default function ReunionPage() {
     setReconnecting(true);
     try {
       // limpiar polling y conexiones actuales
-      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+      if (answerPollingRef.current) { clearInterval(answerPollingRef.current); answerPollingRef.current = null; }
+      if (candidatePollingRef.current) { clearInterval(candidatePollingRef.current); candidatePollingRef.current = null; }
       try { dataChannelRef.current?.close(); } catch {}
       try { pcRef.current?.close(); } catch {}
       dataChannelRef.current = null;
@@ -841,14 +1038,19 @@ export default function ReunionPage() {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await postOffer(roomId, JSON.stringify(offer));
-        // reiniciar polling
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        pollingRef.current = setInterval(async () => {
+        // reiniciar polling de answer y candidates
+        if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+        if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+        answerPollingRef.current = setInterval(async () => {
           try {
             const ans = await getAnswer(roomId);
             if (ans.answer && pc.signalingState !== 'stable') {
               await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(ans.answer)));
             }
+          } catch {}
+        }, 1000);
+        candidatePollingRef.current = setInterval(async () => {
+          try {
             const cands = await getCandidates(roomId, 'caller');
             for (const c of cands.candidates) { try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {} }
           } catch {}
@@ -863,7 +1065,8 @@ export default function ReunionPage() {
   }, [roomId, reconnecting, isJoining, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer]);
 
   useEffect(() => () => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+    if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     pcRef.current?.close();
   }, []);
 
@@ -897,6 +1100,9 @@ export default function ReunionPage() {
       setAccessDenied(false);
     }
     // Tiempo de cita
+    // ⏰ RESTRICCIÓN DE HORARIO COMENTADA PARA PRUEBAS ⏰
+    // Descomentar estas líneas para restaurar la ventana de 5 minutos antes de la cita
+    /* 
     if (startAtStr) {
       const start = new Date(startAtStr);
       if (!isNaN(start.getTime())) {
@@ -915,32 +1121,68 @@ export default function ReunionPage() {
         return () => clearInterval(int);
       }
     }
+    */
+    // 🧪 MODO PRUEBAS: Permitir unirse en cualquier momento
+    if (startAtStr) {
+      const start = new Date(startAtStr);
+      if (!isNaN(start.getTime())) {
+        setAppointmentStartAt(start);
+      }
+    }
   }, []);
 
   // Eliminado auto-join; mostrará botón "Unirse ahora" cuando sea hora
 
   const handleEndCall = useCallback(async () => {
+    console.log(`\n[EndCall] 🔚 Finalizando llamada...`);
+    
+    // 10. Finalizar chat y guardar historial completo
     try {
       if (roomId) {
-    await finalizarChat(roomId, messages);
+        console.log(`[EndCall] 💾 Guardando historial de chat...`);
+        await finalizarChat(roomId, messages);
+        console.log(`[EndCall] ✅ Chat guardado exitosamente`);
+        
+        // 10. Eliminar sala en cache
+        console.log(`[EndCall] 🗑️ Eliminando sala del cache...`);
+        const { deleteRoom } = await import('./services');
+        await deleteRoom(roomId);
+        console.log(`[EndCall] ✅ Sala eliminada del cache`);
       }
-    } catch {}
-    if (pollingRef.current) clearInterval(pollingRef.current);
+    } catch (err) {
+      console.error(`[EndCall] ⚠️ Error al finalizar:`, err);
+    }
+    
+    // Limpiar conexiones
+    if (answerPollingRef.current) {
+      console.log(`[EndCall] 🛑 Deteniendo polling de answer`);
+      clearInterval(answerPollingRef.current);
+    }
+    if (candidatePollingRef.current) {
+      console.log(`[EndCall] 🛑 Deteniendo polling de candidates`);
+      clearInterval(candidatePollingRef.current);
+    }
     dataChannelRef.current?.close();
     pcRef.current?.close();
+    
     // detener compartir pantalla si está activo
     try {
       if (isScreenSharing) {
-  screenStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+        console.log(`[EndCall] 🖥️ Deteniendo compartir pantalla`);
+        screenStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
         screenStreamRef.current = null;
         setIsScreenSharing(false);
       }
     } catch {}
+    
     // detener medios
-  try { localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch {}
-  localStreamRef.current = null;
-  try { if (localVideoRef.current) localVideoRef.current.srcObject = null; } catch {}
-  try { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null; } catch {}
+    console.log(`[EndCall] 📹 Liberando stream local`);
+    try { localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch {}
+    localStreamRef.current = null;
+    try { if (localVideoRef.current) localVideoRef.current.srcObject = null; } catch {}
+    try { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null; } catch {}
+    
+    console.log(`[EndCall] ✅ Llamada finalizada completamente\n`);
   }, [messages, roomId, isScreenSharing]);
 
   // Abordar cambios de toggles en pistas ya capturadas
@@ -955,7 +1197,8 @@ export default function ReunionPage() {
 
   // Abandonar sala sin guardar chat
   const leaveRoom = useCallback(() => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+    if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     try { dataChannelRef.current?.close(); } catch {}
     try { pcRef.current?.close(); } catch {}
     dataChannelRef.current = null;
@@ -996,6 +1239,40 @@ export default function ReunionPage() {
       },
     ]);
   }, [displayName, localId, micOn, isScreenSharing]);
+
+  // 7. Sistema de Heartbeat - Mantener la sala viva y respaldar chat
+  useEffect(() => {
+    if (!roomId || connState !== 'connected') return;
+    
+    console.log(`[Heartbeat] 💓 Iniciando sistema de heartbeat para sala ${roomId}`);
+    
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        // Importar sendHeartbeat desde services
+        const { sendHeartbeat } = await import('./services');
+        
+        // Enviar mensajes actuales como respaldo
+        const messagesToBackup = messages.map((msg: Message) => ({
+          type: msg.type,
+          sender: msg.sender,
+          text: msg.type === 'text' ? msg.content as string : undefined,
+          content: msg.content,
+          avatar: msg.avatar,
+          timestamp: new Date().toISOString()
+        }));
+        
+        await sendHeartbeat(roomId, messagesToBackup);
+        console.log(`[Heartbeat] ✅ Heartbeat enviado (${messagesToBackup.length} mensajes respaldados)`);
+      } catch (err) {
+        console.error(`[Heartbeat] ⚠️ Error enviando heartbeat:`, err);
+      }
+    }, 30000); // Cada 30 segundos
+    
+    return () => {
+      console.log(`[Heartbeat] 🛑 Deteniendo heartbeat`);
+      clearInterval(heartbeatInterval);
+    };
+  }, [roomId, connState, messages]);
 
   // Salir del lobby (cuando no hay sala activa)
   const exitLobby = useCallback(() => {
@@ -1288,7 +1565,9 @@ export default function ReunionPage() {
             <h2 className="text-xl font-bold mb-2">Sala de espera</h2>
             {!autoParams?.rid ? (
               <p className="text-sm text-gray-300 mb-4">Esperando el código de sala. Vuelve desde tu historial o enlace de cita.</p>
-            ) : allowedJoinFrom && new Date() < allowedJoinFrom ? (
+            ) : 
+            /* ⏰ RESTRICCIÓN DE COUNTDOWN COMENTADA PARA PRUEBAS ⏰
+            allowedJoinFrom && new Date() < allowedJoinFrom ? (
               <>
                 <p className="text-sm text-gray-300 mb-4">La sala se habilita 10 minutos antes de la hora de la cita.</p>
                 <div className="text-3xl font-mono mb-4">
@@ -1302,9 +1581,12 @@ export default function ReunionPage() {
                   })()}
                 </div>
               </>
-            ) : (
+            ) : 
+            */ 
+            // 🧪 MODO PRUEBAS: Siempre mostrar botón de unirse
+            (
               <>
-                <p className="text-sm text-gray-300 mb-4">Puedes unirte cuando estés listo.</p>
+                <p className="text-sm text-gray-300 mb-4">🧪 Modo pruebas: Puedes unirte en cualquier momento.</p>
                 {(autoParams?.rid || roomId) && (
                   <button
                     className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold mt-2"
@@ -1450,6 +1732,16 @@ export default function ReunionPage() {
         </div>
       </footer>
       <Footer  borderColor="transparent" background="transparent" />
+      
+      {/* Panel de diagnóstico WebRTC */}
+      <DiagnosticPanel
+        roomId={roomId}
+        role={roleRef.current}
+        connectionState={connState}
+        dataChannelState={dcState}
+        signalingState={pcRef.current?.signalingState}
+        iceConnectionState={pcRef.current?.iceConnectionState}
+      />
     </div>
   );
 }

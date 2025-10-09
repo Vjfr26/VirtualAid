@@ -8,6 +8,8 @@ type RoomRecord = {
   offer?: string | null;
   answer?: string | null;
   candidates: { caller: Candidate[]; callee: Candidate[] };
+  lastHeartbeat?: number; // Timestamp del último heartbeat
+  connectionConfirmed?: boolean; // Si se confirmó la conexión WebRTC
 };
 
 type Store = {

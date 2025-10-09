@@ -125,13 +125,35 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
 
                   if (typeof payload === 'object') {
                     const record = payload as Record<string, unknown>;
-                    const directKeys = ['url', 'avatar', 'avatar_path', 'path', 'location', 'perfil', 'archivo', 'file'];
+                    // Intentar primero claves directas (mismo orden que usuario)
+                    const directKeys = ['avatar_url', 'url', 'avatar', 'ruta', 'avatar_path', 'path', 'location', 'file', 'perfil', 'archivo'];
                     for (const key of directKeys) {
                       const candidate = pickString(record[key]);
                       if (candidate) return candidate;
                     }
 
-                    const nestedKeys = ['data', 'result', 'resultado', 'response'];
+                    // Buscar en namespace 'data'
+                    const dataNs = record.data;
+                    if (dataNs && typeof dataNs === 'object') {
+                      const dataRecord = dataNs as Record<string, unknown>;
+                      for (const key of directKeys) {
+                        const candidate = pickString(dataRecord[key]);
+                        if (candidate) return candidate;
+                      }
+                    }
+
+                    // Buscar en namespace 'archivo'
+                    const archivoNs = record.archivo;
+                    if (archivoNs && typeof archivoNs === 'object') {
+                      const archivoRecord = archivoNs as Record<string, unknown>;
+                      for (const key of directKeys) {
+                        const candidate = pickString(archivoRecord[key]);
+                        if (candidate) return candidate;
+                      }
+                    }
+
+                    // Otros namespaces anidados
+                    const nestedKeys = ['result', 'resultado', 'response'];
                     for (const key of nestedKeys) {
                       const nestedCandidate = pickString(record[key]);
                       if (nestedCandidate) return nestedCandidate;
@@ -150,7 +172,9 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                 };
 
                 const parsedUrl = parseAvatarUrl(data);
-                let avatarInfo = resolveMedicoAvatarUrls(ctx.medicoData.email, parsedUrl);
+                const maybeRuta = (data && typeof data === 'object') ? (data as Record<string, unknown>).ruta : undefined;
+                const inputValue = typeof parsedUrl === 'string' && parsedUrl.length > 0 ? parsedUrl : typeof maybeRuta === 'string' ? maybeRuta : null;
+                let avatarInfo = resolveMedicoAvatarUrls(ctx.medicoData.email, inputValue);;
                 let url = avatarInfo.displayUrl || '';
                 if (!url && ctx.medicoData?.email) {
                   try {
@@ -162,14 +186,20 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                   }
                 }
                 if (!url) {
-                  console.warn('Respuesta de avatar sin URL reconocible:', data);
+                  console.error('❌ Respuesta de avatar sin URL reconocible:', data);
                   ctx.setMensajePerfil('La imagen se guardó, pero no recibimos la URL. Refresca la página para verla.');
                   return;
                 }
 
-                ctx.setPerfil((prev: any) => ({ ...prev, avatar: url }));
-                ctx.setFormPerfil((prev: any) => ({ ...prev, avatar: url }));
-                const persistValue = avatarInfo.storagePath ?? avatarInfo.original ?? url;
+                // Agregar cache-busting para forzar recarga de imagen
+                const urlWithCacheBust = url.includes('?') 
+                  ? `${url}&_cb=${Date.now()}` 
+                  : `${url}?_cb=${Date.now()}`;
+
+                ctx.setPerfil((prev: any) => ({ ...prev, avatar: urlWithCacheBust }));
+                ctx.setFormPerfil((prev: any) => ({ ...prev, avatar: urlWithCacheBust }));
+                const rawRuta = typeof maybeRuta === 'string' && maybeRuta.length > 0 ? maybeRuta : null;
+                const persistValue = rawRuta ?? (avatarInfo.storagePath ? avatarInfo.storagePath : (typeof parsedUrl === 'string' && parsedUrl.length > 0 ? parsedUrl : url));
                 try { await ctx.updateMedicoAvatar(ctx.medicoData.email, persistValue); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
                 ctx.setMensajePerfil("¡Avatar actualizado correctamente!");
                 ctx.setAvatarFile(null);

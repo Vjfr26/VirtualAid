@@ -15,7 +15,7 @@ import HeaderLogo from "../components/HeaderLogo";
 import {
   getMedicoPerfil, getHorarios, agregarHorario, eliminarHorario as eliminarHorarioService,
   getCitas, logout, getPagosMedico, formatearMonto, calcularIngresosPorPeriodo,
-  cambiarContrasena, updateMedicoAvatar, resolverAvatarDeterministaMedico,
+  cambiarContrasena, updateMedicoAvatar,
   type Medico, type Horario, type Cita, type Paciente, type Pago
 } from './services';
 import { resolveMedicoAvatarUrls } from '../usuario/services/perfil';
@@ -420,17 +420,11 @@ export default function MedicoDashboard() {
         });
 
         setMedicoData(medicoData);
+        console.log('🔍 Avatar raw del backend (GET perfil):', medicoData?.avatar);
         const avatarInfo = resolveMedicoAvatarUrls(medicoData.email, medicoData?.avatar ?? null);
-        let avatarUrl = avatarInfo.displayUrl;
-        if (!avatarUrl) {
-          const avatarDet = await resolverAvatarDeterministaMedico(medicoData.email);
-          if (avatarDet) {
-            avatarUrl = avatarDet;
-          }
-        }
-        if (!avatarUrl) {
-          avatarUrl = "https://randomuser.me/api/portraits/men/45.jpg";
-        }
+        console.log('🔗 Avatar info resuelto (GET):', avatarInfo);
+        const avatarUrl = avatarInfo.displayUrl || "https://randomuser.me/api/portraits/men/45.jpg";
+        console.log('🖼️ Avatar URL final para mostrar:', avatarUrl);
         setPerfil({
           nombre: medicoData.nombre,
           apellido: medicoData.apellido,

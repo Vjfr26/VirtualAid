@@ -624,10 +624,13 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               {pacientesFiltrados.map((p: any, idx: number) => {
                 let avatarUrl = p.avatar || '';
                 if (avatarUrl.startsWith('/perfiles/')) {
-                  // ok
+                  // Ya tiene prefijo correcto
+                } else if (avatarUrl.startsWith('/storage/')) {
+                  // Ya tiene prefijo correcto
                 } else if (avatarUrl.startsWith('http')) {
-                  // ok
+                  // URL absoluta, ok
                 } else if (avatarUrl) {
+                  // Solo agregar /storage/ si no lo tiene
                   avatarUrl = `/storage/${avatarUrl}`;
                 } else {
                   avatarUrl = 'https://randomuser.me/api/portraits/lego/1.jpg';

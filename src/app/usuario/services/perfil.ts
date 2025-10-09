@@ -16,6 +16,8 @@ export const stripQuery = (value: string) => value.split('?')[0];
 export const ensureStorageStylePath = (path: string): { withPrefix: string; relative: string } | null => {
   const clean = stripQuery(path).replace(/\\/g, '/');
   if (!clean) return null;
+  
+  // Rutas de perfiles
   if (clean.startsWith('/perfiles/')) {
     return { withPrefix: clean, relative: clean.replace(/^\/+/, '') };
   }
@@ -25,18 +27,29 @@ export const ensureStorageStylePath = (path: string): { withPrefix: string; rela
     return { withPrefix: `/${withoutLeading}`, relative: withoutLeading };
   }
 
+  // Rutas legacy de medico/usuario (convertir a /perfiles/)
+  if (clean.startsWith('/medico/') || clean.startsWith('/usuario/')) {
+    const rolePath = clean.startsWith('/medico/') ? '/medico/' : '/usuario/';
+    const afterRole = clean.substring(rolePath.length);
+    const normalized = `/perfiles${rolePath}${afterRole}`;
+    return { withPrefix: normalized, relative: normalized.replace(/^\/+/, '') };
+  }
+  
+  if (withoutLeading.startsWith('medico/') || withoutLeading.startsWith('usuario/')) {
+    const normalized = `/perfiles/${withoutLeading}`;
+    return { withPrefix: normalized, relative: normalized.replace(/^\/+/, '') };
+  }
+
+  // Rutas de storage
   if (clean.startsWith('/storage/')) {
-    const relative = clean.replace(/^\/+?storage\/?/, '');
+    // Ya tiene /storage/, no agregar otro
+    const relative = clean.replace(/^\/storage\//, '');
     return { withPrefix: clean, relative };
   }
 
   if (withoutLeading.startsWith('storage/')) {
-    const relative = withoutLeading.replace(/^storage\/?/, '');
-    return { withPrefix: `/storage/${relative}`, relative };
-  }
-
-  if (clean.startsWith('storage/')) {
-    const relative = clean.replace(/^storage\/?/, '');
+    // Quitar "storage/" del inicio y agregarlo como prefijo
+    const relative = withoutLeading.replace(/^storage\//, '');
     return { withPrefix: `/storage/${relative}`, relative };
   }
 
@@ -214,6 +227,7 @@ export async function changeUsuarioPassword(email: string, actual: string, nueva
 // Persistir la nueva ruta del avatar en el backend para consistencia entre dispositivos
 export async function updateUsuarioAvatar(email: string, avatarPath: string) {
   // Solo guardamos el campo avatar en backend.
+  console.log('📤 Enviando actualización de avatar al backend (usuario):', { email, avatar: avatarPath });
   return fetchJSON<{ message: string }>(`/api/usuario/${encodeURIComponent(email)}`, {
     method: 'PUT',
     body: JSON.stringify({ avatar: avatarPath }),

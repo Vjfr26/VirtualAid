@@ -11,25 +11,83 @@ const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return res.json();
 };
 
+// ============================================
+// 📡 API ENDPOINTS - Backend Flow
+// ============================================
+
+// 2. Crear/Obtener roomId
 export const createRoom = () => api<{ roomId: string }>('reunion/create', { method: 'POST' });
-export const listRooms = (openOnly = false) => api<{ rooms: RoomInfo[] }>(`reunion/rooms${openOnly ? '?open=true' : ''}`);
+
+// 3. Ver estado inicial de la sala
 export const getState = (roomId: string) => api<RoomState>(`reunion/${roomId}/state`);
-export const postOffer = (roomId: string, sdp: string) => api<{ ok: true }>(`reunion/${roomId}/offer`, { method: 'POST', body: JSON.stringify({ sdp }) });
-export const getOffer = (roomId: string) => api<{ offer: string | null }>(`reunion/${roomId}/offer`);
-export const postAnswer = (roomId: string, sdp: string) => api<{ ok: true }>(`reunion/${roomId}/answer`, { method: 'POST', body: JSON.stringify({ sdp }) });
+
+// 4. Caller publica la oferta (con clientId opcional)
+export const postOffer = (roomId: string, sdp: string, clientId?: string) => 
+  api<{ ok: true }>(`reunion/${roomId}/offer`, { 
+    method: 'POST', 
+    body: JSON.stringify({ sdp, clientId }) 
+  });
+
+// 4. Caller hace polling de answer
 export const getAnswer = (roomId: string) => api<{ answer: string | null }>(`reunion/${roomId}/answer`);
+
+// 5. Callee obtiene la oferta
+export const getOffer = (roomId: string) => api<{ offer: string | null }>(`reunion/${roomId}/offer`);
+
+// 5. Callee publica la respuesta
+export const postAnswer = (roomId: string, sdp: string) => 
+  api<{ ok: true }>(`reunion/${roomId}/answer`, { 
+    method: 'POST', 
+    body: JSON.stringify({ sdp }) 
+  });
+
+// 6. Intercambio de ICE candidates
 export const postCandidate = (roomId: string, from: 'caller'|'callee', candidate: RTCIceCandidateInit) =>
-  // Compatibilidad con backend: POST singular /candidate
-  api<{ ok: true }>(`reunion/${roomId}/candidate`, { method: 'POST', body: JSON.stringify({ from, candidate }) });
-export const getCandidates = (roomId: string, _for: 'caller'|'callee') => api<{ candidates: RTCIceCandidateInit[] }>(`reunion/${roomId}/candidates?for=${_for}`);
+  api<{ ok: true }>(`reunion/${roomId}/candidate`, { 
+    method: 'POST', 
+    body: JSON.stringify({ from, candidate }) 
+  });
+
+// 6. Obtener candidatos nuevos con filtro `since` (timestamp ISO)
+export const getCandidates = (roomId: string, _for: 'caller'|'callee', since?: string) => {
+  const params = since ? `?for=${_for}&since=${encodeURIComponent(since)}` : `?for=${_for}`;
+  return api<{ candidates: RTCIceCandidateInit[] }>(`reunion/${roomId}/candidates${params}`);
+};
+
+// 7. Mantener la sala viva y respaldar chat (heartbeat)
 export type ChatMessage = {
   type: 'text' | 'file';
-  content: string | { name: string; url?: string };
+  content?: string | { name: string; url?: string };
+  text?: string; // Para compatibilidad con backend
   sender: string;
-  avatar: string;
+  avatar?: string;
+  timestamp?: string;
 };
+
+export const sendHeartbeat = (roomId: string, messages: ChatMessage[]) =>
+  api<{ ok: true }>(`reunion/${roomId}/heartbeat`, { 
+    method: 'POST', 
+    body: JSON.stringify({ messages }) 
+  });
+
+// 8. Confirmar conexión WebRTC (marca asistencia automática)
+export const confirmConnection = (roomId: string) =>
+  api<{ ok: true }>(`reunion/${roomId}/confirm-connection`, { method: 'POST' });
+
+// 9. Listar salas activas
+export const listRooms = (openOnly = false) => 
+  api<{ rooms: RoomInfo[] }>(`reunion/rooms${openOnly ? '?open=true' : ''}`);
+
+// 10. Finalizar chat y guardar historial completo
 export const finalizarChat = (roomId: string, messages: ChatMessage[]) =>
-  api<{ saved: boolean; path: string }>(`reunion/${roomId}/finalizar`, { method: 'POST', body: JSON.stringify({ messages }) });
+  api<{ saved: boolean; path: string }>(`reunion/${roomId}/finalizar`, { 
+    method: 'POST', 
+    body: JSON.stringify({ messages }) 
+  });
+
+// 10. Eliminar sala en cache
+export const deleteRoom = (roomId: string) =>
+  api<{ ok: true; deleted: boolean }>(`reunion/${roomId}`, { method: 'DELETE' });
 
 // Utilidad para construir el enlace de una sala
 export const roomLink = (roomId: string) => {

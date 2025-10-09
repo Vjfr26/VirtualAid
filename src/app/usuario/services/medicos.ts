@@ -1,4 +1,5 @@
 import { fetchJSON } from './api';
+import { resolveMedicoAvatarUrls } from './perfil';
 
 export type MedicoResumen = {
   avatar: string;
@@ -16,7 +17,10 @@ export type MedicoResumen = {
 };
 
 type RawMedico = { 
-  avatar?: string | null; 
+  avatar?: string | null;
+  avatar_url?: string | null;
+  avatar_path?: string | null;
+  ruta?: string | null;
   nombre: string; 
   apellido?: string; 
   email?: string; 
@@ -32,15 +36,9 @@ type RawMedico = {
 const ALLOWED_EXTS = ['png', 'jpg', 'jpeg', 'webp'] as const;
 async function resolverAvatarDeterministaMedico(email?: string): Promise<string | ''> {
   if (!email) return '';
-  // Primero intenta la ruta sin extensión servida por el app route
   const base = `/perfiles/medico/${encodeURIComponent(email)}/perfil`;
-  try {
-    const head = await fetch(base, { method: 'HEAD', cache: 'no-store' });
-    if (head.ok) return base;
-  } catch {}
-  // Fallback: probar variantes estáticas con extensión
-  for (const ext of ALLOWED_EXTS) {
-    const url = `${base}.${ext}`;
+  const candidates = ALLOWED_EXTS.map(ext => `${base}.${ext}`);
+  for (const url of candidates) {
     try {
       const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
       if (res.ok) return url;
@@ -52,11 +50,20 @@ async function resolverAvatarDeterministaMedico(email?: string): Promise<string 
 export async function getEspecialistas(): Promise<MedicoResumen[]> {
   const medicos = await fetchJSON<RawMedico[]>(`/api/medico`);
   const items = await Promise.all(medicos.map(async (m) => {
-    let avatar = '';
-    const p = m.avatar || '';
-    if (typeof p === 'string' && p.startsWith('/perfiles/')) {
-      avatar = p;
-    } else {
+    console.log(`🔍 Avatar raw médico ${m.email}:`, { avatar: m.avatar, avatar_url: m.avatar_url, avatar_path: m.avatar_path, ruta: m.ruta });
+    // Priorizar avatar_url (URL completa del backend)
+    const avatarCandidates = [
+      m.avatar_url,
+      m.avatar_path,
+      m.avatar,
+      m.ruta,
+    ];
+    const rawAvatar = avatarCandidates.find((c): c is string => typeof c === 'string' && c.length > 0) ?? null;
+    console.log(`📂 Raw avatar seleccionado para ${m.email}:`, rawAvatar);
+    const resolved = m.email ? resolveMedicoAvatarUrls(m.email, rawAvatar) : { displayUrl: null } as const;
+    console.log(`🔗 Avatar info resuelto para ${m.email}:`, resolved);
+    let avatar = resolved.displayUrl || '';
+    if (!avatar) {
       avatar = await resolverAvatarDeterministaMedico(m.email) || '';
     }
     if (!avatar) avatar = 'https://randomuser.me/api/portraits/lego/1.jpg';

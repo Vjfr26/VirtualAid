@@ -6,7 +6,6 @@ const isBrowser = typeof window !== 'undefined';
 const RAW_API_URL = isBrowser ? '' : (process.env.NEXT_PUBLIC_API_URL ?? '');
 const API_URL = RAW_API_URL.replace(/\/$/, '');
 
-const ALLOWED_EXTS = ['png', 'jpg', 'jpeg', 'webp'] as const;
 // Claves relevantes que aparecen en distintas respuestas al subir un avatar.
 const DIRECT_AVATAR_KEYS = ['avatar_url', 'url', 'avatar', 'avatar_path', 'ruta', 'path', 'location', 'perfil', 'archivo', 'file'] as const;
 const NESTED_PAYLOAD_KEYS = ['data', 'result', 'resultado', 'response'] as const;
@@ -52,23 +51,8 @@ const parseAvatarResponseUrl = (payload: unknown): string | null => {
   return null;
 };
 
-export async function resolverAvatarDeterministaMedico(email: string): Promise<string | ''> {
-  const base = `/perfiles/medico/${encodeURIComponent(email)}/perfil`;
-  // Primero intenta la ruta sin extensión
-  try {
-    const head = await fetch(base, { method: 'HEAD', cache: 'no-store' });
-    if (head.ok) return base;
-  } catch {}
-  // Fallback a extensiones
-  for (const ext of ALLOWED_EXTS) {
-    const url = `${base}.${ext}`;
-    try {
-      const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-      if (res.ok) return url;
-    } catch {}
-  }
-  return '';
-}
+// Función eliminada: resolverAvatarDeterministaMedico
+// Ya no hacemos peticiones HEAD a localhost, usamos resolveMedicoAvatarUrls
 
 export interface Medico {
   email: string;
@@ -109,7 +93,26 @@ export interface UpdatePerfilData {
 }
 
 export async function getMedicoPerfil(email: string): Promise<Medico> {
-  return fetchJSON<Medico>(`${API_URL}/api/medico/${encodeURIComponent(email)}?incluir=especialidad`);
+  type RawMedico = Medico & {
+    avatar_url?: string;
+    avatar_path?: string;
+    ruta?: string;
+  };
+  const raw = await fetchJSON<RawMedico>(`${API_URL}/api/medico/${encodeURIComponent(email)}?incluir=especialidad`);
+  
+  // Normalizar avatar: priorizar avatar_url, luego avatar_path, luego ruta, luego avatar
+  const avatarCandidates = [
+    raw.avatar_url,
+    raw.avatar_path,
+    raw.ruta,
+    raw.avatar,
+  ];
+  const avatarValue = avatarCandidates.find((c): c is string => typeof c === 'string' && c.length > 0) ?? undefined;
+  
+  return {
+    ...raw,
+    avatar: avatarValue,
+  };
 }
 
 export async function actualizarMedicoPerfil(email: string, data: UpdatePerfilData): Promise<Medico> {
@@ -157,6 +160,7 @@ export async function actualizarMedicoAvatar(email: string, file: File): Promise
 
 // Persistir en backend la nueva ruta del avatar (campo avatar)
 export async function updateMedicoAvatar(email: string, avatarUrl: string): Promise<{ message: string }>{
+  console.log('📤 Enviando actualización de avatar al backend:', { email, avatar: avatarUrl });
   return fetchJSON<{ message: string }>(`${API_URL}/api/medico/${encodeURIComponent(email)}/perfil`, {
     method: 'PUT',
     body: JSON.stringify({ avatar: avatarUrl }),
