@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch(_){} try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch(_){}\"",
-    "dev": "next dev",
+    "predev": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch(_){} try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch(_){}\" && node show-network-ip.js",
+    "dev": "next dev -H 0.0.0.0",
     "prebuild": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});}catch(_){} try{require('fs').rmSync('.turbo',{recursive:true,force:true});}catch(_){}\"",
     "build": "next build",
     "start": "next start",

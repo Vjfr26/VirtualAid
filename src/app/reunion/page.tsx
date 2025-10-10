@@ -98,6 +98,7 @@ export default function ReunionPage() {
   const [countdownMs, setCountdownMs] = useState<number>(0);
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [autoParams, setAutoParams] = useState<{ rid?: string; who?: 'patient'|'doctor'; uid?: string; did?: string; autostart?: boolean } | null>(null);
+  const [sameIpWarning, setSameIpWarning] = useState<boolean>(false);
 
   const toggleMic = () => {
     setMicOn((prev: boolean) => {
@@ -352,110 +353,67 @@ export default function ReunionPage() {
 
   // --- WebRTC robusto: ICE deduplicado, logs, polling seguro ---
   const setupPeer = useCallback((rid: string, fromRole: 'caller'|'callee') => {
-    console.log(`[SetupPeer] Configurando peer para sala ${rid} como ${fromRole}`);
-    
     // Protección contra múltiples llamadas simultáneas
     if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
-      console.log(`[SetupPeer] ⚠️ Ya existe un peer activo (${pcRef.current.connectionState}), cancelando setup duplicado`);
       return {
         pc: pcRef.current,
-        setRemote: () => {
-          console.log(`[SetupPeer] setRemote llamado en peer existente`);
-        }
+        setRemote: () => {}
       };
     }
     
     // Cerrar peer anterior si existe
     if (pcRef.current) {
-      console.log(`[SetupPeer] Cerrando peer anterior (${pcRef.current.connectionState})`);
       try {
         localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       } catch {}
       try {
         pcRef.current.close();
-      } catch (err) {
-        console.warn(`[SetupPeer] Error cerrando peer anterior:`, err);
-      }
+      } catch {}
     }
     
-    // CONFIGURACIÓN ESPECIAL: Forzar relay para permitir conexiones en la misma máquina
-    // Para pruebas en producción, cambiar iceTransportPolicy a 'all'
     const pc = new RTCPeerConnection({ 
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:443'
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
+        { urls: 'stun:stun1.l.google.com:19302' }
       ],
-      iceTransportPolicy: 'relay', // FORZAR relay para misma máquina
+      iceTransportPolicy: 'all',
       iceCandidatePoolSize: 10
     });
   pcRef.current = pc;
-  console.log(`[SetupPeer] RTCPeerConnection creada con STUN + TURN (fallback)`);
 
+    // Solo loggear errores ICE críticos (no timeouts STUN que son normales)
     pc.onicecandidateerror = (evt) => {
-      const eventInfo: Record<string, unknown> = {
-        errorCode: evt.errorCode,
-        errorText: evt.errorText
-      };
-      const evtAny = evt as unknown as { hostCandidate?: string; url?: string; statusCode?: number; transport?: string };
-      if (evtAny.hostCandidate) eventInfo.hostCandidate = evtAny.hostCandidate;
-      if (evtAny.url) eventInfo.url = evtAny.url;
-      if (typeof evtAny.statusCode === 'number') eventInfo.statusCode = evtAny.statusCode;
-      if (evtAny.transport) eventInfo.transport = evtAny.transport;
-      console.error(`[SetupPeer] ❌ ICE candidate error (${fromRole}):`, eventInfo);
-      console.error(`[SetupPeer] ❌ ICE candidate error raw (${fromRole}): ${JSON.stringify(eventInfo)}`);
-    };
-
-    pc.onicegatheringstatechange = () => {
-      console.log(`[SetupPeer] ⏱️ iceGatheringState (${fromRole}): ${pc.iceGatheringState}`);
+      // Ignorar timeouts de STUN (error 701) - son normales
+      if (evt.errorCode === 701) return;
+      console.error(`[WebRTC] ICE error ${evt.errorCode}: ${evt.errorText}`);
     };
     
     pc.oniceconnectionstatechange = () => {
-      console.log(`[SetupPeer] 🧊 iceConnectionState (${fromRole}): ${pc.iceConnectionState}`);
+      console.log(`[WebRTC] 🔌 ${fromRole}: ${pc.iceConnectionState}`);
       if (pc.iceConnectionState === 'failed') {
-        console.error(`[SetupPeer] ❌❌❌ ICE CONNECTION FAILED - Ningún candidato funcionó`);
+        console.error(`[WebRTC] ❌ Conexión fallida - ¿Ambos dispositivos en la misma IP?`);
       }
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        console.log(`[SetupPeer] ✅✅✅ ICE CONNECTION SUCCESS!`);
+        console.log(`[WebRTC] ✅ ¡Conectado exitosamente!`);
       }
     };
     
-    // ICE deduplicado
     const addedCandidates = new Set<string>();
-    // Buffer para candidates que llegan antes de setRemoteDescription
     const candidateBuffer: RTCIceCandidateInit[] = [];
-    // Para ambos roles, remoteSet empieza en false hasta que se llame setRemote()
     let remoteSet = false;
-    console.log(`[SetupPeer] remoteSet inicial: ${remoteSet} - esperando setRemote() para ${fromRole}`);
     
     pc.onconnectionstatechange = () => {
       setConnState(pc.connectionState);
-      console.log(`[SetupPeer] 🔄 connectionState cambió a: ${pc.connectionState}`);
       
-      // 8. Confirmar conexión WebRTC (marca asistencia automática)
       if (pc.connectionState === 'connected') {
-        console.log(`[SetupPeer] 🎉 Conexión WebRTC establecida exitosamente`);
-        // Importar confirmConnection desde services
+        console.log(`[WebRTC] ✅ Conexión establecida`);
         import('./services').then(({ confirmConnection }) => {
-          confirmConnection(rid)
-            .then(() => {
-              console.log(`[SetupPeer] ✅ Conexión confirmada en el backend (sala ${rid})`);
-            })
-            .catch((err) => {
-              console.error(`[SetupPeer] ⚠️ Error confirmando conexión:`, err);
-            });
+          confirmConnection(rid).catch(() => {});
         });
       }
       
       if (["connected","failed","disconnected","closed"].includes(pc.connectionState)) {
         if (candidatePollingRef.current) { 
-          console.log(`[SetupPeer] Deteniendo polling de candidates por estado: ${pc.connectionState}`);
           clearInterval(candidatePollingRef.current); 
           candidatePollingRef.current = null; 
         }
@@ -465,10 +423,18 @@ export default function ReunionPage() {
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         const c = e.candidate;
-        const candJSON = c.toJSON();
+        const addr = c.address || '';
         
-        // Log simple
-        console.log(`[SetupPeer] 📡 ICE candidate (${fromRole}): ${c.type} ${c.protocol} ${c.address}:${c.port}`);
+        // FILTRO CRÍTICO: Rechazar candidatos de interfaces virtuales
+        if (addr.startsWith('10.') || 
+            addr.startsWith('169.254.') || 
+            addr.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)) {
+          console.warn(`[SetupPeer] 🚫 Candidato rechazado - Interfaz virtual (${fromRole}): ${addr}`);
+          return; // NO enviar este candidato
+        }
+        
+        const candJSON = c.toJSON();
+        console.log(`[SetupPeer] 📡 ICE candidate (${fromRole}): ${c.type} ${c.protocol} ${addr}:${c.port}`);
         
         postCandidate(rid, fromRole, candJSON).catch((err) => {
           console.error(`[SetupPeer] Error enviando ICE candidate:`, err);
@@ -574,46 +540,49 @@ export default function ReunionPage() {
       }, 1000);
     }
     
-    // Para el caller, polling de candidates del callee (bufferiza si no está remoteSet)
-    if (fromRole === 'caller') {
-      console.log(`[SetupPeer] Iniciando polling de ICE candidates (caller)`);
-      if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
-      candidatePollingRef.current = setInterval(async () => {
-        try {
-          const cands = await getCandidates(rid, 'caller');
-          if (cands.candidates.length > 0) {
-            console.log(`[SetupPeer] Recibidos ${cands.candidates.length} ICE candidates (caller)`);
-          }
-          for (const c of cands.candidates) {
-            const key = JSON.stringify(c);
-            if (!addedCandidates.has(key)) {
-              if (remoteSet) {
-                try { 
-                  await pc.addIceCandidate(new RTCIceCandidate(c)); 
-                  console.log(`[SetupPeer] ✅ Candidate agregada (caller)`); 
-                } catch (err) { 
-                  console.warn(`[SetupPeer] ❌ Error agregando candidate (caller)`, err); 
-                }
-              } else {
-                candidateBuffer.push(c);
-              }
-              addedCandidates.add(key);
-            }
-          }
-        } catch (err) {
-          console.error(`[SetupPeer] Error en polling de candidates (caller):`, err);
+    // Polling de candidates remotos (ambos roles necesitan recibir candidates del otro)
+    console.log(`[SetupPeer] Iniciando polling de ICE candidates (${fromRole})`);
+    if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+    candidatePollingRef.current = setInterval(async () => {
+      try {
+        // Caller obtiene candidates del callee, Callee obtiene candidates del caller
+        const cands = await getCandidates(rid, fromRole);
+        if (cands.candidates.length > 0) {
+          const remoteName = fromRole === 'caller' ? 'paciente' : 'médico';
+          console.log(`[SetupPeer] 📥 ${cands.candidates.length} candidates del ${remoteName}`);
         }
-      }, 1000);
-    }
+        for (const c of cands.candidates) {
+          const key = JSON.stringify(c);
+          if (!addedCandidates.has(key)) {
+            if (remoteSet) {
+              try { 
+                await pc.addIceCandidate(new RTCIceCandidate(c));
+                console.log(`[SetupPeer] ✅ Candidate remoto agregado inmediatamente (${fromRole})`);
+              } catch (err) { 
+                console.warn(`[SetupPeer] ❌ Error agregando candidate`, err); 
+              }
+            } else {
+              candidateBuffer.push(c);
+              console.log(`[SetupPeer] 📦 Candidate buffereado (esperando setRemote) - ${fromRole}`);
+            }
+            addedCandidates.add(key);
+          }
+        }
+      } catch (err) {
+        console.error(`[SetupPeer] Error en polling de candidates:`, err);
+      }
+    }, 1000);
     
     return {
       pc,
       setRemote: () => { 
-        console.log(`[SetupPeer] 🔓 Flushing ${candidateBuffer.length} candidates del buffer`);
+        const count = candidateBuffer.length;
+        console.log(`[SetupPeer] 🔓 Flushing ${count} candidates del buffer (${fromRole})`);
         remoteSet = true; 
         candidateBuffer.splice(0).forEach(async c => { 
           try { 
             await pc.addIceCandidate(new RTCIceCandidate(c)); 
+            console.log(`[SetupPeer] ✅ Candidate del buffer agregado (${fromRole})`);
           } catch (err) { 
             console.warn(`[SetupPeer] ❌ Error agregando candidate del buffer`, err); 
           } 
@@ -731,200 +700,99 @@ export default function ReunionPage() {
   // Eliminado flujo de creación local: las salas se crean en backend
 
   const joinAndAnswer = useCallback(async (rid: string, prefetchedOffer?: string | null) => {
-    console.log(`\n🧑‍💼 ====== PACIENTE (CALLEE) UNIÉNDOSE A REUNIÓN ======`);
-    console.log(`[CALLEE] 📍 Sala: ${rid}`);
-    console.log(`[CALLEE] ⏰ Timestamp: ${new Date().toISOString()}`);
-    console.log(`[CALLEE] Offer precargada: ${!!prefetchedOffer}\n`);
+    console.log(`[CALLEE] Uniéndose a sala: ${rid}`);
     
     setRoomId(rid);
     roleRef.current = 'callee';
-    console.log(`[CALLEE] 🔧 Configurando peer como callee...`);
     const peerObj = setupPeer(rid, 'callee');
     const pc = peerObj.pc;
     const setRemote = peerObj.setRemote;
-    console.log(`[CALLEE] ✅ Peer configurado. Estado inicial: ${pc.connectionState}`);
     
-    // Adjuntar medios locales
-    console.log(`[CALLEE] 📹 Obteniendo stream local...`);
     const stream = await ensureLocalStream();
     if (stream) {
-      console.log(`[CALLEE] ✅ Stream local obtenido. Tracks: ${stream.getTracks().length}`);
-      console.log(`[CALLEE]    - Audio tracks: ${stream.getAudioTracks().length}`);
-      console.log(`[CALLEE]    - Video tracks: ${stream.getVideoTracks().length}`);
       stream.getTracks().forEach((trk: MediaStreamTrack) => pc.addTrack(trk, stream));
-      console.log(`[CALLEE] ✅ Tracks agregados al peer`);
     }
     
-    // Esperar la oferta del caller con reintentos (hasta 15s)
-    console.log(`\n[CALLEE] 📥 PASO 1: Obteniendo OFFER del médico...`);
     let offerStr: string | null = prefetchedOffer ?? null;
     
-    if (offerStr) {
-      console.log(`[CALLEE] ✅ Usando offer precargada`);
-    } else {
-      console.log(`[CALLEE] 🔄 Iniciando polling de offer (máximo 15 segundos)...`);
+    if (!offerStr) {
       const start = Date.now();
-      let attempts = 0;
-      
       while (!offerStr && Date.now() - start < 15000) {
-        attempts++;
         try {
           const off = await getOffer(rid);
-          const elapsed = Date.now() - start;
-          
-          if (attempts % 3 === 0) { // Log cada 3 intentos
-            console.log(`[CALLEE] 🔄 Intento ${attempts} - Tiempo: ${elapsed}ms, Offer presente: ${!!off.offer}`);
-          }
-          
           if (off.offer) { 
-            offerStr = off.offer; 
-            console.log(`[CALLEE] ✅✅✅ OFFER ENCONTRADA después de ${elapsed}ms (${attempts} intentos)`);
+            offerStr = off.offer;
+            console.log(`[CALLEE] ✅ Offer recibida`);
             break; 
           }
-        } catch (err) {
-          console.error(`[CALLEE] ⚠️ Error en intento ${attempts}:`, err);
-        }
+        } catch (err) {}
         await new Promise(r => setTimeout(r, 500));
       }
       
       if (!offerStr) {
-        console.error(`[CALLEE] ❌❌❌ TIMEOUT: No se encontró offer después de ${attempts} intentos (15 segundos)`);
-        console.error(`[CALLEE] El médico debe iniciar la reunión primero`);
+        console.error(`[CALLEE] ❌ Timeout esperando offer`);
         setJoinError('No se encontró la sala. Asegúrate de que el médico haya iniciado la reunión.');
         return;
       }
     }
     
-    // Parsear y validar offer
-    console.log(`[CALLEE] 🔍 Parseando offer...`);
     let offerDesc;
     try {
       offerDesc = JSON.parse(offerStr);
-      console.log(`[CALLEE] ✅ Offer parseada:`, {
-        type: offerDesc.type,
-        sdpLength: offerDesc.sdp?.length || 0
-      });
-      
-      if (offerDesc.type !== 'offer') {
-        console.error(`[CALLEE] ❌ ERROR: Tipo inválido. Esperado 'offer', recibido '${offerDesc.type}'`);
-        return;
-      }
+      if (offerDesc.type !== 'offer') return;
     } catch (parseErr) {
-      console.error(`[CALLEE] ❌ ERROR al parsear offer:`, parseErr);
-      console.error(`[CALLEE] Offer raw (primeros 100 chars):`, offerStr.substring(0, 100));
+      console.error(`[CALLEE] ❌ Error parseando offer`);
       return;
     }
     
-    console.log(`\n[CALLEE] 📥 PASO 2: setRemoteDescription(offer)...`);
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
-      console.log(`[CALLEE] ✅✅✅ setRemoteDescription(offer) COMPLETADO`);
-      console.log(`[CALLEE] Estado signaling: ${pc.signalingState}`);
-      console.log(`[CALLEE] Estado conexión: ${pc.connectionState}`);
+      console.log(`[CALLEE] ✅ Offer aplicada`);
     } catch (remoteErr) {
-      console.error(`[CALLEE] ❌ ERROR en setRemoteDescription:`, remoteErr);
+      console.error(`[CALLEE] ❌ Error en setRemoteDescription:`, remoteErr);
       throw remoteErr;
     }
     
-    setRemote(); // flush candidates buffer
-    console.log(`[CALLEE] 🔓 Candidates buffer flushed`);
+    setRemote();
+    console.log(`[CALLEE] 🔓 Buffer flushed, listo para recibir candidates`);
     
-    console.log(`\n[CALLEE] 📝 PASO 3: Creando ANSWER...`);
     const answer = await pc.createAnswer();
-    console.log(`[CALLEE] ✅ Answer creada:`, {
-      type: answer.type,
-      sdpLength: answer.sdp?.length || 0
-    });
-
-    // Validación exhaustiva
-    if (!answer || typeof answer !== 'object') {
-      console.error('[CALLEE] ❌ ERROR CRÍTICO: Answer es null o no es un objeto:', answer);
-      throw new Error('La answer generada es inválida');
-    }
-    if (!('type' in answer) || !('sdp' in answer)) {
-      console.error('[CALLEE] ❌ ERROR CRÍTICO: Answer no tiene campos requeridos:', answer);
-      throw new Error('La answer generada no tiene los campos requeridos');
-    }
-    if (answer.type !== 'answer') {
-      console.error(`[CALLEE] ❌ ERROR: Tipo inválido. Esperado 'answer', recibido '${answer.type}'`);
-      throw new Error('Tipo de SDP inválido');
+    if (!answer || answer.type !== 'answer') {
+      console.error('[CALLEE] ❌ Answer inválida');
+      throw new Error('Answer inválida');
     }
     
     await pc.setLocalDescription(answer);
-    console.log(`[CALLEE] ✅ setLocalDescription(answer) completado`);
-    console.log(`[CALLEE] Estado signaling: ${pc.signalingState}`);
+    console.log(`[CALLEE] ✅ Answer creada`);
 
     const answerStr = JSON.stringify(answer);
-    console.log(`\n[CALLEE] 📤 PASO 4: POST /api/reunion/${rid}/answer`);
-    console.log(`[CALLEE] Payload:`, { 
-      type: answer.type,
-      sdpLength: answerStr.length,
-      firstChars: answerStr.substring(0, 50)
-    });
-    
     try {
       await postAnswer(rid, answerStr);
-      console.log(`[CALLEE] ✅✅✅ Answer enviada exitosamente al servidor`);
+      console.log(`[CALLEE] ✅ Answer enviada`);
     } catch (postErr) {
-      console.error(`[CALLEE] ❌ ERROR al enviar answer:`, postErr);
+      console.error(`[CALLEE] ❌ Error enviando answer:`, postErr);
       throw postErr;
     }
-    
-    // Verificar que answer se guardó
-    console.log(`[CALLEE] 🔍 Verificando que answer se guardó...`);
-    await new Promise(r => setTimeout(r, 1000));
-    
-    try {
-      const verification = await getAnswer(rid);
-      if (verification.answer) {
-        console.log(`[CALLEE] ✅ Verificación exitosa: Answer disponible en servidor`);
-      } else {
-        console.error(`[CALLEE] ❌ ERROR: Answer NO se encuentra en servidor después de POST`);
-      }
-    } catch (err) {
-      console.error(`[CALLEE] ⚠️ No se pudo verificar answer:`, err);
-    }
-    
-    console.log(`\n[CALLEE] ====== CONFIGURACIÓN INICIAL COMPLETA ======`);
-    console.log(`[CALLEE] Esperando ICE negotiation...`);
-    console.log(`[CALLEE] Estado actual:`);
-    console.log(`  - Signaling: ${pc.signalingState}`);
-    console.log(`  - Connection: ${pc.connectionState}`);
-    console.log(`  - ICE: ${pc.iceConnectionState}\n`);
-    
-    // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream]);
 
   // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
   const startAsCaller = useCallback(async (rid: string) => {
-    console.log(`\n🏥 ====== MÉDICO (CALLER) INICIANDO REUNIÓN ======`);
-    console.log(`[CALLER] 📍 Sala: ${rid}`);
-    console.log(`[CALLER] ⏰ Timestamp: ${new Date().toISOString()}\n`);
+    console.log(`[CALLER] Iniciando reunión: ${rid}`);
     
-    // Protección contra múltiples llamadas
     if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
-      console.warn(`[CALLER] ⚠️ Ya hay un peer activo (${pcRef.current.connectionState}), cancelando startAsCaller duplicado`);
+      console.warn(`[CALLER] ⚠️ Peer ya activo`);
       return;
     }
     
     setRoomId(rid);
     roleRef.current = 'caller';
-    console.log(`[CALLER] 🔧 Configurando peer como caller...`);
     const peerObj = setupPeer(rid, 'caller');
     const pc = peerObj.pc;
-    console.log(`[CALLER] ✅ Peer configurado. Estado inicial: ${pc.connectionState}`);
     
-    console.log(`[CALLER] 📹 Obteniendo stream local...`);
     const stream = localStreamRef.current || await ensureLocalStream();
     if (stream) {
-      console.log(`[CALLER] ✅ Stream local obtenido. Tracks: ${stream.getTracks().length}`);
-      console.log(`[CALLER]    - Audio tracks: ${stream.getAudioTracks().length}`);
-      console.log(`[CALLER]    - Video tracks: ${stream.getVideoTracks().length}`);
       stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
-      console.log(`[CALLER] ✅ Tracks agregados al peer`);
     }
-    
-    console.log(`[CALLER] 💬 Creando DataChannel...`);
     const dc = pc.createDataChannel('chat');
     dataChannelRef.current = dc;
     dc.onopen = () => { 
@@ -949,110 +817,51 @@ export default function ReunionPage() {
       } catch {} 
     };
     
-    console.log(`\n[CALLER] 📝 PASO 1: Creando OFFER...`);
     const offer = await pc.createOffer();
-    console.log(`[CALLER] ✅ Offer creada:`, {
-      type: offer.type,
-      sdpLength: offer.sdp?.length || 0
-    });
-    
     await pc.setLocalDescription(offer);
-    console.log(`[CALLER] ✅ setLocalDescription(offer) completado`);
-    console.log(`[CALLER] Estado signaling después de setLocalDescription: ${pc.signalingState}`);
+    console.log(`[CALLER] ✅ Offer creada`);
     
-    console.log(`\n[CALLER] 📤 PASO 2: POST /api/reunion/${rid}/offer`);
     const offerJSON = JSON.stringify(offer);
-    console.log(`[CALLER] Payload:`, { sdpLength: offerJSON.length });
-    
     try {
       await postOffer(rid, offerJSON);
-      console.log(`[CALLER] ✅ Offer enviada exitosamente al servidor`);
+      console.log(`[CALLER] ✅ Offer enviada`);
     } catch (err) {
-      console.error(`[CALLER] ❌ ERROR al enviar offer:`, err);
+      console.error(`[CALLER] ❌ Error enviando offer:`, err);
       throw err;
     }
     
-    // Verificar que la offer se guardó correctamente
-    console.log(`[CALLER] 🔍 Verificando que offer se guardó...`);
-    await new Promise(r => setTimeout(r, 500));
-    
-    try {
-      const verification = await getOffer(rid);
-      if (verification.offer) {
-        console.log(`[CALLER] ✅ Verificación exitosa: Offer disponible en servidor`);
-      } else {
-        console.error(`[CALLER] ❌ ERROR: Offer NO se encuentra en servidor después de POST`);
-      }
-    } catch (err) {
-      console.error(`[CALLER] ⚠️ No se pudo verificar offer:`, err);
-    }
-    
-    // Polling de answer
-    console.log(`\n[CALLER] 📥 PASO 3: Esperando ANSWER del paciente...`);
-    console.log(`[CALLER] Iniciando polling cada 1 segundo...`);
-    
-    // Capturar setRemote para flush de candidates buffer después de setRemoteDescription
     const flushCandidates = peerObj.setRemote;
     
-    let answerAttempts = 0;
     if (answerPollingRef.current) clearInterval(answerPollingRef.current);
     answerPollingRef.current = setInterval(async () => {
-      answerAttempts++;
       try {
         const ans = await getAnswer(rid);
-        
-        if (answerAttempts % 5 === 0) { // Log cada 5 intentos para no saturar consola
-          console.log(`[CALLER] 🔄 Polling answer (intento ${answerAttempts}) - Signaling: ${pc.signalingState}, Answer presente: ${!!ans.answer}`);
-        }
-        
-        // Solo setear remoteDescription si estamos en el estado correcto
         if (ans.answer && pc.signalingState === 'have-local-offer') {
-          console.log(`\n[CALLER] ✅✅✅ ANSWER RECIBIDA (después de ${answerAttempts} intentos)`);
+          console.log(`[CALLER] ✅ Answer recibida`);
           
           let answerDesc;
           try {
             answerDesc = JSON.parse(ans.answer);
-            console.log(`[CALLER] Answer parseada:`, {
-              type: answerDesc.type,
-              sdpLength: answerDesc.sdp?.length || 0
-            });
           } catch (parseErr) {
-            console.error(`[CALLER] ❌ ERROR al parsear answer:`, parseErr);
-            console.error(`[CALLER] Answer raw:`, ans.answer);
+            console.error(`[CALLER] ❌ Error parseando answer`);
             return;
           }
           
-          console.log(`[CALLER] 📥 PASO 4: setRemoteDescription(answer)...`);
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
-            console.log(`[CALLER] ✅✅✅ setRemoteDescription(answer) COMPLETADO`);
-            console.log(`[CALLER] Estado signaling: ${pc.signalingState}`);
-            console.log(`[CALLER] Estado conexión: ${pc.connectionState}`);
-            console.log(`[CALLER] Estado ICE: ${pc.iceConnectionState}`);
-            
-            // Flush candidates buffer (agregar candidates que llegaron antes del answer)
+            console.log(`[CALLER] ✅ Answer aplicada`);
             flushCandidates();
-            console.log(`[CALLER] 🔓 Candidates buffer flushed`);
             
-            // Detener polling de answer una vez configurada
             if (answerPollingRef.current) {
-              console.log(`[CALLER] 🛑 Deteniendo polling de answer`);
               clearInterval(answerPollingRef.current);
               answerPollingRef.current = null;
             }
           } catch (remoteErr) {
-            console.error(`[CALLER] ❌ ERROR en setRemoteDescription:`, remoteErr);
+            console.error(`[CALLER] ❌ Error en setRemoteDescription:`, remoteErr);
           }
         }
-      } catch (err) {
-        if (answerAttempts % 10 === 0) { // Log errores cada 10 intentos
-          console.error(`[CALLER] ⚠️ Error en polling de answer (intento ${answerAttempts}):`, err);
-        }
-      }
+      } catch (err) {}
     }, 1000);
-    
-    console.log(`\n[CALLER] ====== CONFIGURACIÓN INICIAL COMPLETA ======\n`);
-    // El polling de candidates ya está en setupPeer
   }, [setupPeer, ensureLocalStream, sendPresence]);
 
   // Reconectar en la misma sala reintentando la negociación
@@ -1783,6 +1592,7 @@ export default function ReunionPage() {
             </button>
         </div>
       </footer>
+      
       <Footer  borderColor="transparent" background="transparent" />
       
       {/* Panel de diagnóstico WebRTC */}

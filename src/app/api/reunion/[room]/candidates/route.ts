@@ -18,7 +18,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ room
   }
   
   const room = getOrCreateRoom(roomId);
-  const cands = who === 'caller' ? room.candidates.caller : room.candidates.callee;
+  // CRÍTICO: caller recibe candidates DEL callee, y viceversa
+  const cands = who === 'caller' ? room.candidates.callee : room.candidates.caller;
   
   let out = [...cands];
   
@@ -40,9 +41,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ room
     }
   }
   
-  // Opcional: limpiar después de leer para minimizar duplicados
-  if (who === 'caller') room.candidates.caller = [];
-  else room.candidates.callee = [];
+  // Limpiar los candidates que ya se leyeron (del otro peer)
+  if (who === 'caller') room.candidates.callee = [];
+  else room.candidates.caller = [];
   
   return NextResponse.json({ candidates: out });
 }
