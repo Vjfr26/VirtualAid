@@ -133,6 +133,23 @@ export default function ReunionPage() {
 
     try {
       let shouldBeCallee = false;
+      const forcedRole = autoParams?.who === 'doctor' ? 'caller' : autoParams?.who === 'patient' ? 'callee' : null;
+      if (forcedRole) {
+        console.log(`[AutoJoin] Rol forzado por parámetros: ${forcedRole}`);
+      }
+      let prefersCallerRole = forcedRole === 'caller' || !!autoParams?.did;
+
+      if (!prefersCallerRole && forcedRole === null && typeof window !== 'undefined') {
+        try {
+          const sessionRaw = localStorage.getItem('session');
+          if (sessionRaw) {
+            const sessionObj = JSON.parse(sessionRaw);
+            if (sessionObj?.tipo === 'medico' || sessionObj?.medico) {
+              prefersCallerRole = true;
+            }
+          }
+        } catch {}
+      }
       let prefetchedOffer: string | null = null;
 
       try {
@@ -156,6 +173,12 @@ export default function ReunionPage() {
         } catch (err) {
           console.log('[AutoJoin] Error al consultar la oferta existente:', err);
         }
+      }
+
+      if (prefersCallerRole && shouldBeCallee) {
+        console.log(`[AutoJoin] ⚠️ Oferta/respuesta previa detectada, pero se forzó rol caller (${forcedRole ?? 'auto-detect'}); creando nueva oferta`);
+        shouldBeCallee = false;
+        prefetchedOffer = null;
       }
 
       if (shouldBeCallee) {
@@ -346,34 +369,62 @@ export default function ReunionPage() {
     if (pcRef.current) {
       console.log(`[SetupPeer] Cerrando peer anterior (${pcRef.current.connectionState})`);
       try {
+        localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+      } catch {}
+      try {
         pcRef.current.close();
       } catch (err) {
         console.warn(`[SetupPeer] Error cerrando peer anterior:`, err);
       }
     }
     
+    // CONFIGURACIÓN ESPECIAL: Forzar relay para permitir conexiones en la misma máquina
+    // Para pruebas en producción, cambiar iceTransportPolicy a 'all'
     const pc = new RTCPeerConnection({ 
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { 
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
         {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443'
+          ],
           username: 'openrelayproject',
           credential: 'openrelayproject'
         }
-      ]
+      ],
+      iceTransportPolicy: 'relay', // FORZAR relay para misma máquina
+      iceCandidatePoolSize: 10
     });
-    pcRef.current = pc;
-    console.log(`[SetupPeer] RTCPeerConnection creada con STUN + TURN`);
+  pcRef.current = pc;
+  console.log(`[SetupPeer] RTCPeerConnection creada con STUN + TURN (fallback)`);
+
+    pc.onicecandidateerror = (evt) => {
+      const eventInfo: Record<string, unknown> = {
+        errorCode: evt.errorCode,
+        errorText: evt.errorText
+      };
+      const evtAny = evt as unknown as { hostCandidate?: string; url?: string; statusCode?: number; transport?: string };
+      if (evtAny.hostCandidate) eventInfo.hostCandidate = evtAny.hostCandidate;
+      if (evtAny.url) eventInfo.url = evtAny.url;
+      if (typeof evtAny.statusCode === 'number') eventInfo.statusCode = evtAny.statusCode;
+      if (evtAny.transport) eventInfo.transport = evtAny.transport;
+      console.error(`[SetupPeer] ❌ ICE candidate error (${fromRole}):`, eventInfo);
+      console.error(`[SetupPeer] ❌ ICE candidate error raw (${fromRole}): ${JSON.stringify(eventInfo)}`);
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log(`[SetupPeer] ⏱️ iceGatheringState (${fromRole}): ${pc.iceGatheringState}`);
+    };
+    
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[SetupPeer] 🧊 iceConnectionState (${fromRole}): ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'failed') {
+        console.error(`[SetupPeer] ❌❌❌ ICE CONNECTION FAILED - Ningún candidato funcionó`);
+      }
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        console.log(`[SetupPeer] ✅✅✅ ICE CONNECTION SUCCESS!`);
+      }
+    };
     
     // ICE deduplicado
     const addedCandidates = new Set<string>();
@@ -413,12 +464,17 @@ export default function ReunionPage() {
     
     pc.onicecandidate = (e) => {
       if (e.candidate) {
-        console.log(`[SetupPeer] 📡 ICE candidate generada (${fromRole}):`, e.candidate);
-        postCandidate(rid, fromRole, e.candidate.toJSON()).catch((err) => {
+        const c = e.candidate;
+        const candJSON = c.toJSON();
+        
+        // Log simple
+        console.log(`[SetupPeer] 📡 ICE candidate (${fromRole}): ${c.type} ${c.protocol} ${c.address}:${c.port}`);
+        
+        postCandidate(rid, fromRole, candJSON).catch((err) => {
           console.error(`[SetupPeer] Error enviando ICE candidate:`, err);
         });
       } else {
-        console.log(`[SetupPeer] ICE gathering completado (${fromRole})`);
+        console.log(`[SetupPeer] ✅ ICE gathering completado (${fromRole})`);
       }
     };
     
@@ -502,13 +558,12 @@ export default function ReunionPage() {
               if (remoteSet) {
                 try { 
                   await pc.addIceCandidate(new RTCIceCandidate(c)); 
-                  console.log('[SetupPeer] ✅ ICE candidate agregada (callee)', c); 
+                  console.log(`[SetupPeer] ✅ Candidate agregada (callee)`); 
                 } catch (err) { 
-                  console.warn('[SetupPeer] ❌ Error agregando candidate (callee)', err, c); 
+                  console.warn(`[SetupPeer] ❌ Error agregando candidate (callee)`, err); 
                 }
               } else {
                 candidateBuffer.push(c);
-                console.log('[SetupPeer] 📦 ICE candidate bufferizada (callee)', c);
               }
               addedCandidates.add(key);
             }
@@ -535,13 +590,12 @@ export default function ReunionPage() {
               if (remoteSet) {
                 try { 
                   await pc.addIceCandidate(new RTCIceCandidate(c)); 
-                  console.log('[SetupPeer] ✅ ICE candidate agregada (caller)', c); 
+                  console.log(`[SetupPeer] ✅ Candidate agregada (caller)`); 
                 } catch (err) { 
-                  console.warn('[SetupPeer] ❌ Error agregando candidate (caller)', err, c); 
+                  console.warn(`[SetupPeer] ❌ Error agregando candidate (caller)`, err); 
                 }
               } else {
                 candidateBuffer.push(c);
-                console.log('[SetupPeer] 📦 ICE candidate bufferizada (caller)', c);
               }
               addedCandidates.add(key);
             }
@@ -555,15 +609,13 @@ export default function ReunionPage() {
     return {
       pc,
       setRemote: () => { 
-        console.log(`[SetupPeer] setRemote llamado - flushing ${candidateBuffer.length} candidates del buffer`);
+        console.log(`[SetupPeer] 🔓 Flushing ${candidateBuffer.length} candidates del buffer`);
         remoteSet = true; 
-        /* flush buffer */ 
         candidateBuffer.splice(0).forEach(async c => { 
           try { 
             await pc.addIceCandidate(new RTCIceCandidate(c)); 
-            console.log('[SetupPeer] ✅ ICE candidate del buffer agregada', c); 
           } catch (err) { 
-            console.warn('[SetupPeer] ❌ Error agregando candidate del buffer', err, c); 
+            console.warn(`[SetupPeer] ❌ Error agregando candidate del buffer`, err); 
           } 
         }); 
       },
