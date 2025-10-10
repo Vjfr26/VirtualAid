@@ -241,13 +241,19 @@ export default function DiagnosticPanel({
                         </span>
                       </div>
                       <p className="text-sm text-gray-300 ml-7">{result.message}</p>
-                      {result.data && (
+                      {result.data !== undefined && result.data !== null && (
                         <details className="mt-2 ml-7">
                           <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
                             Ver datos técnicos
                           </summary>
                           <pre className="mt-2 text-xs bg-gray-950 rounded p-2 overflow-x-auto text-gray-400">
-                            {typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)}
+                            {(() => {
+                              try {
+                                return typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2);
+                              } catch {
+                                return String(result.data);
+                              }
+                            })()}
                           </pre>
                         </details>
                       )}

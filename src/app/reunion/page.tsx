@@ -541,50 +541,39 @@ export default function ReunionPage() {
     }
     
     // Polling de candidates remotos (ambos roles necesitan recibir candidates del otro)
-    console.log(`[SetupPeer] Iniciando polling de ICE candidates (${fromRole})`);
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     candidatePollingRef.current = setInterval(async () => {
       try {
-        // Caller obtiene candidates del callee, Callee obtiene candidates del caller
         const cands = await getCandidates(rid, fromRole);
-        if (cands.candidates.length > 0) {
-          const remoteName = fromRole === 'caller' ? 'paciente' : 'médico';
-          console.log(`[SetupPeer] 📥 ${cands.candidates.length} candidates del ${remoteName}`);
-        }
         for (const c of cands.candidates) {
           const key = JSON.stringify(c);
           if (!addedCandidates.has(key)) {
             if (remoteSet) {
               try { 
                 await pc.addIceCandidate(new RTCIceCandidate(c));
-                console.log(`[SetupPeer] ✅ Candidate remoto agregado inmediatamente (${fromRole})`);
               } catch (err) { 
-                console.warn(`[SetupPeer] ❌ Error agregando candidate`, err); 
+                console.warn(`[WebRTC] Error agregando candidate:`, err); 
               }
             } else {
               candidateBuffer.push(c);
-              console.log(`[SetupPeer] 📦 Candidate buffereado (esperando setRemote) - ${fromRole}`);
             }
             addedCandidates.add(key);
           }
         }
       } catch (err) {
-        console.error(`[SetupPeer] Error en polling de candidates:`, err);
+        console.error(`[WebRTC] Error en polling de candidates:`, err);
       }
     }, 1000);
     
     return {
       pc,
       setRemote: () => { 
-        const count = candidateBuffer.length;
-        console.log(`[SetupPeer] 🔓 Flushing ${count} candidates del buffer (${fromRole})`);
         remoteSet = true; 
         candidateBuffer.splice(0).forEach(async c => { 
           try { 
             await pc.addIceCandidate(new RTCIceCandidate(c)); 
-            console.log(`[SetupPeer] ✅ Candidate del buffer agregado (${fromRole})`);
           } catch (err) { 
-            console.warn(`[SetupPeer] ❌ Error agregando candidate del buffer`, err); 
+            console.warn(`[WebRTC] Error agregando candidate del buffer:`, err); 
           } 
         }); 
       },
@@ -700,8 +689,6 @@ export default function ReunionPage() {
   // Eliminado flujo de creación local: las salas se crean en backend
 
   const joinAndAnswer = useCallback(async (rid: string, prefetchedOffer?: string | null) => {
-    console.log(`[CALLEE] Uniéndose a sala: ${rid}`);
-    
     setRoomId(rid);
     roleRef.current = 'callee';
     const peerObj = setupPeer(rid, 'callee');
@@ -722,7 +709,6 @@ export default function ReunionPage() {
           const off = await getOffer(rid);
           if (off.offer) { 
             offerStr = off.offer;
-            console.log(`[CALLEE] ✅ Offer recibida`);
             break; 
           }
         } catch (err) {}
@@ -730,7 +716,6 @@ export default function ReunionPage() {
       }
       
       if (!offerStr) {
-        console.error(`[CALLEE] ❌ Timeout esperando offer`);
         setJoinError('No se encontró la sala. Asegúrate de que el médico haya iniciado la reunión.');
         return;
       }
@@ -741,46 +726,37 @@ export default function ReunionPage() {
       offerDesc = JSON.parse(offerStr);
       if (offerDesc.type !== 'offer') return;
     } catch (parseErr) {
-      console.error(`[CALLEE] ❌ Error parseando offer`);
+      console.error(`[WebRTC] Error parseando offer`);
       return;
     }
     
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(offerDesc));
-      console.log(`[CALLEE] ✅ Offer aplicada`);
     } catch (remoteErr) {
-      console.error(`[CALLEE] ❌ Error en setRemoteDescription:`, remoteErr);
+      console.error(`[WebRTC] Error en setRemoteDescription:`, remoteErr);
       throw remoteErr;
     }
     
     setRemote();
-    console.log(`[CALLEE] 🔓 Buffer flushed, listo para recibir candidates`);
     
     const answer = await pc.createAnswer();
     if (!answer || answer.type !== 'answer') {
-      console.error('[CALLEE] ❌ Answer inválida');
       throw new Error('Answer inválida');
     }
     
     await pc.setLocalDescription(answer);
-    console.log(`[CALLEE] ✅ Answer creada`);
-
     const answerStr = JSON.stringify(answer);
     try {
       await postAnswer(rid, answerStr);
-      console.log(`[CALLEE] ✅ Answer enviada`);
     } catch (postErr) {
-      console.error(`[CALLEE] ❌ Error enviando answer:`, postErr);
+      console.error(`[WebRTC] Error enviando answer:`, postErr);
       throw postErr;
     }
   }, [setupPeer, ensureLocalStream]);
 
   // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
   const startAsCaller = useCallback(async (rid: string) => {
-    console.log(`[CALLER] Iniciando reunión: ${rid}`);
-    
     if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
-      console.warn(`[CALLER] ⚠️ Peer ya activo`);
       return;
     }
     
@@ -819,14 +795,12 @@ export default function ReunionPage() {
     
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log(`[CALLER] ✅ Offer creada`);
     
     const offerJSON = JSON.stringify(offer);
     try {
       await postOffer(rid, offerJSON);
-      console.log(`[CALLER] ✅ Offer enviada`);
     } catch (err) {
-      console.error(`[CALLER] ❌ Error enviando offer:`, err);
+      console.error(`[WebRTC] Error enviando offer:`, err);
       throw err;
     }
     
@@ -837,19 +811,16 @@ export default function ReunionPage() {
       try {
         const ans = await getAnswer(rid);
         if (ans.answer && pc.signalingState === 'have-local-offer') {
-          console.log(`[CALLER] ✅ Answer recibida`);
-          
           let answerDesc;
           try {
             answerDesc = JSON.parse(ans.answer);
           } catch (parseErr) {
-            console.error(`[CALLER] ❌ Error parseando answer`);
+            console.error(`[WebRTC] Error parseando answer`);
             return;
           }
           
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(answerDesc));
-            console.log(`[CALLER] ✅ Answer aplicada`);
             flushCandidates();
             
             if (answerPollingRef.current) {
@@ -857,7 +828,7 @@ export default function ReunionPage() {
               answerPollingRef.current = null;
             }
           } catch (remoteErr) {
-            console.error(`[CALLER] ❌ Error en setRemoteDescription:`, remoteErr);
+            console.error(`[WebRTC] Error en setRemoteDescription:`, remoteErr);
           }
         }
       } catch (err) {}
