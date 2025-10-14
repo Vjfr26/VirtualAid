@@ -463,56 +463,59 @@ export default function ReunionPage() {
       }
     };
     
-    pc.ondatachannel = (ev) => {
-      console.log(`[SetupPeer] 💬 DataChannel recibido (${fromRole})`);
-      const ch = ev.channel;
-      dataChannelRef.current = ch;
-      ch.onopen = () => { 
-        console.log(`[SetupPeer] ✅ DataChannel abierto (${fromRole})`);
-        setDcState('open'); 
-        sendPresence(); 
-      };
-      ch.onclose = () => { 
-        console.log(`[SetupPeer] ❌ DataChannel cerrado (${fromRole})`);
-        setDcState('closed'); 
-      };
-      ch.onerror = () => { 
-        console.log(`[SetupPeer] ⚠️ DataChannel error (${fromRole})`);
-        setDcState('error'); 
-      };
-      ch.onmessage = (msgEvt) => {
-        console.log(`[SetupPeer] Mensaje en DataChannel (${fromRole}):`, msgEvt.data);
-        try {
-          const incoming = JSON.parse(msgEvt.data);
-          if (incoming && incoming.meta === 'presence' && incoming.participant) {
-            setParticipants((prev: ParticipantData[]) => {
-              const pIn = incoming.participant;
-              const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
-              if (idxById >= 0) {
-                const copy = [...prev];
-                const prevItem = copy[idxById];
-                copy[idxById] = { ...prevItem, id: pIn.id ?? prevItem.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted, isYou: prevItem.id === localId || prevItem.isYou };
-                return copy;
-              }
-              if (!pIn.id) {
-                const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
-                if (idxByName >= 0) {
+    // Solo el CALLEE necesita ondatachannel (el CALLER crea el canal manualmente)
+    if (fromRole === 'callee') {
+      pc.ondatachannel = (ev) => {
+        console.log(`[SetupPeer] 💬 DataChannel recibido (CALLEE)`);
+        const ch = ev.channel;
+        dataChannelRef.current = ch;
+        ch.onopen = () => { 
+          console.log(`[SetupPeer] ✅ DataChannel abierto (CALLEE)`);
+          setDcState('open'); 
+          sendPresence(); 
+        };
+        ch.onclose = () => { 
+          console.log(`[SetupPeer] ❌ DataChannel cerrado (CALLEE)`);
+          setDcState('closed'); 
+        };
+        ch.onerror = () => { 
+          console.log(`[SetupPeer] ⚠️ DataChannel error (CALLEE)`);
+          setDcState('error'); 
+        };
+        ch.onmessage = (msgEvt) => {
+          console.log(`[SetupPeer] Mensaje en DataChannel (CALLEE):`, msgEvt.data);
+          try {
+            const incoming = JSON.parse(msgEvt.data);
+            if (incoming && incoming.meta === 'presence' && incoming.participant) {
+              setParticipants((prev: ParticipantData[]) => {
+                const pIn = incoming.participant;
+                const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
+                if (idxById >= 0) {
                   const copy = [...prev];
-                  const prevItem = copy[idxByName];
-                  copy[idxByName] = { ...prevItem, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted };
+                  const prevItem = copy[idxById];
+                  copy[idxById] = { ...prevItem, id: pIn.id ?? prevItem.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted, isYou: prevItem.id === localId || prevItem.isYou };
                   return copy;
                 }
-              }
-              return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
-            });
-            sendPresence();
-          } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
-            setMessages((prev: Message[]) => [...prev, incoming]);
-            setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
-          }
-        } catch {}
+                if (!pIn.id) {
+                  const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
+                  if (idxByName >= 0) {
+                    const copy = [...prev];
+                    const prevItem = copy[idxByName];
+                    copy[idxByName] = { ...prevItem, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted };
+                    return copy;
+                  }
+                }
+                return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
+              });
+              sendPresence();
+            } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
+              setMessages((prev: Message[]) => [...prev, incoming]);
+              setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
+            }
+          } catch {}
+        };
       };
-    };
+    }
     // Polling de ICE candidates
     // Backend hace la inversión: si pido for='caller', me da candidates del 'callee'
     console.log(`[SetupPeer] ${fromRole} consultará candidates con for='${fromRole}'`);
@@ -765,13 +768,37 @@ export default function ReunionPage() {
       console.error(`[CALLER] ⚠️ DataChannel ERROR:`, err);
       setDcState('error');
     };
-    dc.onmessage = (e: MessageEvent) => { 
-      console.log(`[CALLER] 💬 Mensaje recibido en DataChannel:`, e.data);
-      try { 
-        const m = JSON.parse(e.data); 
-        if (m?.meta === 'presence') sendPresence(); 
-        else if (m?.type) setMessages((p: Message[])=>[...p,m]); 
-      } catch {} 
+    dc.onmessage = (msgEvt: MessageEvent) => { 
+      console.log(`[CALLER] 💬 Mensaje recibido en DataChannel:`, msgEvt.data);
+      try {
+        const incoming = JSON.parse(msgEvt.data);
+        if (incoming && incoming.meta === 'presence' && incoming.participant) {
+          setParticipants((prev: ParticipantData[]) => {
+            const pIn = incoming.participant;
+            const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
+            if (idxById >= 0) {
+              const copy = [...prev];
+              const prevItem = copy[idxById];
+              copy[idxById] = { ...prevItem, id: pIn.id ?? prevItem.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted, isYou: prevItem.id === localId || prevItem.isYou };
+              return copy;
+            }
+            if (!pIn.id) {
+              const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
+              if (idxByName >= 0) {
+                const copy = [...prev];
+                const prevItem = copy[idxByName];
+                copy[idxByName] = { ...prevItem, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted };
+                return copy;
+              }
+            }
+            return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
+          });
+          sendPresence();
+        } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
+          setMessages((prev: Message[]) => [...prev, incoming]);
+          setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
+        }
+      } catch {}
     };
     
     const offer = await pc.createOffer();
@@ -814,7 +841,7 @@ export default function ReunionPage() {
         }
       } catch (err) {}
     }, 1000);
-  }, [setupPeer, ensureLocalStream, sendPresence]);
+  }, [setupPeer, ensureLocalStream, sendPresence, localId]);
 
   // Reconectar en la misma sala reintentando la negociación
   const reconnect = useCallback(async () => {
@@ -844,10 +871,51 @@ export default function ReunionPage() {
       if (stream) stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
         const dc = pc.createDataChannel('chat');
         dataChannelRef.current = dc;
-        dc.onopen = () => { setDcState('open'); sendPresence(); };
-        dc.onclose = () => setDcState('closed');
-        dc.onerror = () => setDcState('error');
-  dc.onmessage = (e: MessageEvent) => { try { const m = JSON.parse(e.data); if (m?.meta === 'presence') sendPresence(); else if (m?.type) setMessages((p: Message[])=>[...p,m]); } catch {} };
+        dc.onopen = () => { 
+          console.log(`[Reconnect-CALLER] ✅ DataChannel ABIERTO`);
+          setDcState('open'); 
+          sendPresence(); 
+        };
+        dc.onclose = () => { 
+          console.log(`[Reconnect-CALLER] ❌ DataChannel CERRADO`);
+          setDcState('closed'); 
+        };
+        dc.onerror = () => { 
+          console.log(`[Reconnect-CALLER] ⚠️ DataChannel ERROR`);
+          setDcState('error'); 
+        };
+        dc.onmessage = (msgEvt: MessageEvent) => { 
+          console.log(`[Reconnect-CALLER] 💬 Mensaje recibido:`, msgEvt.data);
+          try {
+            const incoming = JSON.parse(msgEvt.data);
+            if (incoming && incoming.meta === 'presence' && incoming.participant) {
+              setParticipants((prev: ParticipantData[]) => {
+                const pIn = incoming.participant;
+                const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
+                if (idxById >= 0) {
+                  const copy = [...prev];
+                  const prevItem = copy[idxById];
+                  copy[idxById] = { ...prevItem, id: pIn.id ?? prevItem.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted, isYou: prevItem.id === localId || prevItem.isYou };
+                  return copy;
+                }
+                if (!pIn.id) {
+                  const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
+                  if (idxByName >= 0) {
+                    const copy = [...prev];
+                    const prevItem = copy[idxByName];
+                    copy[idxByName] = { ...prevItem, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted };
+                    return copy;
+                  }
+                }
+                return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
+              });
+              sendPresence();
+            } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
+              setMessages((prev: Message[]) => [...prev, incoming]);
+              setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
+            }
+          } catch {} 
+        };
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await postOffer(roomId, JSON.stringify(offer));
@@ -875,7 +943,7 @@ export default function ReunionPage() {
     } finally {
       setReconnecting(false);
     }
-  }, [roomId, reconnecting, isJoining, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer]);
+  }, [roomId, reconnecting, isJoining, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer, localId]);
 
   useEffect(() => () => {
     if (answerPollingRef.current) clearInterval(answerPollingRef.current);
