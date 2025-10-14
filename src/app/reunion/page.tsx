@@ -423,17 +423,8 @@ export default function ReunionPage() {
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         const c = e.candidate;
-        const addr = c.address || '';
-        
-        // FILTRO CRÍTICO: Rechazar candidatos de interfaces virtuales
-        if (addr.startsWith('10.') || 
-            addr.startsWith('169.254.') || 
-            addr.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)) {
-          console.warn(`[SetupPeer] 🚫 Candidato rechazado - Interfaz virtual (${fromRole}): ${addr}`);
-          return; // NO enviar este candidato
-        }
-        
         const candJSON = c.toJSON();
+        const addr = c.address || '';
         console.log(`[SetupPeer] 📡 ICE candidate (${fromRole}): ${c.type} ${c.protocol} ${addr}:${c.port}`);
         
         postCandidate(rid, fromRole, candJSON).catch((err) => {
@@ -445,14 +436,29 @@ export default function ReunionPage() {
     };
     
     pc.ontrack = (ev) => {
-      console.log(`[SetupPeer] 📹 Track recibido (${fromRole}):`, ev.track.kind);
+      const track = ev.track;
+      console.log(`[SetupPeer] 📹 Track recibido (${fromRole}):`, {
+        kind: track.kind,
+        id: track.id,
+        label: track.label,
+        enabled: track.enabled,
+        readyState: track.readyState
+      });
+      
       const [stream] = ev.streams;
       if (stream) {
         remoteStreamRef.current = stream;
-        console.log(`[SetupPeer] Stream remoto configurado`);
+        console.log(`[SetupPeer] 📺 Stream remoto configurado con ${stream.getTracks().length} tracks:`, 
+          stream.getTracks().map(t => `${t.kind} (${t.readyState})`).join(', '));
+        
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = stream;
-          console.log(`[SetupPeer] Video remoto asignado al elemento`);
+          console.log(`[SetupPeer] ✅ Video remoto asignado al elemento`);
+          
+          // Intentar reproducir explícitamente
+          remoteVideoRef.current.play()
+            .then(() => console.log(`[SetupPeer] ✅ Video remoto reproduciendo`))
+            .catch(err => console.warn(`[SetupPeer] ⚠️ Error al reproducir video:`, err));
         }
       }
     };
@@ -507,61 +513,36 @@ export default function ReunionPage() {
         } catch {}
       };
     };
-    // Para el callee, candidates pueden llegar antes de setRemoteDescription
-    if (fromRole === 'callee') {
-      console.log(`[SetupPeer] Iniciando polling de ICE candidates (callee)`);
-      // Polling de candidates del caller (bufferiza si no está remoteSet)
-      if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
-      candidatePollingRef.current = setInterval(async () => {
-        try {
-          const cands = await getCandidates(rid, 'callee');
-          if (cands.candidates.length > 0) {
-            console.log(`[SetupPeer] Recibidos ${cands.candidates.length} ICE candidates (callee)`);
-          }
-          for (const c of cands.candidates) {
-            const key = JSON.stringify(c);
-            if (!addedCandidates.has(key)) {
-              if (remoteSet) {
-                try { 
-                  await pc.addIceCandidate(new RTCIceCandidate(c)); 
-                  console.log(`[SetupPeer] ✅ Candidate agregada (callee)`); 
-                } catch (err) { 
-                  console.warn(`[SetupPeer] ❌ Error agregando candidate (callee)`, err); 
-                }
-              } else {
-                candidateBuffer.push(c);
-              }
-              addedCandidates.add(key);
-            }
-          }
-        } catch (err) {
-          console.error(`[SetupPeer] Error en polling de candidates (callee):`, err);
-        }
-      }, 1000);
-    }
+    // Polling de ICE candidates
+    // Backend hace la inversión: si pido for='caller', me da candidates del 'callee'
+    console.log(`[SetupPeer] ${fromRole} consultará candidates con for='${fromRole}'`);
     
-    // Polling de candidates remotos (ambos roles necesitan recibir candidates del otro)
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     candidatePollingRef.current = setInterval(async () => {
       try {
         const cands = await getCandidates(rid, fromRole);
+        if (cands.candidates.length > 0) {
+          console.log(`[SetupPeer] ${fromRole} encontró ${cands.candidates.length} candidates del otro peer`);
+        }
         for (const c of cands.candidates) {
           const key = JSON.stringify(c);
           if (!addedCandidates.has(key)) {
             if (remoteSet) {
               try { 
                 await pc.addIceCandidate(new RTCIceCandidate(c));
+                console.log(`[SetupPeer] ✅ Candidate agregada (${fromRole})`); 
               } catch (err) { 
-                console.warn(`[WebRTC] Error agregando candidate:`, err); 
+                console.warn(`[SetupPeer] ❌ Error agregando candidate:`, err); 
               }
             } else {
+              console.log(`[SetupPeer] 📦 Candidate bufferizada (esperando setRemoteDescription)`);
               candidateBuffer.push(c);
             }
             addedCandidates.add(key);
           }
         }
       } catch (err) {
-        console.error(`[WebRTC] Error en polling de candidates:`, err);
+        console.error(`[SetupPeer] Error en polling de candidates:`, err);
       }
     }, 1000);
     

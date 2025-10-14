@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ToastProvider } from './components/Toast';
+import { I18nProvider } from '@/components/I18nProvider';
 import { Geist, Geist_Mono } from "next/font/google";
 import 'react-calendar/dist/Calendar.css';
 import "./globals.css";
@@ -53,11 +54,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
       >
-        <ToastProvider>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {children}
-          </div>
-        </ToastProvider>
+        <I18nProvider>
+          <ToastProvider>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {children}
+            </div>
+          </ToastProvider>
+        </I18nProvider>
       </body>
     </html>
   );
