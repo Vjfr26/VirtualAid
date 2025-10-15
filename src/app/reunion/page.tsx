@@ -770,13 +770,16 @@ export default function ReunionPage() {
   }, [setupPeer, ensureLocalStream]);
 
   // Iniciar como caller (doctor): crea y publica la oferta, y hace polling de answer/candidates
-  const startAsCaller = useCallback(async (rid: string) => {
+  const startAsCaller = useCallback(async (rid: string, clientId?: string) => {
     if (pcRef.current && pcRef.current.connectionState !== 'closed' && pcRef.current.connectionState !== 'failed') {
       return;
     }
     
     setRoomId(rid);
     roleRef.current = 'caller';
+    
+    const myClientId = clientId || `caller-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[CALLER] Mi clientId para negociación: ${myClientId}`);
     const peerObj = setupPeer(rid, 'caller');
     const pc = peerObj.pc;
     
@@ -835,9 +838,15 @@ export default function ReunionPage() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     
-    const offerJSON = JSON.stringify(offer);
+    // Añadir clientId a la offer para Perfect Negotiation (glare detection)
+    const offerWithClientId = {
+      ...offer,
+      clientId: myClientId
+    };
+    const offerJSON = JSON.stringify(offerWithClientId);
+    
     try {
-      await postOffer(rid, offerJSON);
+      await postOffer(rid, offerJSON, myClientId);
     } catch (err) {
       console.error(`[WebRTC] Error enviando offer:`, err);
       throw err;
@@ -895,8 +904,8 @@ export default function ReunionPage() {
     }, 300); // ⚡ ULTRA-RÁPIDO: 300ms polling
   }, [setupPeer, ensureLocalStream, sendPresence, localId]);
 
-  // Función optimizada: "El PRIMERO que llega es el CALLER"
-  // Esto asegura conexión rápida sin importar quién sea médico o paciente
+  // Perfect Negotiation: Resuelve race conditions automáticamente
+  // Si ambos crean offer simultáneamente, uno cede basándose en clientId
   const autoJoinRoom = useCallback(async (rid: string) => {
     console.log(`[AutoJoin] 🚀 Iniciando conexión P2P para sala: ${rid}`);
 
@@ -911,9 +920,14 @@ export default function ReunionPage() {
     setDcState('connecting');
     setConnState('new');
 
+    // Generar clientId único y determinista para desempate
+    const myClientId = localId || `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[AutoJoin] Mi clientId: ${myClientId}`);
+
     try {
-      // 1. Verificar estado de la sala y detectar negociación antigua
+      // 1. Verificar estado de la sala y detectar conflictos
       let existingOffer: string | null = null;
+      let existingClientId: string | null = null;
       let shouldBeCallee = false;
       let needsReset = false;
 
@@ -921,19 +935,26 @@ export default function ReunionPage() {
         const remoteState = await getState(rid);
         console.log('[AutoJoin] Estado de la sala:', remoteState);
         
-        // Si hay OFFER Y ANSWER, es una negociación completada anterior (ambos se desconectaron)
+        // Si hay OFFER Y ANSWER, es una negociación completada anterior
         if (remoteState?.hasOffer && remoteState?.hasAnswer) {
-          console.warn('[AutoJoin] ⚠️ Negociación completa detectada (offer + answer). Ambos usuarios se desconectaron.');
+          console.warn('[AutoJoin] ⚠️ Negociación completa anterior detectada');
           needsReset = true;
         }
-        // Si solo hay OFFER sin ANSWER, es una negociación en progreso válida
+        // Si solo hay OFFER sin ANSWER, verificar si es válida o hay conflicto
         else if (remoteState?.hasOffer && !remoteState?.hasAnswer) {
           try {
             const offerResponse = await getOffer(rid);
             if (offerResponse?.offer) {
               existingOffer = offerResponse.offer;
+              
+              // Extraer clientId de la offer (si existe)
+              try {
+                const offerObj = JSON.parse(existingOffer);
+                existingClientId = (offerObj as any).clientId || null;
+              } catch {}
+              
+              console.log(`[AutoJoin] Offer existente (clientId: ${existingClientId || 'none'})`);
               shouldBeCallee = true;
-              console.log('[AutoJoin] ✅ Oferta válida detectada (sin answer) → Seré CALLEE');
             }
           } catch (err) {
             console.warn('[AutoJoin] Error obteniendo offer:', err);
@@ -948,8 +969,7 @@ export default function ReunionPage() {
         try {
           const { resetRoom } = await import('./services');
           await resetRoom(rid);
-          console.log('[AutoJoin] 🧹 Sala limpiada (negociación antigua eliminada)');
-          // Después de limpiar, no hay offer válida
+          console.log('[AutoJoin] 🧹 Sala limpiada');
           existingOffer = null;
           shouldBeCallee = false;
         } catch (resetErr) {
@@ -957,15 +977,70 @@ export default function ReunionPage() {
         }
       }
 
-      // 3. Decidir rol basado en existencia de oferta VÁLIDA
+      // 3. Decidir rol con Perfect Negotiation
       if (shouldBeCallee && existingOffer) {
-        // HAY OFERTA VÁLIDA → Soy el segundo, respondo como CALLEE
-        console.log('[AutoJoin] 📞 Rol asignado: CALLEE (el otro peer llegó primero)');
+        // HAY OFERTA VÁLIDA → Seré CALLEE (responder)
+        console.log('[AutoJoin] 📞 Rol: CALLEE (respondiendo a offer existente)');
         await joinAndAnswer(rid, existingOffer);
       } else {
-        // NO HAY OFERTA o fue reseteada → Soy el primero, creo oferta como CALLER
-        console.log('[AutoJoin] 📡 Rol asignado: CALLER (soy el primero en la sala)');
-        await startAsCaller(rid);
+        // NO HAY OFERTA → Intentar ser CALLER
+        console.log('[AutoJoin] � Rol: CALLER (creando offer)');
+        
+        // CRITICAL: Enviar offer con clientId para desempate
+        await startAsCaller(rid, myClientId);
+        
+        // Esperar un momento y verificar si hubo glare collision (ambos enviaron offer)
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        try {
+          const recheckState = await getState(rid);
+          
+          // Si ahora hay ANSWER, todo bien
+          if (recheckState?.hasAnswer) {
+            console.log('[AutoJoin] ✅ Answer recibida, no hay conflicto');
+            return;
+          }
+          
+          // Si hay OFFER pero no ANSWER, verificar si es diferente a la mía (glare)
+          if (recheckState?.hasOffer) {
+            const recheckOffer = await getOffer(rid);
+            if (recheckOffer?.offer && recheckOffer.offer !== existingOffer) {
+              // Hay una offer NUEVA (no la mía inicial)
+              try {
+                const newOfferObj = JSON.parse(recheckOffer.offer);
+                const remoteClientId = (newOfferObj as any).clientId || 'unknown';
+                
+                console.warn(`[AutoJoin] ⚠️ GLARE COLLISION detectada!`);
+                console.warn(`[AutoJoin] Mi clientId: ${myClientId}, Remoto: ${remoteClientId}`);
+                
+                // Desempate: el clientId MENOR alfabéticamente cede (se vuelve CALLEE)
+                const iShouldYield = myClientId > remoteClientId;
+                
+                if (iShouldYield) {
+                  console.log('[AutoJoin] � Cediendo: Me convierto en CALLEE (Perfect Negotiation)');
+                  
+                  // Cerrar mi intento de CALLER
+                  if (answerPollingRef.current) {
+                    clearInterval(answerPollingRef.current);
+                    answerPollingRef.current = null;
+                  }
+                  pcRef.current?.close();
+                  
+                  // Esperar 200ms y responder como CALLEE
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                  await joinAndAnswer(rid, recheckOffer.offer);
+                } else {
+                  console.log('[AutoJoin] 💪 Mantengo CALLER: El otro peer cederá');
+                  // El otro peer detectará el conflicto y cederá
+                }
+              } catch (parseErr) {
+                console.warn('[AutoJoin] Error parseando offer para glare detection:', parseErr);
+              }
+            }
+          }
+        } catch (recheckErr) {
+          console.warn('[AutoJoin] Error en glare detection:', recheckErr);
+        }
       }
     } catch (e) {
       console.error(`[AutoJoin] ❌ Error en autoJoinRoom:`, e);
@@ -974,7 +1049,7 @@ export default function ReunionPage() {
       setIsJoining(false);
       console.log(`[AutoJoin] ✅ Proceso completado`);
     }
-  }, [isJoining, joinAndAnswer, startAsCaller]);
+  }, [isJoining, joinAndAnswer, startAsCaller, localId]);
 
   // Reconectar en la misma sala reintentando la negociación
   const reconnect = useCallback(async () => {
