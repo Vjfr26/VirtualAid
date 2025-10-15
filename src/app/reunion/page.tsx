@@ -925,6 +925,13 @@ export default function ReunionPage() {
     console.log(`[AutoJoin] Mi clientId: ${myClientId}`);
 
     try {
+      // 🎲 GOOGLE MEET TECHNIQUE: Random jitter para evitar glare en entrada simultánea
+      // Si ambos entran EXACTAMENTE al mismo tiempo, este delay aleatorio hace que
+      // uno vea la offer del otro antes de crear la suya
+      const jitter = Math.floor(Math.random() * 300); // 0-300ms aleatorio
+      console.log(`[AutoJoin] ⏱️ Jitter aleatorio: ${jitter}ms (evita glare simultáneo)`);
+      await new Promise(resolve => setTimeout(resolve, jitter));
+
       // 1. Verificar estado de la sala y detectar conflictos
       let existingOffer: string | null = null;
       let existingClientId: string | null = null;
@@ -954,7 +961,13 @@ export default function ReunionPage() {
               } catch {}
               
               console.log(`[AutoJoin] Offer existente (clientId: ${existingClientId || 'none'})`);
-              shouldBeCallee = true;
+              
+              // SOLO ser CALLEE si el clientId es DIFERENTE al mío
+              if (existingClientId && existingClientId !== myClientId) {
+                shouldBeCallee = true;
+              } else {
+                console.log('[AutoJoin] La offer es MÍA o sin clientId - ignorando');
+              }
             }
           } catch (err) {
             console.warn('[AutoJoin] Error obteniendo offer:', err);
@@ -971,16 +984,17 @@ export default function ReunionPage() {
           await resetRoom(rid);
           console.log('[AutoJoin] 🧹 Sala limpiada');
           existingOffer = null;
+          existingClientId = null;
           shouldBeCallee = false;
         } catch (resetErr) {
           console.warn('[AutoJoin] ⚠️ Error limpiando sala:', resetErr);
         }
       }
 
-      // 3. Decidir rol con Perfect Negotiation
-      if (shouldBeCallee && existingOffer) {
-        // HAY OFERTA VÁLIDA → Seré CALLEE (responder)
-        console.log('[AutoJoin] 📞 Rol: CALLEE (respondiendo a offer existente)');
+      // 3. Decidir rol basado en si hay offer DE OTRO PEER
+      if (shouldBeCallee && existingOffer && existingClientId) {
+        // HAY OFERTA VÁLIDA DE OTRO PEER → Seré CALLEE (responder)
+        console.log(`[AutoJoin] 📞 Rol: CALLEE (respondiendo a offer de ${existingClientId})`);
         await joinAndAnswer(rid, existingOffer);
       } else {
         // NO HAY OFERTA → Intentar ser CALLER
@@ -989,49 +1003,86 @@ export default function ReunionPage() {
         // CRITICAL: Enviar offer con clientId para desempate
         await startAsCaller(rid, myClientId);
         
-        // Esperar un momento y verificar si hubo glare collision (ambos enviaron offer)
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 🚀 GOOGLE MEET OPTIMIZATION: Race entre Answer y Glare Check
+        // No desperdiciar 800ms si answer llega antes
+        let answerReceived = false;
         
+        const checkForAnswer = async (): Promise<boolean> => {
+          for (let i = 0; i < 8; i++) { // 8 * 100ms = 800ms máximo
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const state = await getState(rid);
+            if (state?.hasAnswer) {
+              answerReceived = true;
+              console.log('[AutoJoin] ⚡ Answer recibida rápidamente - sin glare!');
+              return true;
+            }
+          }
+          return false;
+        };
+        
+        // Esperar answer o timeout de 800ms (lo que ocurra primero)
+        await checkForAnswer();
+        
+        if (answerReceived) {
+          // Conexión rápida exitosa - no necesitamos glare detection
+          return;
+        }
+        
+        // Si llegamos aquí, pasaron 800ms sin answer - verificar glare
         try {
           const recheckState = await getState(rid);
           
-          // Si ahora hay ANSWER, todo bien
+          // Double-check por si answer llegó justo ahora
           if (recheckState?.hasAnswer) {
-            console.log('[AutoJoin] ✅ Answer recibida, no hay conflicto');
+            console.log('[AutoJoin] ✅ Answer recibida después de 800ms');
             return;
           }
           
-          // Si hay OFFER pero no ANSWER, verificar si es diferente a la mía (glare)
+          // Si hay OFFER pero no ANSWER, verificar si hay conflicto
           if (recheckState?.hasOffer) {
             const recheckOffer = await getOffer(rid);
-            if (recheckOffer?.offer && recheckOffer.offer !== existingOffer) {
-              // Hay una offer NUEVA (no la mía inicial)
+            if (recheckOffer?.offer) {
               try {
-                const newOfferObj = JSON.parse(recheckOffer.offer);
-                const remoteClientId = (newOfferObj as any).clientId || 'unknown';
+                const currentOfferObj = JSON.parse(recheckOffer.offer);
+                const currentClientId = (currentOfferObj as any).clientId || null;
                 
-                console.warn(`[AutoJoin] ⚠️ GLARE COLLISION detectada!`);
-                console.warn(`[AutoJoin] Mi clientId: ${myClientId}, Remoto: ${remoteClientId}`);
-                
-                // Desempate: el clientId MENOR alfabéticamente cede (se vuelve CALLEE)
-                const iShouldYield = myClientId > remoteClientId;
-                
-                if (iShouldYield) {
-                  console.log('[AutoJoin] � Cediendo: Me convierto en CALLEE (Perfect Negotiation)');
+                // Si el clientId es diferente al mío, hay GLARE COLLISION
+                if (currentClientId && currentClientId !== myClientId) {
+                  console.warn(`[AutoJoin] ⚠️ GLARE COLLISION detectada!`);
+                  console.warn(`[AutoJoin] Mi clientId: ${myClientId}, Remoto: ${currentClientId}`);
                   
-                  // Cerrar mi intento de CALLER
-                  if (answerPollingRef.current) {
-                    clearInterval(answerPollingRef.current);
-                    answerPollingRef.current = null;
+                  // Desempate: el clientId MAYOR alfabéticamente cede (se vuelve CALLEE)
+                  // Esto garantiza que ambos peers tomen decisiones consistentes
+                  const iShouldYield = myClientId > currentClientId;
+                  
+                  if (iShouldYield) {
+                    console.log('[AutoJoin] 🔄 Cediendo: Me convierto en CALLEE (mi ID es mayor)');
+                    
+                    // Cerrar mi intento de CALLER
+                    if (answerPollingRef.current) {
+                      clearInterval(answerPollingRef.current);
+                      answerPollingRef.current = null;
+                    }
+                    if (pcRef.current) {
+                      pcRef.current.close();
+                      pcRef.current = null;
+                    }
+                    
+                    // Limpiar estado
+                    setConnState('new');
+                    
+                    // Esperar 300ms y responder como CALLEE a la offer del otro peer
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    console.log('[AutoJoin] 📞 Respondiendo como CALLEE a la offer remota');
+                    await joinAndAnswer(rid, recheckOffer.offer);
+                  } else {
+                    console.log('[AutoJoin] 💪 Mantengo CALLER: El otro peer cederá (mi ID es menor)');
+                    // El otro peer tiene clientId mayor, él detectará y cederá
+                    // Yo continúo esperando su answer
                   }
-                  pcRef.current?.close();
-                  
-                  // Esperar 200ms y responder como CALLEE
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                  await joinAndAnswer(rid, recheckOffer.offer);
                 } else {
-                  console.log('[AutoJoin] 💪 Mantengo CALLER: El otro peer cederá');
-                  // El otro peer detectará el conflicto y cederá
+                  // Es mi propia offer, todo normal - continuar esperando answer
+                  console.log('[AutoJoin] ℹ️ Mi offer sigue activa, esperando answer...');
                 }
               } catch (parseErr) {
                 console.warn('[AutoJoin] Error parseando offer para glare detection:', parseErr);
@@ -1099,6 +1150,57 @@ export default function ReunionPage() {
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     pcRef.current?.close();
   }, []);
+
+  // 🔥 GOOGLE MEET OPTIMIZATION: Pre-warming de media stream
+  // Obtener permisos y stream ANTES de que usuario haga clic en "Unirse"
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const prewarmMedia = async () => {
+      // Esperar 500ms para no interrumpir carga inicial de página
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (localStreamRef.current) {
+        // Ya hay stream, no es necesario pre-warm
+        return;
+      }
+      
+      try {
+        console.log('[Prewarm] 🔥 Iniciando pre-warming de media...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        
+        // Aplicar estado inicial de toggles
+        stream.getAudioTracks().forEach(t => t.enabled = micOn);
+        stream.getVideoTracks().forEach(t => t.enabled = cameraOn);
+        
+        localStreamRef.current = stream;
+        
+        // Mostrar video local INMEDIATAMENTE (Early Media)
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          console.log('[Prewarm] ✅ Video local mostrado instantáneamente');
+        }
+        
+        // Cargar dispositivos con labels
+        await loadDevices();
+        
+        console.log('[Prewarm] ✅ Pre-warming completado - listo para conexión instantánea');
+      } catch (err) {
+        // Usuario puede denegar permisos o no tener cámara - no es crítico
+        console.log('[Prewarm] ℹ️ Pre-warming omitido:', err);
+      }
+    };
+    
+    const prewarmTimeout = setTimeout(prewarmMedia, 0);
+    
+    return () => {
+      clearTimeout(prewarmTimeout);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo al montar el componente - micOn/cameraOn son estado inicial
 
   // Leer parámetros y configurar sala de espera / ACL
   useEffect(() => {
