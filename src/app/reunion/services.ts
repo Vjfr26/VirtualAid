@@ -70,22 +70,26 @@ export const sendHeartbeat = (roomId: string, messages: ChatMessage[]) =>
     body: JSON.stringify({ messages }) 
   });
 
-// 8. Confirmar conexión WebRTC (marca asistencia automática)
+// 8. Resetear negociación de sala (limpiar offer/answer/candidates para reconexión)
+export const resetRoom = (roomId: string) =>
+  api<{ ok: true; reset: boolean }>(`reunion/${roomId}/reset`, { method: 'POST' });
+
+// 9. Confirmar conexión WebRTC (marca asistencia automática)
 export const confirmConnection = (roomId: string) =>
   api<{ ok: true }>(`reunion/${roomId}/confirm-connection`, { method: 'POST' });
 
-// 9. Listar salas activas
+// 10. Listar salas activas
 export const listRooms = (openOnly = false) => 
   api<{ rooms: RoomInfo[] }>(`reunion/rooms${openOnly ? '?open=true' : ''}`);
 
-// 10. Finalizar chat y guardar historial completo
+// 11. Finalizar chat y guardar historial completo
 export const finalizarChat = (roomId: string, messages: ChatMessage[]) =>
   api<{ saved: boolean; path: string }>(`reunion/${roomId}/finalizar`, { 
     method: 'POST', 
     body: JSON.stringify({ messages }) 
   });
 
-// 10. Eliminar sala en cache
+// 12. Eliminar sala en cache
 export const deleteRoom = (roomId: string) =>
   api<{ ok: true; deleted: boolean }>(`reunion/${roomId}`, { method: 'DELETE' });
 

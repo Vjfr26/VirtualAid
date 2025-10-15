@@ -117,86 +117,7 @@ export default function ReunionPage() {
     });
   };
 
-  // Función robusta para autoasignar rol y conectar
-  const autoJoinRoom = async (rid: string) => {
-    console.log(`[AutoJoin] Iniciando autoJoinRoom para sala: ${rid}`);
 
-    if (isJoining) {
-      console.log(`[AutoJoin] ⚠️ Ya hay una conexión en progreso, cancelando...`);
-      return;
-    }
-
-    setIsJoining(true);
-    setJoinError("");
-    setRoomId(rid);
-    setDcState('connecting');
-    setConnState('new');
-
-    try {
-      let shouldBeCallee = false;
-      const forcedRole = autoParams?.who === 'doctor' ? 'caller' : autoParams?.who === 'patient' ? 'callee' : null;
-      if (forcedRole) {
-        console.log(`[AutoJoin] Rol forzado por parámetros: ${forcedRole}`);
-      }
-      let prefersCallerRole = forcedRole === 'caller' || !!autoParams?.did;
-
-      if (!prefersCallerRole && forcedRole === null && typeof window !== 'undefined') {
-        try {
-          const sessionRaw = localStorage.getItem('session');
-          if (sessionRaw) {
-            const sessionObj = JSON.parse(sessionRaw);
-            if (sessionObj?.tipo === 'medico' || sessionObj?.medico) {
-              prefersCallerRole = true;
-            }
-          }
-        } catch {}
-      }
-      let prefetchedOffer: string | null = null;
-
-      try {
-        const remoteState = await getState(rid);
-        console.log('[AutoJoin] Estado remoto recibido:', remoteState);
-        if (remoteState?.hasOffer) {
-          shouldBeCallee = true;
-        }
-      } catch (err) {
-        console.log('[AutoJoin] No fue posible obtener el estado de la sala:', err);
-      }
-
-      if (!shouldBeCallee) {
-        try {
-          const offerResponse = await getOffer(rid);
-          console.log('[AutoJoin] Respuesta de getOffer:', offerResponse);
-          if (offerResponse?.offer) {
-            prefetchedOffer = offerResponse.offer;
-            shouldBeCallee = true;
-          }
-        } catch (err) {
-          console.log('[AutoJoin] Error al consultar la oferta existente:', err);
-        }
-      }
-
-      if (prefersCallerRole && shouldBeCallee) {
-        console.log(`[AutoJoin] ⚠️ Oferta/respuesta previa detectada, pero se forzó rol caller (${forcedRole ?? 'auto-detect'}); creando nueva oferta`);
-        shouldBeCallee = false;
-        prefetchedOffer = null;
-      }
-
-      if (shouldBeCallee) {
-        console.log('[AutoJoin] Detectada oferta existente; actuando como CALLEE');
-        await joinAndAnswer(rid, prefetchedOffer);
-      } else {
-        console.log('[AutoJoin] No hay oferta previa; actuando como CALLER');
-        await startAsCaller(rid);
-      }
-    } catch (e) {
-      console.error(`[AutoJoin] Error en autoJoinRoom:`, e);
-      setJoinError('No se pudo conectar. Intenta de nuevo.');
-    } finally {
-      setIsJoining(false);
-      console.log(`[AutoJoin] ✅ autoJoinRoom completado, liberando flag`);
-    }
-  };
   const handleSidebarToggle = (panel: 'chat' | 'participants') => {
     setSidebarVisible(true);
     if (panel === 'chat') {
@@ -371,13 +292,24 @@ export default function ReunionPage() {
       } catch {}
     }
     
+    // Configuración optimizada tipo Google Meet/Jitsi
     const pc = new RTCPeerConnection({ 
       iceServers: [
+        // Google STUN servers (múltiples para alta disponibilidad)
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // Servidores STUN alternativos para mayor robustez
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:stun.services.mozilla.com:3478' },
+        { urls: 'stun:stun.stunprotocol.org:3478' }
       ],
-      iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 10
+      iceTransportPolicy: 'all',       // Probar todas las rutas
+      iceCandidatePoolSize: 10,        // Pre-generar candidates
+      bundlePolicy: 'max-bundle',      // Un solo transport para todo
+      rtcpMuxPolicy: 'require'         // RTP+RTCP en mismo puerto
     });
   pcRef.current = pc;
 
@@ -389,12 +321,33 @@ export default function ReunionPage() {
     };
     
     pc.oniceconnectionstatechange = () => {
-      console.log(`[WebRTC] 🔌 ${fromRole}: ${pc.iceConnectionState}`);
-      if (pc.iceConnectionState === 'failed') {
-        console.error(`[WebRTC] ❌ Conexión fallida - ¿Ambos dispositivos en la misma IP?`);
+      const state = pc.iceConnectionState;
+      console.log(`[WebRTC] 🔌 ${fromRole} ICE: ${state}`);
+      
+      if (state === 'failed') {
+        console.error(`[WebRTC] ❌ ICE failed - Intentando ICE restart...`);
+        // ICE restart automático (como Google Meet)
+        if (pc.signalingState === 'stable') {
+          pc.restartIce();
+          console.log(`[WebRTC] 🔄 ICE restart iniciado`);
+        }
       }
-      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        console.log(`[WebRTC] ✅ ¡Conectado exitosamente!`);
+      
+      if (state === 'disconnected') {
+        console.warn(`[WebRTC] ⚠️ ICE disconnected - esperando reconexión...`);
+        // Esperar 3 segundos antes de intentar restart
+        setTimeout(() => {
+          if (pc.iceConnectionState === 'disconnected') {
+            console.log(`[WebRTC] 🔄 Sigue desconectado, intentando restart...`);
+            if (pc.signalingState === 'stable') {
+              pc.restartIce();
+            }
+          }
+        }, 3000);
+      }
+      
+      if (state === 'connected' || state === 'completed') {
+        console.log(`[WebRTC] ✅ ICE ${state} - Conexión P2P establecida!`);
       }
     };
     
@@ -516,22 +469,25 @@ export default function ReunionPage() {
         };
       };
     }
-    // Polling de ICE candidates con límite de intentos (P2P optimizado)
-    // Backend hace la inversión: si pido for='caller', me da candidates del 'callee'
-    console.log(`[SetupPeer] ${fromRole} iniciando polling P2P de candidates`);
+    // Polling ULTRA-AGRESIVO de ICE candidates (Trickle ICE optimizado)
+    console.log(`[SetupPeer] ⚡ ${fromRole} iniciando Trickle ICE ultra-rápido`);
     
     let candidatePollAttempts = 0;
-    const MAX_CANDIDATE_POLL_ATTEMPTS = 30; // 30 segundos máximo
-    let lastCandidateTimestamp = 0; // Timestamp en milisegundos del último candidate procesado
+    let consecutiveEmptyPolls = 0;
+    const MAX_CANDIDATE_POLL_ATTEMPTS = 60; // 60 segundos máximo (aumentado)
+    const MAX_EMPTY_POLLS = 12; // Más intentos antes de detener
+    let lastCandidateTimestamp = 0;
     let candidatesProcessed = 0;
+    let pollInterval = 200; // MUCHO MÁS RÁPIDO: 200ms (5 req/seg al inicio)
     
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
-    candidatePollingRef.current = setInterval(async () => {
+    
+    const pollCandidates = async () => {
       candidatePollAttempts++;
       
-      // Si ya está conectado, detener polling
+      // 1. Si ya conectó, detener
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        console.log(`[SetupPeer] ✅ Conexión P2P establecida, deteniendo polling (procesados: ${candidatesProcessed} candidates)`);
+        console.log(`[SetupPeer] ✅ P2P establecido, deteniendo polling (${candidatesProcessed} candidates procesados en ${candidatePollAttempts} intentos)`);
         if (candidatePollingRef.current) {
           clearInterval(candidatePollingRef.current);
           candidatePollingRef.current = null;
@@ -539,24 +495,28 @@ export default function ReunionPage() {
         return;
       }
       
-      // Si alcanzó el máximo de intentos, detener
+      // 2. Si timeout general, detener
       if (candidatePollAttempts >= MAX_CANDIDATE_POLL_ATTEMPTS) {
-        console.warn(`[SetupPeer] ⏱️ Timeout P2P: ${MAX_CANDIDATE_POLL_ATTEMPTS}s sin conexión (procesados: ${candidatesProcessed} candidates)`);
+        console.warn(`[SetupPeer] ⏱️ Timeout: ${MAX_CANDIDATE_POLL_ATTEMPTS} intentos sin conexión`);
         if (candidatePollingRef.current) {
           clearInterval(candidatePollingRef.current);
           candidatePollingRef.current = null;
         }
-        
-        // Mostrar diagnóstico del timeout
-        console.error(`[SetupPeer] ❌ Timeout conexión P2P después de ${MAX_CANDIDATE_POLL_ATTEMPTS}s`);
-        console.error(`[SetupPeer] Estado: connectionState=${pc.connectionState}, iceConnectionState=${pc.iceConnectionState}`);
-        console.error(`[SetupPeer] Candidates procesados: ${candidatesProcessed}`);
+        console.error(`[SetupPeer] ❌ Diagnóstico: connectionState=${pc.connectionState}, iceConnectionState=${pc.iceConnectionState}, candidates=${candidatesProcessed}`);
+        return;
+      }
+      
+      // 3. Si muchos polls sin candidates nuevos, detener (el otro peer ya terminó de enviar)
+      if (consecutiveEmptyPolls >= MAX_EMPTY_POLLS) {
+        console.log(`[SetupPeer] 🛑 Deteniendo polling: ${MAX_EMPTY_POLLS} intentos sin candidates nuevos (total procesados: ${candidatesProcessed})`);
+        if (candidatePollingRef.current) {
+          clearInterval(candidatePollingRef.current);
+          candidatePollingRef.current = null;
+        }
         return;
       }
       
       try {
-        // Usar filtro 'since' SOLO si ya procesamos algunos candidates
-        // Esto evita enviar el mismo timestamp una y otra vez
         const sinceParam = lastCandidateTimestamp > 0 
           ? new Date(lastCandidateTimestamp).toISOString() 
           : undefined;
@@ -564,41 +524,61 @@ export default function ReunionPage() {
         const cands = await getCandidates(rid, fromRole, sinceParam);
         
         if (cands.candidates.length > 0) {
-          console.log(`[SetupPeer] ${fromRole} recibió ${cands.candidates.length} candidates nuevos (total: ${candidatesProcessed + cands.candidates.length})`);
-        }
-        
-        for (const c of cands.candidates) {
-          const key = JSON.stringify(c);
-          if (!addedCandidates.has(key)) {
-            if (remoteSet) {
-              try { 
-                await pc.addIceCandidate(new RTCIceCandidate(c));
-                candidatesProcessed++;
-                console.log(`[SetupPeer] ✅ Candidate ${candidatesProcessed} agregada (${fromRole})`); 
-              } catch (err) { 
-                console.warn(`[SetupPeer] ❌ Error agregando candidate:`, err); 
+          consecutiveEmptyPolls = 0; // Reset contador
+          console.log(`[SetupPeer] 📥 ${cands.candidates.length} candidates nuevos (total: ${candidatesProcessed + cands.candidates.length})`);
+          
+          for (const c of cands.candidates) {
+            const key = JSON.stringify(c);
+            if (!addedCandidates.has(key)) {
+              if (remoteSet) {
+                try { 
+                  await pc.addIceCandidate(new RTCIceCandidate(c));
+                  candidatesProcessed++;
+                  console.log(`[SetupPeer] ✅ Candidate #${candidatesProcessed} agregada`); 
+                } catch (err) { 
+                  console.warn(`[SetupPeer] ⚠️ Error agregando candidate:`, err); 
+                }
+              } else {
+                console.log(`[SetupPeer] 📦 Candidate bufferizada`);
+                candidateBuffer.push(c);
               }
-            } else {
-              console.log(`[SetupPeer] 📦 Candidate bufferizada (esperando setRemoteDescription)`);
-              candidateBuffer.push(c);
-            }
-            addedCandidates.add(key);
-            
-            // Actualizar timestamp con el del candidate (viene del backend)
-            if ((c as any).timestamp) {
-              const candTimestamp = typeof (c as any).timestamp === 'number' 
-                ? (c as any).timestamp 
-                : new Date((c as any).timestamp).getTime();
-              if (candTimestamp > lastCandidateTimestamp) {
-                lastCandidateTimestamp = candTimestamp;
+              addedCandidates.add(key);
+              
+              if ((c as any).timestamp) {
+                const candTimestamp = typeof (c as any).timestamp === 'number' 
+                  ? (c as any).timestamp 
+                  : new Date((c as any).timestamp).getTime();
+                if (candTimestamp > lastCandidateTimestamp) {
+                  lastCandidateTimestamp = candTimestamp;
+                }
               }
             }
           }
+          
+          // Mantener polling ultra-rápido mientras hay actividad
+          if (pollInterval > 200) {
+            pollInterval = 200; // Volver a velocidad máxima
+            if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+            candidatePollingRef.current = setInterval(pollCandidates, pollInterval);
+            console.log(`[SetupPeer] ⚡ Polling acelerado a 200ms (actividad detectada)`);
+          }
+        } else {
+          consecutiveEmptyPolls++;
+          
+          // Desacelerar MUCHO MÁS LENTAMENTE para no perder candidates tardíos
+          if (candidatePollAttempts > 20 && pollInterval < 1500) {
+            pollInterval = Math.min(pollInterval + 100, 1500); // Max 1.5s (no 2s)
+            if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+            candidatePollingRef.current = setInterval(pollCandidates, pollInterval);
+          }
         }
       } catch (err) {
-        console.error(`[SetupPeer] Error en polling P2P (intento ${candidatePollAttempts}):`, err);
+        console.error(`[SetupPeer] Error en polling (intento ${candidatePollAttempts}):`, err);
       }
-    }, 1000);
+    };
+    
+    // Iniciar polling adaptativo
+    candidatePollingRef.current = setInterval(pollCandidates, pollInterval);
     
     return {
       pc,
@@ -866,9 +846,10 @@ export default function ReunionPage() {
     const flushCandidates = peerObj.setRemote;
     
     let answerPollAttempts = 0;
-    const MAX_ANSWER_POLL_ATTEMPTS = 30; // 30 segundos máximo esperando answer
+    const MAX_ANSWER_POLL_ATTEMPTS = 60; // 60 segundos para answer (más tiempo)
     
     if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+    // Polling MUY RÁPIDO de answer (cada 300ms = ~3 req/seg)
     answerPollingRef.current = setInterval(async () => {
       answerPollAttempts++;
       
@@ -911,8 +892,89 @@ export default function ReunionPage() {
       } catch (err) {
         console.error(`[CALLER] Error en polling de answer (intento ${answerPollAttempts}):`, err);
       }
-    }, 1000);
+    }, 300); // ⚡ ULTRA-RÁPIDO: 300ms polling
   }, [setupPeer, ensureLocalStream, sendPresence, localId]);
+
+  // Función optimizada: "El PRIMERO que llega es el CALLER"
+  // Esto asegura conexión rápida sin importar quién sea médico o paciente
+  const autoJoinRoom = useCallback(async (rid: string) => {
+    console.log(`[AutoJoin] 🚀 Iniciando conexión P2P para sala: ${rid}`);
+
+    if (isJoining) {
+      console.log(`[AutoJoin] ⚠️ Ya hay una conexión en progreso, cancelando...`);
+      return;
+    }
+
+    setIsJoining(true);
+    setJoinError("");
+    setRoomId(rid);
+    setDcState('connecting');
+    setConnState('new');
+
+    try {
+      // 1. Verificar estado de la sala y detectar negociación antigua
+      let existingOffer: string | null = null;
+      let shouldBeCallee = false;
+      let needsReset = false;
+
+      try {
+        const remoteState = await getState(rid);
+        console.log('[AutoJoin] Estado de la sala:', remoteState);
+        
+        // Si hay OFFER Y ANSWER, es una negociación completada anterior (ambos se desconectaron)
+        if (remoteState?.hasOffer && remoteState?.hasAnswer) {
+          console.warn('[AutoJoin] ⚠️ Negociación completa detectada (offer + answer). Ambos usuarios se desconectaron.');
+          needsReset = true;
+        }
+        // Si solo hay OFFER sin ANSWER, es una negociación en progreso válida
+        else if (remoteState?.hasOffer && !remoteState?.hasAnswer) {
+          try {
+            const offerResponse = await getOffer(rid);
+            if (offerResponse?.offer) {
+              existingOffer = offerResponse.offer;
+              shouldBeCallee = true;
+              console.log('[AutoJoin] ✅ Oferta válida detectada (sin answer) → Seré CALLEE');
+            }
+          } catch (err) {
+            console.warn('[AutoJoin] Error obteniendo offer:', err);
+          }
+        }
+      } catch (err) {
+        console.log('[AutoJoin] No hay estado previo en la sala:', err);
+      }
+
+      // 2. Si necesita reset, limpiar antes de continuar
+      if (needsReset) {
+        try {
+          const { resetRoom } = await import('./services');
+          await resetRoom(rid);
+          console.log('[AutoJoin] 🧹 Sala limpiada (negociación antigua eliminada)');
+          // Después de limpiar, no hay offer válida
+          existingOffer = null;
+          shouldBeCallee = false;
+        } catch (resetErr) {
+          console.warn('[AutoJoin] ⚠️ Error limpiando sala:', resetErr);
+        }
+      }
+
+      // 3. Decidir rol basado en existencia de oferta VÁLIDA
+      if (shouldBeCallee && existingOffer) {
+        // HAY OFERTA VÁLIDA → Soy el segundo, respondo como CALLEE
+        console.log('[AutoJoin] 📞 Rol asignado: CALLEE (el otro peer llegó primero)');
+        await joinAndAnswer(rid, existingOffer);
+      } else {
+        // NO HAY OFERTA o fue reseteada → Soy el primero, creo oferta como CALLER
+        console.log('[AutoJoin] 📡 Rol asignado: CALLER (soy el primero en la sala)');
+        await startAsCaller(rid);
+      }
+    } catch (e) {
+      console.error(`[AutoJoin] ❌ Error en autoJoinRoom:`, e);
+      setJoinError('No se pudo conectar. Intenta de nuevo.');
+    } finally {
+      setIsJoining(false);
+      console.log(`[AutoJoin] ✅ Proceso completado`);
+    }
+  }, [isJoining, joinAndAnswer, startAsCaller]);
 
   // Reconectar en la misma sala reintentando la negociación
   const reconnect = useCallback(async () => {
@@ -924,7 +986,16 @@ export default function ReunionPage() {
     console.log(`[Reconnect] 🔄 Iniciando reconexión para sala: ${roomId}`);
     setReconnecting(true);
     try {
-      // limpiar polling y conexiones actuales
+      // 1. LIMPIAR la negociación anterior en el servidor (crítico para evitar conflicto de roles)
+      try {
+        const { resetRoom } = await import('./services');
+        await resetRoom(roomId);
+        console.log(`[Reconnect] 🧹 Sala limpiada, lista para nueva negociación`);
+      } catch (resetErr) {
+        console.warn(`[Reconnect] ⚠️ Error limpiando sala (continuando):`, resetErr);
+      }
+      
+      // 2. Limpiar polling y conexiones locales
       if (answerPollingRef.current) { clearInterval(answerPollingRef.current); answerPollingRef.current = null; }
       if (candidatePollingRef.current) { clearInterval(candidatePollingRef.current); candidatePollingRef.current = null; }
       try { dataChannelRef.current?.close(); } catch {}
@@ -933,120 +1004,20 @@ export default function ReunionPage() {
       pcRef.current = null;
       setDcState('connecting');
       setConnState('new');
-      const role = roleRef.current;
-      if (role === 'caller') {
-        // como caller: crear nueva oferta en la misma sala
-        const peerObj = setupPeer(roomId, 'caller');
-        const pc = peerObj.pc;
-        const stream = localStreamRef.current || await ensureLocalStream();
-      if (stream) stream.getTracks().forEach((t: MediaStreamTrack) => pc.addTrack(t, stream));
-        const dc = pc.createDataChannel('chat');
-        dataChannelRef.current = dc;
-        dc.onopen = () => { 
-          console.log(`[Reconnect-CALLER] ✅ DataChannel ABIERTO`);
-          setDcState('open'); 
-          sendPresence(); 
-        };
-        dc.onclose = () => { 
-          console.log(`[Reconnect-CALLER] ❌ DataChannel CERRADO`);
-          setDcState('closed'); 
-        };
-        dc.onerror = () => { 
-          console.log(`[Reconnect-CALLER] ⚠️ DataChannel ERROR`);
-          setDcState('error'); 
-        };
-        dc.onmessage = (msgEvt: MessageEvent) => { 
-          console.log(`[Reconnect-CALLER] 💬 Mensaje recibido:`, msgEvt.data);
-          try {
-            const incoming = JSON.parse(msgEvt.data);
-            if (incoming && incoming.meta === 'presence' && incoming.participant) {
-              setParticipants((prev: ParticipantData[]) => {
-                const pIn = incoming.participant;
-                const idxById = pIn.id ? prev.findIndex((p: ParticipantData) => p.id === pIn.id) : -1;
-                if (idxById >= 0) {
-                  const copy = [...prev];
-                  const prevItem = copy[idxById];
-                  copy[idxById] = { ...prevItem, id: pIn.id ?? prevItem.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted, isYou: prevItem.id === localId || prevItem.isYou };
-                  return copy;
-                }
-                if (!pIn.id) {
-                  const idxByName = prev.findIndex((p: ParticipantData) => p.name === pIn.name);
-                  if (idxByName >= 0) {
-                    const copy = [...prev];
-                    const prevItem = copy[idxByName];
-                    copy[idxByName] = { ...prevItem, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted };
-                    return copy;
-                  }
-                }
-                return [...prev, { id: pIn.id, name: pIn.name, avatar: pIn.avatar, isMuted: !!pIn.isMuted } as ParticipantData];
-              });
-              sendPresence();
-            } else if (incoming && (incoming.type === 'text' || incoming.type === 'file')) {
-              setMessages((prev: Message[]) => [...prev, incoming]);
-              setParticipants((prev: ParticipantData[]) => prev.some((p: ParticipantData) => p.name === incoming.sender) ? prev : [...prev, { name: incoming.sender, avatar: incoming.avatar, isMuted: false } as ParticipantData]);
-            }
-          } catch {} 
-        };
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await postOffer(roomId, JSON.stringify(offer));
-        // reiniciar polling de answer y candidates con límites
-        if (answerPollingRef.current) clearInterval(answerPollingRef.current);
-        if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
-        
-        let reconnectAnswerAttempts = 0;
-        const MAX_RECONNECT_ANSWER_ATTEMPTS = 20;
-        
-        answerPollingRef.current = setInterval(async () => {
-          reconnectAnswerAttempts++;
-          if (reconnectAnswerAttempts >= MAX_RECONNECT_ANSWER_ATTEMPTS) {
-            console.error(`[Reconnect] ⏱️ Timeout esperando answer`);
-            if (answerPollingRef.current) {
-              clearInterval(answerPollingRef.current);
-              answerPollingRef.current = null;
-            }
-            return;
-          }
-          try {
-            const ans = await getAnswer(roomId);
-            if (ans.answer && pc.signalingState !== 'stable') {
-              await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(ans.answer)));
-              if (answerPollingRef.current) {
-                clearInterval(answerPollingRef.current);
-                answerPollingRef.current = null;
-              }
-            }
-          } catch {}
-        }, 1000);
-        
-        let reconnectCandidateAttempts = 0;
-        const MAX_RECONNECT_CANDIDATE_ATTEMPTS = 20;
-        
-        candidatePollingRef.current = setInterval(async () => {
-          reconnectCandidateAttempts++;
-          if (reconnectCandidateAttempts >= MAX_RECONNECT_CANDIDATE_ATTEMPTS || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-            if (reconnectCandidateAttempts >= MAX_RECONNECT_CANDIDATE_ATTEMPTS) {
-              console.warn(`[Reconnect] ⏱️ Timeout polling candidates`);
-            }
-            if (candidatePollingRef.current) {
-              clearInterval(candidatePollingRef.current);
-              candidatePollingRef.current = null;
-            }
-            return;
-          }
-          try {
-            const cands = await getCandidates(roomId, 'caller');
-            for (const c of cands.candidates) { try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {} }
-          } catch {}
-        }, 1000);
-      } else {
-        // callee o desconocido: reintentar unirse
-        await joinAndAnswer(roomId);
-      }
+      
+      // 3. Usar autoJoinRoom para renegociar con roles FRESCOS
+      // Esto garantiza que quien reconecte primero será CALLER (independiente del rol anterior)
+      console.log(`[Reconnect] 🚀 Reiniciando negociación con asignación dinámica de roles`);
+      await autoJoinRoom(roomId);
+      
+    } catch (err) {
+      console.error(`[Reconnect] ❌ Error en reconexión:`, err);
+      setJoinError('Error al reconectar. Intenta de nuevo.');
     } finally {
       setReconnecting(false);
+      console.log(`[Reconnect] ✅ Proceso de reconexión finalizado`);
     }
-  }, [roomId, reconnecting, isJoining, setupPeer, ensureLocalStream, sendPresence, joinAndAnswer, localId]);
+  }, [roomId, reconnecting, isJoining, autoJoinRoom]);
 
   useEffect(() => () => {
     if (answerPollingRef.current) clearInterval(answerPollingRef.current);
