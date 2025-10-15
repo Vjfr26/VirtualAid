@@ -41,9 +41,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ room
     }
   }
   
-  // Limpiar los candidates que ya se leyeron (del otro peer)
-  if (who === 'caller') room.candidates.callee = [];
-  else room.candidates.caller = [];
+  // P2P: NO limpiar los candidates - ambos peers necesitan acceso a ellos
+  // Los candidates se limpiarán cuando se cierre/elimine la sala
+  console.log(`[API-CANDIDATES] 📤 Enviando ${out.length} candidates (total en cache: ${cands.length})`);
   
   return NextResponse.json({ candidates: out });
 }
