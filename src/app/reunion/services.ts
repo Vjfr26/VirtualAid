@@ -7,7 +7,21 @@ const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   });
-  if (!res.ok) throw new Error(`Error ${res.status}`);
+  if (!res.ok) {
+    const error = new Error(`Error ${res.status}`) as any;
+    error.status = res.status;
+    
+    // Intentar obtener detalles del error del body
+    try {
+      const errorData = await res.json();
+      error.data = errorData;
+      if (errorData.message) error.message = errorData.message;
+    } catch {
+      // Body no es JSON, usar mensaje genérico
+    }
+    
+    throw error;
+  }
   return res.json();
 };
 

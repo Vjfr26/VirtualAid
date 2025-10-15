@@ -53,6 +53,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ roo
   }
   
   const rec = getOrCreateRoom(roomId);
+  
+  // 🔒 PROTECCIÓN CONTRA SOBRESCRITURA: First-come-first-served
+  if (rec.offer && !rec.answer) {
+    // Ya hay una offer sin answer - verificar si es del mismo cliente
+    try {
+      const existingOffer = JSON.parse(rec.offer);
+      const existingClientId = existingOffer.clientId;
+      
+      if (existingClientId && clientId && existingClientId !== clientId) {
+        // Hay offer de OTRO cliente - rechazar esta offer
+        console.warn(`[API-OFFER] ⚠️ RECHAZADO: Ya hay offer de ${existingClientId}`);
+        console.warn(`[API-OFFER] Nuevo cliente ${clientId} debe ser CALLEE`);
+        return NextResponse.json({ 
+          message: 'Offer already exists from another client',
+          existingClientId,
+          shouldBeCallee: true 
+        }, { status: 409 }); // 409 Conflict
+      }
+      
+      // Es del mismo cliente (reintento) - permitir sobrescritura
+      console.log(`[API-OFFER] ℹ️ Sobrescribiendo offer del mismo cliente ${clientId}`);
+    } catch {
+      // Offer antigua sin clientId - permitir sobrescritura
+      console.log(`[API-OFFER] ℹ️ Sobrescribiendo offer antigua sin clientId`);
+    }
+  }
+  
   rec.offer = sdp;
   
   console.log(`[API-OFFER] ✅ Offer guardada exitosamente en sala ${roomId}`);

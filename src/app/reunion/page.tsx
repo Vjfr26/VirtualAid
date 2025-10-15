@@ -847,7 +847,22 @@ export default function ReunionPage() {
     
     try {
       await postOffer(rid, offerJSON, myClientId);
-    } catch (err) {
+    } catch (err: any) {
+      // 🔒 Si recibimos 409 Conflict, otro cliente ya envió offer
+      if (err?.status === 409 || err?.message?.includes('already exists')) {
+        console.warn(`[CALLER] ⚠️ Offer rechazada: Otro cliente ya es CALLER`);
+        console.warn(`[CALLER] 🔄 Cerrando intento de CALLER, obtendré offer remota`);
+        
+        // Cerrar este intento de conexión
+        pc.close();
+        pcRef.current = null;
+        
+        // Retornar error especial para que autoJoinRoom cambie a CALLEE
+        const error = new Error('OFFER_CONFLICT') as any;
+        error.shouldBeCallee = true;
+        throw error;
+      }
+      
       console.error(`[WebRTC] Error enviando offer:`, err);
       throw err;
     }
@@ -998,10 +1013,29 @@ export default function ReunionPage() {
         await joinAndAnswer(rid, existingOffer);
       } else {
         // NO HAY OFERTA → Intentar ser CALLER
-        console.log('[AutoJoin] � Rol: CALLER (creando offer)');
+        console.log('[AutoJoin] 📞 Rol: CALLER (creando offer)');
         
         // CRITICAL: Enviar offer con clientId para desempate
-        await startAsCaller(rid, myClientId);
+        try {
+          await startAsCaller(rid, myClientId);
+        } catch (err: any) {
+          // 🔒 Si backend rechazó offer (409), otro cliente ya es CALLER
+          if (err?.shouldBeCallee || err?.message === 'OFFER_CONFLICT') {
+            console.warn('[AutoJoin] 🔄 Offer rechazada por backend - cambiando a CALLEE');
+            
+            // Obtener la offer del otro cliente y responder
+            const offerResponse = await getOffer(rid);
+            if (offerResponse?.offer) {
+              console.log('[AutoJoin] 📞 Respondiendo como CALLEE a offer existente');
+              await joinAndAnswer(rid, offerResponse.offer);
+              return; // Conexión iniciada como CALLEE
+            } else {
+              console.error('[AutoJoin] ❌ Backend dijo que hay offer pero no la encontré');
+              throw new Error('Offer conflict pero no hay offer disponible');
+            }
+          }
+          throw err; // Re-lanzar otros errores
+        }
         
         // 🚀 GOOGLE MEET OPTIMIZATION: Race entre Answer y Glare Check
         // No desperdiciar 800ms si answer llega antes
