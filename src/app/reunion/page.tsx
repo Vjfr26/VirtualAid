@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneMissed, FiMessageSquare, FiUsers, FiMoreVertical, FiPaperclip, FiSend, FiFileText, FiMonitor } from 'react-icons/fi';
 import { postOffer, getOffer, postAnswer, getAnswer, postCandidate, getCandidates, finalizarChat, listRooms, roomLink, roomLinkWithName, getUsuario, getMedico, extractDisplayName, getState } from './services';
-import Footer from '../components/Footer';
 import DiagnosticPanel from './DiagnosticPanel';
 
 
@@ -40,6 +39,35 @@ const Participant = ({ name, avatar, isMuted }: ParticipantProps) => (
     </div>
   </li>
 );
+
+const buildResponsiveVideoConstraints = (deviceId?: string): MediaTrackConstraints => {
+  if (typeof window === 'undefined') {
+    return deviceId ? { deviceId: { exact: deviceId } } : { width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: 16 / 9 };
+  }
+
+  const minWidth = 640;
+  const minHeight = 360;
+  const maxWidth = 1920;
+  const maxHeight = 1080;
+  const targetWidth = Math.min(Math.max(window.innerWidth, minWidth), maxWidth);
+  const targetHeight = Math.min(Math.max(window.innerHeight, minHeight), maxHeight);
+  const aspectRatio = targetWidth / targetHeight;
+
+  const constraints: MediaTrackConstraints = {
+    width: { ideal: targetWidth, max: maxWidth },
+    height: { ideal: targetHeight, max: maxHeight },
+  };
+
+  if (Number.isFinite(aspectRatio)) {
+    constraints.aspectRatio = aspectRatio;
+  }
+
+  if (deviceId) {
+    constraints.deviceId = { exact: deviceId };
+  }
+
+  return constraints;
+};
 
 export default function ReunionPage() {
   // Identidad local y avatar derivado del nombre
@@ -601,7 +629,7 @@ export default function ReunionPage() {
         console.log(`[Media] Intentando obtener stream con dispositivos específicos...`);
         let constraints: MediaStreamConstraints = {
           audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true,
-          video: selectedVideoId ? { deviceId: { exact: selectedVideoId } } : true,
+          video: buildResponsiveVideoConstraints(selectedVideoId),
         };
         
         let stream: MediaStream | null = null;
@@ -612,7 +640,7 @@ export default function ReunionPage() {
         } catch (specificErr) {
           console.warn(`[Media] ⚠️ Error con dispositivos específicos, intentando valores por defecto:`, specificErr);
           // Fallback a dispositivos por defecto
-          constraints = { audio: true, video: true };
+          constraints = { audio: true, video: buildResponsiveVideoConstraints() };
           try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             console.log(`[Media] ✅ Stream obtenido con dispositivos por defecto`);
@@ -671,7 +699,7 @@ export default function ReunionPage() {
       try {
         const constraints: MediaStreamConstraints = {
           audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true,
-          video: selectedVideoId ? { deviceId: { exact: selectedVideoId } } : true,
+          video: buildResponsiveVideoConstraints(selectedVideoId),
         };
         const newStream = await navigator.mediaDevices.getUserMedia(constraints);
         // aplicar toggles
@@ -1202,7 +1230,7 @@ export default function ReunionPage() {
       try {
         console.log('[Prewarm] 🔥 Iniciando pre-warming de media...');
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: buildResponsiveVideoConstraints(),
           audio: true
         });
         
@@ -1547,9 +1575,9 @@ export default function ReunionPage() {
         )}
         <main className="flex-1 flex overflow-hidden">
           {/* Área de video */}
-          <section className="flex-1 relative bg-black flex items-center justify-center">
-            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain bg-black" />
-            <video ref={localVideoRef} autoPlay muted playsInline className="absolute bottom-4 right-4 w-40 h-28 bg-black rounded shadow-lg object-cover border border-gray-700" />
+          <section className="flex-1 relative bg-black overflow-hidden flex items-center justify-center">
+            <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
+            <video ref={localVideoRef} autoPlay muted playsInline className="absolute bottom-4 right-4 w-36 h-24 md:w-40 md:h-28 bg-black/70 rounded-lg shadow-lg object-cover border border-gray-700/80" />
           </section>
           {/* Sidebar expandible/colapsable */}
           <aside className={`w-80 bg-gray-900 p-4 flex flex-col transition-all duration-300 ${sidebarVisible ? 'block' : 'hidden'}`} style={{ minWidth: sidebarVisible ? 320 : 0 }}>
@@ -1852,20 +1880,27 @@ export default function ReunionPage() {
   {/* Overlay único; el botón de unión se habilita según la hora/oferta */}
       
       {/* Footer de controles principal */}
-      <footer className="bg-gray-900 p-4 flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <span className="text-sm">{roomId ? `Sala: ${roomId}` : 'Sin sala'}</span>
-      <span className="text-xs text-gray-400">RTC: {connState} | DC: {dcState}</span>
-    </div>
-        <div className="flex items-center gap-4">
+      <footer className="bg-gray-900/90 border-t border-gray-800 px-4 py-3 md:px-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-300">
+          <span className="font-medium text-gray-100 leading-tight">{roomId ? `Sala: ${roomId}` : 'Sin sala activa'}</span>
+          <span className="text-gray-400">RTC: {connState}</span>
+          <span className="text-gray-400">DC: {dcState}</span>
+        </div>
+
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           {roomId && !isJoining && (connState === 'failed' || connState === 'disconnected' || connState === 'closed' || dcState === 'closed' || dcState === 'error') && (
-            <button onClick={reconnect} disabled={reconnecting} className={`px-3 py-2 rounded ${reconnecting ? 'bg-gray-700 text-gray-400' : 'bg-amber-600 hover:bg-amber-700'} text-sm`}>
+            <button
+              onClick={reconnect}
+              disabled={reconnecting}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${reconnecting ? 'bg-gray-700 text-gray-400' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}
+            >
               {reconnecting ? 'Reconectando…' : 'Reconectar'}
             </button>
           )}
-          {/* Botón crear sala eliminado: creación manual deshabilitada */}
           {roomId && (
-            <button onClick={leaveRoom} className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">Salir</button>
+            <button onClick={leaveRoom} className="px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-xs font-medium">
+              Salir
+            </button>
           )}
           <button
             onClick={async () => {
@@ -1875,30 +1910,49 @@ export default function ReunionPage() {
                 await stopScreenShare();
               }
             }}
-            className={`p-3 rounded-full ${isScreenSharing ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+            className={`h-10 w-10 flex items-center justify-center rounded-full transition ${isScreenSharing ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-gray-100'}`}
             title={isScreenSharing ? 'Detener compartir pantalla' : 'Compartir pantalla'}
             disabled={!roomId}
           >
             <FiMonitor />
           </button>
-          <button onClick={toggleMic} className={`p-3 rounded-full ${micOn ? 'bg-gray-600' : 'bg-red-500'}`}>
+          <button
+            onClick={toggleMic}
+            className={`h-10 w-10 flex items-center justify-center rounded-full transition ${micOn ? 'bg-gray-600 hover:bg-gray-700 text-gray-100' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+            title={micOn ? 'Silenciar micrófono' : 'Activar micrófono'}
+          >
             {micOn ? <FiMic /> : <FiMicOff />}
           </button>
-          <button onClick={toggleCamera} className={`p-3 rounded-full ${cameraOn ? 'bg-gray-600' : 'bg-red-500'}`}>
+          <button
+            onClick={toggleCamera}
+            className={`h-10 w-10 flex items-center justify-center rounded-full transition ${cameraOn ? 'bg-gray-600 hover:bg-gray-700 text-gray-100' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+            title={cameraOn ? 'Apagar cámara' : 'Encender cámara'}
+          >
             {cameraOn ? <FiVideo /> : <FiVideoOff />}
           </button>
-          <button onClick={handleEndCall} className="p-3 rounded-full bg-red-500 hover:bg-red-600" title="Finalizar y guardar chat">
+          <button
+            onClick={handleEndCall}
+            className="h-11 w-11 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white transition"
+            title="Finalizar y guardar chat"
+          >
             <FiPhoneMissed />
           </button>
         </div>
-        <div className="flex items-center gap-4">
-            <button className="text-gray-400 hover:text-white">
-                <FiMoreVertical />
-            </button>
+
+        <div className="flex items-center justify-end gap-2 text-gray-400 text-xs">
+          <button className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 transition">
+            <FiMoreVertical />
+          </button>
         </div>
       </footer>
-      
-      <Footer  borderColor="transparent" background="transparent" />
+
+      <div className="bg-gray-900/80 border-t border-gray-800 px-4 py-3 text-[0.7rem] sm:text-xs text-gray-400 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <span>© {new Date().getFullYear()} VirtualAid. Comunicación médica cifrada y privada.</span>
+        <div className="flex items-center gap-3">
+          <a href="/P&T/privacy" className="hover:text-white transition-colors">Privacidad</a>
+          <a href="/P&T/terms" className="hover:text-white transition-colors">Términos</a>
+        </div>
+      </div>
       
       {/* Panel de diagnóstico WebRTC */}
       <DiagnosticPanel
