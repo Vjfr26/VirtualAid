@@ -23,6 +23,8 @@ interface MeetingItemProps {
   canJoin: boolean;
   medicoInfo?: MedicoResumen; // Nueva prop para información completa del médico
   onRequestJoin: () => void;
+  onViewArchive: () => void;
+  archiveLoading?: boolean;
 }
 
 export default function MeetingItem({ 
@@ -32,6 +34,8 @@ export default function MeetingItem({
   canJoin,
   medicoInfo,
   onRequestJoin,
+  onViewArchive,
+  archiveLoading,
 }: MeetingItemProps) {
   const { t, i18n } = useTranslation('common');
   const fechaReunion = new Date(reunion.fecha);
@@ -147,6 +151,23 @@ export default function MeetingItem({
         
         {/* Acciones */}
         <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={onViewArchive}
+              disabled={archiveLoading}
+              className={`px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1.5 border text-sm ${
+                archiveLoading
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-progress'
+                  : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100'
+              }`}
+              title={t('view_chat_archive_tooltip', 'Ver resumen de la cita')}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a2 2 0 00-.586-1.414l-4.414-4.414A2 2 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span>{archiveLoading ? t('loading', 'Cargando...') : t('view_chat_archive_button', 'Archivo')}</span>
+            </button>
+
           {reunion.archivo ? (
             <a
               href={reunion.archivo?.startsWith('/perfiles/') ? reunion.archivo : `/storage/${reunion.archivo}`}

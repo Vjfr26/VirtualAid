@@ -1894,7 +1894,7 @@ export default function ReunionPage() {
               disabled={reconnecting}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${reconnecting ? 'bg-gray-700 text-gray-400' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}
             >
-              {reconnecting ? 'Reconectando…' : 'Reconectar'}
+              {reconnecting ? 'Reconectando...' : 'Reconectar'}
             </button>
           )}
           {roomId && (

@@ -61,15 +61,44 @@ type SelectedMeetingState = {
   canJoin: boolean;
 };
 
+type ChatArchivePayload = {
+  savedAt?: string;
+  saved_at?: string;
+  meeting?: Record<string, unknown>;
+  cita?: Record<string, unknown>;
+  appointment?: Record<string, unknown>;
+  chatHistory?: unknown[];
+  history?: unknown[];
+  messages?: unknown[];
+  [key: string]: unknown;
+};
+
+type ChatModalState = {
+  meeting: ProcessedMeeting;
+  roomId?: string;
+  status: 'loading' | 'success' | 'error';
+  data?: ChatArchivePayload;
+  error?: string;
+  pagoRelacionado?: MeetingsListProps['pagos'][number];
+};
+
+type NormalizedChatMessage = {
+  id: string;
+  author?: string;
+  timestamp?: string;
+  text: string;
+};
+
 export default function MeetingsList({ 
   citasAgendadas, 
   reuniones, 
   pagos, 
   setVista 
 }: MeetingsListProps) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [especialistas, setEspecialistas] = useState<MedicoResumen[]>([]);
   const [selectedMeeting, setSelectedMeeting] = useState<SelectedMeetingState | null>(null);
+  const [chatModal, setChatModal] = useState<ChatModalState | null>(null);
 
   useEffect(() => {
     const cargarEspecialistas = async () => {
@@ -84,13 +113,13 @@ export default function MeetingsList({
   }, []);
 
   useEffect(() => {
-    if (!selectedMeeting || typeof document === 'undefined') return;
+    if ((!selectedMeeting && !chatModal) || typeof document === 'undefined') return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [selectedMeeting]);
+  }, [selectedMeeting, chatModal]);
 
   // Función para encontrar el avatar del médico por nombre
   const encontrarAvatarMedico = (nombreMedico: string): string | undefined => {
@@ -216,6 +245,195 @@ export default function MeetingsList({
   const goToPayments = () => {
     setSelectedMeeting(null);
     setVista('pagos');
+  };
+
+  const closeChatModal = () => setChatModal(null);
+
+  const extractMessagesFromPayload = (payload?: ChatArchivePayload): unknown[] => {
+    if (!payload) return [];
+    const candidates = [
+      payload.chatHistory,
+      payload.history,
+      payload.messages,
+      (payload as unknown as { chat?: unknown[] }).chat,
+    ];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate;
+    }
+    return [];
+  };
+
+  const extractMeetingDetails = (payload?: ChatArchivePayload): Record<string, unknown> | null => {
+    if (!payload) return null;
+    const candidates = [payload.meeting, payload.cita, payload.appointment];
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+        return candidate as Record<string, unknown>;
+      }
+    }
+    return null;
+  };
+
+  const extractSavedAt = (payload?: ChatArchivePayload): string | null => {
+    if (!payload) return null;
+    const raw = payload.savedAt ?? payload.saved_at ?? (payload as Record<string, unknown>)['saved_at_iso'];
+    if (typeof raw === 'string' && raw.trim().length > 0) return raw;
+    if (typeof raw === 'number') return new Date(raw).toISOString();
+    return null;
+  };
+
+  const normalizeChatMessages = (raw: unknown[]): NormalizedChatMessage[] => {
+    return raw.map((item, index) => {
+      const id = `msg-${index}`;
+
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        return { id, text: trimmed.length > 0 ? trimmed : item };
+      }
+
+      if (typeof item === 'number' || typeof item === 'boolean') {
+        return { id, text: String(item) };
+      }
+
+      if (Array.isArray(item)) {
+        const text = item
+          .map((entry) => {
+            if (typeof entry === 'string') return entry;
+            if (typeof entry === 'number' || typeof entry === 'boolean') return String(entry);
+            try {
+              return JSON.stringify(entry);
+            } catch {
+              return '[sin contenido]';
+            }
+          })
+          .join(' ')
+          .trim();
+        return { id, text: text.length > 0 ? text : '[sin contenido]' };
+      }
+
+      if (item && typeof item === 'object') {
+        const record = item as Record<string, unknown>;
+        const payload = typeof record.payload === 'object' && record.payload !== null
+          ? (record.payload as Record<string, unknown>)
+          : undefined;
+
+        const takeValue = (source: Record<string, unknown> | undefined, keys: string[]): string | undefined => {
+          if (!source) return undefined;
+          for (const key of keys) {
+            if (!(key in source)) continue;
+            const candidate = source[key];
+            if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+            if (typeof candidate === 'number' && Number.isFinite(candidate)) return String(candidate);
+            if (typeof candidate === 'boolean') return candidate ? 'true' : 'false';
+          }
+          return undefined;
+        };
+
+        let text = takeValue(record, ['text', 'message', 'content', 'body', 'detalle', 'resumen']);
+        if (!text) text = takeValue(payload, ['text', 'message', 'content']);
+        if (!text) {
+          try {
+            const serialized = JSON.stringify(record, null, 2);
+            text = serialized && serialized !== '{}' ? serialized : undefined;
+          } catch {
+            text = undefined;
+          }
+        }
+
+        const author = takeValue(record, ['author', 'from', 'sender', 'user', 'role', 'participant', 'emisor']);
+        let timestamp = takeValue(record, ['timestamp', 'time', 'date', 'createdAt', 'created_at', 'savedAt', 'saved_at']);
+        if (!timestamp) timestamp = takeValue(payload, ['timestamp', 'time', 'date']);
+
+        if (timestamp && /^\d+$/.test(timestamp)) {
+          const numericValue = Number(timestamp);
+          if (!Number.isNaN(numericValue)) {
+            timestamp = new Date(numericValue).toISOString();
+          }
+        }
+
+        return { id, author, timestamp, text: text ?? '[sin contenido]' };
+      }
+
+      try {
+        return { id, text: JSON.stringify(item) };
+      } catch {
+        return { id, text: '[sin contenido]' };
+      }
+    });
+  };
+
+  const formatTimestampForDisplay = (value?: string | null): string | undefined => {
+    if (typeof value !== 'string' || value.trim().length === 0) return undefined;
+    const trimmed = value.trim();
+    const locale = i18n?.language || undefined;
+
+    if (/^\d{10,}$/.test(trimmed)) {
+      const numericValue = Number(trimmed);
+      if (!Number.isNaN(numericValue)) {
+        const inferred = new Date(numericValue);
+        if (!Number.isNaN(inferred.getTime())) {
+          return inferred.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+        }
+      }
+    }
+
+    const fromDate = new Date(trimmed);
+    if (!Number.isNaN(fromDate.getTime())) {
+      return fromDate.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    return trimmed;
+  };
+
+  const openChatArchive = async (
+    meeting: ProcessedMeeting,
+    pagoRelacionado?: MeetingsListProps['pagos'][number]
+  ) => {
+    const roomId =
+      extractToken(meeting) ||
+      extractToken(meeting.reunionCoincidente) ||
+      extractToken(meeting.citaOriginal) ||
+      extractToken(pagoRelacionado);
+
+    if (!roomId) {
+      setChatModal({
+        meeting,
+        status: 'error',
+        error: t('chat_archive_missing_room', 'No se encontró la sala asociada a esta reunión.'),
+        pagoRelacionado,
+      });
+      return;
+    }
+
+    setChatModal({ meeting, roomId, status: 'loading', pagoRelacionado });
+
+    try {
+      const response = await fetch(`/api/reunion/${encodeURIComponent(roomId)}/chat`, { cache: 'no-store' });
+      if (!response.ok) {
+        let serverMessage: string | undefined;
+        try {
+          const errorBody = await response.json();
+          serverMessage = typeof errorBody?.message === 'string' ? errorBody.message : undefined;
+        } catch {
+          const text = await response.text().catch(() => '');
+          serverMessage = text?.trim().length ? text : undefined;
+        }
+        throw new Error(serverMessage || t('chat_archive_request_failed', 'No se pudo obtener el archivo de la reunión.'));
+      }
+
+      const data = (await response.json()) as ChatArchivePayload;
+
+      setChatModal((prev) => {
+        if (!prev || prev.roomId !== roomId) return prev;
+        return { ...prev, status: 'success', data };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('chat_archive_generic_error', 'No se pudo cargar el archivo de la reunión.');
+      setChatModal((prev) => {
+        if (!prev || prev.roomId !== roomId) return prev;
+        return { ...prev, status: 'error', error: message };
+      });
+    }
   };
 
   const handleJoinNow = () => {
@@ -363,6 +581,12 @@ export default function MeetingsList({
                          esp.nombre.toLowerCase() === meeting.medico.toLowerCase();
                 });
 
+                const archiveLoading = Boolean(
+                  chatModal &&
+                  chatModal.meeting.id === meeting.id &&
+                  chatModal.status === 'loading'
+                );
+
                 return (
                   <MeetingItem
                     key={meeting.id}
@@ -371,9 +595,12 @@ export default function MeetingsList({
                     pagado={pagado}
                     canJoin={canJoin}
                     medicoInfo={medicoInfo}
+                    archiveLoading={archiveLoading}
+                    onViewArchive={() => openChatArchive(meeting, pagoRelacionado)}
                     onRequestJoin={() => setSelectedMeeting({ meeting, pagoRelacionado, pagado, canJoin })}
                   />
                 );
+                
               })}
             </div>
           )}
@@ -493,6 +720,177 @@ export default function MeetingsList({
                       >
                         {t('go_to_payment', 'Ir a pagar')}
                       </button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {chatModal && (
+        <div
+          className="fixed inset-0 z-[11500] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          onClick={closeChatModal}
+        >
+          <div
+            className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeChatModal}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+              aria-label={t('close_modal', 'Cerrar')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 className="text-lg font-semibold text-gray-900 pr-10">
+              {t('chat_archive_title', 'Archivo de la cita')}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {t('chat_archive_subtitle', 'Consulta el historial y los datos guardados de tu reunión médica.')}
+            </p>
+
+            {chatModal.status === 'loading' && (
+              <div className="py-12 flex flex-col items-center gap-3 text-gray-600">
+                <div className="h-10 w-10 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin" aria-hidden="true" />
+                <span>{t('chat_archive_loading', 'Recuperando historial...')}</span>
+              </div>
+            )}
+
+            {chatModal.status === 'error' && (
+              <div className="mt-6 space-y-4">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {chatModal.error || t('chat_archive_generic_error', 'No se pudo cargar el archivo de la reunión.')}
+                  {chatModal.roomId && (
+                    <div className="mt-1 text-xs text-red-600">
+                      {t('chat_archive_room_label', 'Sala')}: {chatModal.roomId}
+                    </div>
+                  )}
+                </div>
+                {chatModal.roomId && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => openChatArchive(chatModal.meeting, chatModal.pagoRelacionado)}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
+                    >
+                      {t('retry', 'Reintentar')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {chatModal.status === 'success' && (() => {
+              const meetingDate = new Date(chatModal.meeting.fecha);
+              const savedAtRaw = extractSavedAt(chatModal.data);
+              const savedAtDisplay = formatTimestampForDisplay(savedAtRaw);
+              const messageItems = normalizeChatMessages(extractMessagesFromPayload(chatModal.data));
+              const meetingDetails = extractMeetingDetails(chatModal.data);
+              const detailEntries = meetingDetails
+                ? Object.entries(meetingDetails)
+                    .filter(([_, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+                    .slice(0, 8)
+                : [];
+
+              return (
+                <>
+                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 grid gap-4 sm:grid-cols-2 text-sm text-gray-700">
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('chat_archive_room_label', 'Sala')}</p>
+                      <p className="font-semibold text-gray-900 break-all">{chatModal.roomId ?? t('chat_archive_room_unknown', 'No disponible')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('saved_at', 'Guardado el')}</p>
+                      <p className="font-semibold text-gray-900">{savedAtDisplay ?? t('chat_archive_saved_unknown', 'Sin registro')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('meeting_date', 'Fecha de la cita')}</p>
+                      <p className="font-semibold text-gray-900">
+                        {meetingDate.toLocaleDateString(i18n?.language || undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('time', 'Hora')}</p>
+                      <p className="font-semibold text-gray-900">{chatModal.meeting.hora}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('doctor', 'Doctor')}</p>
+                      <p className="font-semibold text-gray-900">{t('doctor_short', 'Dr.')} {chatModal.meeting.medico}</p>
+                    </div>
+                    {chatModal.meeting.especialidad && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-gray-500">{t('specialty', 'Especialidad')}</p>
+                        <p className="font-semibold text-gray-900">{chatModal.meeting.especialidad}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-gray-500">{t('chat_archive_messages_count', 'Mensajes')}</p>
+                      <p className="font-semibold text-gray-900">{messageItems.length}</p>
+                    </div>
+                  </div>
+
+                  {detailEntries.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-gray-200 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase text-gray-500 mb-2">{t('chat_archive_additional_details', 'Datos de la cita')}</p>
+                      <dl className="grid gap-3 sm:grid-cols-2 text-sm text-gray-700">
+                        {detailEntries.map(([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <dt className="text-xs uppercase tracking-wide text-gray-500">{key}</dt>
+                            <dd className="font-medium text-gray-900 break-words">{String(value)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+
+                  {chatModal.meeting.archivo && (
+                    <div className="mt-4">
+                      <a
+                        href={chatModal.meeting.archivo.startsWith('/perfiles/') ? chatModal.meeting.archivo : `/storage/${chatModal.meeting.archivo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        {t('chat_archive_download_file', 'Descargar informe')}
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="mt-6">
+                    <p className="text-sm font-semibold text-gray-800 mb-3">{t('chat_archive_history_title', 'Historial de chat')}</p>
+                    {messageItems.length === 0 ? (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                        {t('chat_archive_no_messages', 'No se registraron mensajes durante la cita.')}
+                      </div>
+                    ) : (
+                      <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                        {messageItems.map((msg) => (
+                          <div key={msg.id} className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                              <span className="font-semibold text-gray-700">{msg.author ?? t('chat_archive_unknown_author', 'Participante')}</span>
+                              {msg.timestamp && <span>{formatTimestampForDisplay(msg.timestamp)}</span>}
+                            </div>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                              {msg.text === '[sin contenido]' ? t('chat_archive_message_empty', 'Mensaje sin contenido') : msg.text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </>
