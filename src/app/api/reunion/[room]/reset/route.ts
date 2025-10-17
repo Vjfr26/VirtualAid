@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory cache para las salas de reunión
-const rooms = new Map<string, {
-  roomId: string;
-  offer: string | null;
-  answer: string | null;
-  candidates: { caller: RTCIceCandidateInit[]; callee: RTCIceCandidateInit[] };
-  messages: any[];
-  createdAt: Date;
-  lastHeartbeat: Date;
-}>();
+import { getOrCreateRoom, getStore } from '../../_store';
 
 /**
  * POST /api/reunion/[room]/reset
@@ -28,20 +18,19 @@ export async function POST(
       return NextResponse.json({ error: 'roomId requerido' }, { status: 400 });
     }
 
-    const room = rooms.get(rid);
+    const store = getStore();
+    let room = store.rooms.get(rid);
     
     if (!room) {
       // Si la sala no existe, crearla vacía (para que pueda iniciar negociación)
       console.log(`[API Reset] Sala ${rid} no existe, creando nueva`);
-      rooms.set(rid, {
-        roomId: rid,
-        offer: null,
-        answer: null,
-        candidates: { caller: [], callee: [] },
-        messages: [],
-        createdAt: new Date(),
-        lastHeartbeat: new Date()
-      });
+      room = getOrCreateRoom(rid);
+      room.offer = null;
+      room.answer = null;
+      room.candidates.caller = [];
+      room.candidates.callee = [];
+      room.messages = [];
+      room.lastHeartbeat = Date.now();
       return NextResponse.json({ ok: true, created: true });
     }
 
@@ -53,7 +42,10 @@ export async function POST(
     room.answer = null;
     room.candidates.caller = [];
     room.candidates.callee = [];
-    room.lastHeartbeat = new Date();
+    room.lastHeartbeat = Date.now();
+    if (!room.messages) {
+      room.messages = [];
+    }
 
     console.log(`[API Reset] ✅ Sala ${rid} reseteada y lista para nueva negociación`);
 
@@ -71,6 +63,3 @@ export async function POST(
     );
   }
 }
-
-// Exportar rooms para que otros endpoints lo usen
-export { rooms };

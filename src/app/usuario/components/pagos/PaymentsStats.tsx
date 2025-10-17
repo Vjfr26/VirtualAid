@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import { isPagoCompletado } from './paymentStatus';
 
 interface PaymentsStatsProps {
   pagos: Array<{ 
@@ -14,8 +15,8 @@ interface PaymentsStatsProps {
 export default function PaymentsStats({ pagos }: PaymentsStatsProps) {
   const { t } = useTranslation('common');
 
-  const pagosPagados = pagos.filter(p => !p.estado.toLowerCase().includes('no pagado'));
-  const pagosPendientes = pagos.filter(p => p.estado.toLowerCase().includes('no pagado'));
+  const pagosPagados = pagos.filter(p => isPagoCompletado(p.estado));
+  const pagosPendientes = pagos.filter(p => !isPagoCompletado(p.estado));
   const totalPagado = pagosPagados.reduce((acc, p) => acc + Number(p.monto || 0), 0);
   const totalPendiente = pagosPendientes.reduce((acc, p) => acc + Number(p.monto || 0), 0);
 

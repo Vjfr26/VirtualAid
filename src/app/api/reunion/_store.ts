@@ -8,6 +8,7 @@ type RoomRecord = {
   offer?: string | null;
   answer?: string | null;
   candidates: { caller: Candidate[]; callee: Candidate[] };
+  messages?: unknown[];
   lastHeartbeat?: number; // Timestamp del último heartbeat
   connectionConfirmed?: boolean; // Si se confirmó la conexión WebRTC
 };
@@ -27,9 +28,20 @@ export function getStore(): Store {
 export function getOrCreateRoom(roomId: string): RoomRecord {
   const store = getStore();
   if (!store.rooms.has(roomId)) {
-    store.rooms.set(roomId, { roomId, createdAt: Date.now(), offer: null, answer: null, candidates: { caller: [], callee: [] } });
+    store.rooms.set(roomId, {
+      roomId,
+      createdAt: Date.now(),
+      offer: null,
+      answer: null,
+      candidates: { caller: [], callee: [] },
+      messages: [],
+    });
   }
-  return store.rooms.get(roomId)!;
+  const record = store.rooms.get(roomId)!;
+  if (!record.messages) {
+    record.messages = [];
+  }
+  return record;
 }
 
 export function jsonOk<T>(data: T, init?: ResponseInit) {

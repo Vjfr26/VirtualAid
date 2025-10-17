@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import { isPagoCompletado } from './paymentStatus';
 
 interface PaymentRowProps {
   pago: {
@@ -35,8 +36,7 @@ export default function PaymentRow({
 }: PaymentRowProps) {
   const { t } = useTranslation('common');
   
-  const estadoNorm = pago.estado.toLowerCase();
-  const esPagado = !estadoNorm.includes('no pagado');
+  const esPagado = isPagoCompletado(pago.estado);
 
   const handleMarcarGratis = async () => {
     try {

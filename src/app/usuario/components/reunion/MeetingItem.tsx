@@ -18,97 +18,23 @@ interface MeetingItemProps {
     token?: string;
     medicoAvatar?: string; // Nueva prop para el avatar del médico
   };
-  reuniones: Array<{ fecha: string; medico: string; hora: string; archivo?: string | null; tokenSala?: string; idRoom?: string }>;
-  pagos: Array<{ 
-    id: number;
-    fecha: string;
-    fechaRaw: string; 
-    medico: string; 
-    especialidad?: string;
-    monto: number;
-    estado: string;
-    idRoom?: string;
-    tokenSala?: string;
-  }>;
   esReciente: boolean;
+  pagado: boolean;
   canJoin: boolean;
   medicoInfo?: MedicoResumen; // Nueva prop para información completa del médico
+  onRequestJoin: () => void;
 }
 
 export default function MeetingItem({ 
   reunion, 
-  reuniones, 
-  pagos, 
   esReciente, 
+  pagado,
   canJoin,
-  medicoInfo
+  medicoInfo,
+  onRequestJoin,
 }: MeetingItemProps) {
   const { t, i18n } = useTranslation('common');
   const fechaReunion = new Date(reunion.fecha);
-
-  const handleJoinMeeting = () => {
-    if (!canJoin) return;
-    
-    // Construir URL con token de sala (si disponible) y hora de inicio
-    const getRoomToken = (obj: unknown): string | undefined => {
-      if (!obj || typeof obj !== 'object') return undefined;
-      const o = obj as Record<string, unknown>;
-      // aceptar variantes y limpiar espacios
-      const val = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined);
-      const token = val(o.token);
-      const idRoom = val(o.idRoom) || val((o as Record<string, unknown>)['id_room']);
-      const tokenSala = val(o.tokenSala) || val((o as Record<string, unknown>)['token_sala']);
-      if (token) return token; // prioridad al campo 'token' de la cita
-      if (idRoom) return idRoom;
-      if (tokenSala) return tokenSala;
-      return undefined;
-    };
-    
-    const reunionCoincidente = reuniones.find(r => 
-      r.medico === reunion.medico && 
-      r.hora === reunion.hora && 
-      new Date(r.fecha).toDateString() === new Date(reunion.fecha).toDateString()
-    );
-    
-    const pagoCoincidente = pagos.find(p => p.medico === reunion.medico);
-    // Resolver tokens desde cada posible fuente para loguear su origen
-    const tokenFromCita = getRoomToken(reunion);
-    const tokenFromReunion = getRoomToken(reunionCoincidente);
-    const tokenFromPago = getRoomToken(pagoCoincidente);
-    // Priorizar: token/idRoom/tokenSala de la cita (reunion), luego reuniónCoincidente y pago
-    const tokenSala = tokenFromCita || tokenFromReunion || tokenFromPago;
-
-    // Logs de diagnóstico solicitados
-    try {
-      // Info breve
-      console.log('[Reunión] Solicitando token', {
-        medico: reunion.medico,
-        fecha: reunion.fecha,
-        hora: reunion.hora,
-      });
-      // Detalle de fuentes
-      console.log('[Reunión] Tokens encontrados', {
-        tokenFromCita,
-        tokenFromReunion,
-        tokenFromPago,
-        tokenUsado: tokenSala,
-      });
-    } catch {}
-    const startAtISO = new Date(reunion.fecha).toISOString();
-    const url = new URL('/reunion', window.location.origin);
-    
-    if (tokenSala) url.searchParams.set('room', tokenSala);
-    url.searchParams.set('startAt', startAtISO);
-    url.searchParams.set('who', 'patient');
-    
-    // Abrir en nueva pestaña
-    if (typeof window !== 'undefined') {
-      try {
-        console.log('[Reunión] URL de unión construida', url.toString());
-      } catch {}
-      window.open(url.toString(), '_blank');
-    }
-  };
 
   return (
     <div className={`p-6 hover:bg-gray-50 transition-colors ${esReciente ? 'bg-green-25' : ''}`}>
@@ -245,13 +171,11 @@ export default function MeetingItem({
           {/* Botón para unirse a la reunión */}
           <button
             type="button"
-            disabled={!canJoin}
-            onClick={handleJoinMeeting}
-            title={canJoin ? '' : t('join_meeting_unavailable')}
+            onClick={onRequestJoin}
             className={`px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1.5 border text-sm ${
-              canJoin 
+              pagado 
                 ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
-                : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,6 +183,16 @@ export default function MeetingItem({
             </svg>
             <span>{t('join_meeting')}</span>
           </button>
+          {!pagado && (
+            <span className="text-xs text-orange-600 text-center">
+              {t('meeting_payment_pending', 'Pago pendiente para habilitar la reunión')}
+            </span>
+          )}
+          {pagado && !canJoin && (
+            <span className="text-xs text-gray-500 text-center">
+              {t('join_meeting_unavailable')}
+            </span>
+          )}
         </div>
       </div>
     </div>

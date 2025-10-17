@@ -33,6 +33,7 @@ import {
   ReunionView,
   PaymentsView,
 } from './components';
+import { isPagoCompletado } from './components/pagos/paymentStatus';
 
 // Datos iniciales mínimos para evitar layout shift mientras carga
 import type { MedicoResumen } from './services/medicos';
@@ -345,7 +346,7 @@ export default function DashboardPaciente() {
   const pagosOrdenados = (() => {
     const copia = [...pagos];
     const factor = pagosSort.dir === 'asc' ? 1 : -1;
-    return copia.sort((a,b) => {
+    const comparar = (a: typeof copia[number], b: typeof copia[number]) => {
       const k = pagosSort.key;
       if (k === 'monto') {
         const am = typeof a.monto === 'number' ? a.monto : parseFloat(String(a.monto));
@@ -360,7 +361,12 @@ export default function DashboardPaciente() {
       const va: string = k === 'medico' ? a.medico : a.estado;
       const vb: string = k === 'medico' ? b.medico : b.estado;
       return va.localeCompare(vb) * factor;
-    });
+    };
+
+    const pendientes = copia.filter(p => !isPagoCompletado(p.estado)).sort(comparar);
+    const pagados = copia.filter(p => isPagoCompletado(p.estado)).sort(comparar);
+
+    return [...pendientes, ...pagados];
   })();
   const toggleSort = (key: 'fecha' | 'medico' | 'monto' | 'estado') => {
     setPagosSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
@@ -635,7 +641,8 @@ export default function DashboardPaciente() {
         fecha: `${yyyy}-${mm}-${dd}`,
         hora: horaSeleccionada,
       };
-      await crearCita(payload);
+      const nuevaCita = await crearCita(payload);
+      const nuevaCitaId = nuevaCita?.id != null ? String(nuevaCita.id) : null;
       // Refrescar citas y pagos desde el backend
       const [citas, pagosUsuario] = await Promise.all([
         getCitasDeUsuario(usuario.email),
@@ -661,8 +668,8 @@ export default function DashboardPaciente() {
             ultimoRecordatorioEnviado: ultimoRecordatorio,
           };
       });
-  setCitasAgendadas(ordenarCitas(citasFmtRaw));
-    setPagos(pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string }; cita: TCita | null }) => {
+      setCitasAgendadas(ordenarCitas(citasFmtRaw));
+      const pagosNormalizados = pagosUsuario.map(({ pago, cita }: { pago: { id: number; fecha_pago?: string | null; monto: number; estado: string; tokenSala?: string; idRoom?: string; cita_id?: number | string }; cita: TCita | null }) => {
         const baseFecha = cita?.fecha || pago.fecha_pago || '';
         const baseHora = cita?.hora || null;
         const parsed = combinarFechaHoraLocal(baseFecha, baseHora);
@@ -680,8 +687,17 @@ export default function DashboardPaciente() {
           estado: pago.estado,
           tokenSala: pago.tokenSala,
           idRoom: pago.idRoom,
-    };
-  }));      
+          citaId: cita?.id ?? pago.cita_id,
+        };
+      });
+      setPagos(pagosNormalizados.map(({ citaId, ...rest }) => rest));
+
+      const pagoPendiente = nuevaCitaId
+        ? pagosNormalizados.find(({ citaId }) => citaId != null && String(citaId) === nuevaCitaId)
+        : undefined;
+      if (pagoPendiente) {
+        setTimeout(() => abrirModalPago(pagoPendiente.id), 0);
+      }
       // Reset selección
       setHoraSeleccionada('');
       setFecha(null);
@@ -975,6 +991,7 @@ const loadPaypalSdk = useCallback(() => {
           if (cap?.status && cap.status.toLowerCase() === 'completed') {
             addToast(t('toasts.payment_completed'), 'success');
             await refreshPagos();
+            cerrarModalPago({ skipReminder: true });
             if (cap.tokenSala) {
               try {
                 const url = new URL(window.location.origin + '/reunion');
@@ -1071,11 +1088,28 @@ const loadPaypalSdk = useCallback(() => {
     document.body.style.pointerEvents = 'none';
   };
 
-  const cerrarModalPago = () => {
+  const cerrarModalPago = (options?: { skipReminder?: boolean }) => {
+    const selectedBeforeClose = pagoSeleccionado;
     setMostrarModalPago(false);
     setPagoSeleccionado(null);
     document.body.style.overflow = 'unset';
     document.body.style.pointerEvents = 'auto';
+
+    if (options?.skipReminder) {
+      return;
+    }
+
+    if (selectedBeforeClose != null) {
+      const pago = pagos.find(p => p.id === selectedBeforeClose);
+      const estado = typeof pago?.estado === 'string' ? pago.estado.toLowerCase() : '';
+      const isPaid = estado === 'pagado' || estado === 'paid' || estado === 'completed';
+      if (!isPaid) {
+        addToast(
+          t('toasts.payment_required_to_join', 'Debes completar el pago para acceder a la reunión.'),
+          'info'
+        );
+      }
+    }
   };
   useEffect(() => {
       // Solo ejecutar si hay email de usuario
@@ -2172,12 +2206,12 @@ const loadPaypalSdk = useCallback(() => {
         )}
       <Footer color="oklch(12.9% 0.042 264.695)" background="" className="shadow-lg rounded-b-lg bg-white/70" style={{ padding: '2rem'}}/>
       {mostrarModalPago && pagoSeleccionado != null && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto" onClick={cerrarModalPago}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto" onClick={() => cerrarModalPago()}>
           <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <button
               type="button"
               className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800 transition cursor-pointer border border-gray-100 shadow z-10"
-              onClick={cerrarModalPago}
+              onClick={() => cerrarModalPago()}
               aria-label={t('close_modal') || 'Cerrar'}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
