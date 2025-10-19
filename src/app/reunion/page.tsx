@@ -105,6 +105,13 @@ export default function ReunionPage() {
   const [isJoining, setIsJoining] = useState<boolean>(false);
   const answerPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const candidatePollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Sistema de auto-reconexión inteligente (Google Meet style)
+  const [reconnectAttempts, setReconnectAttempts] = useState<number>(0);
+  const [lastConnectionTime, setLastConnectionTime] = useState<number>(0);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectionHealthCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('excellent');
+  const autoReconnectRef = useRef<((reason: 'failed' | 'disconnected' | 'timeout' | 'ice-failed') => Promise<void>) | null>(null);
   // Screen share
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -352,30 +359,56 @@ export default function ReunionPage() {
       const state = pc.iceConnectionState;
       console.log(`[WebRTC] 🔌 ${fromRole} ICE: ${state}`);
       
-      if (state === 'failed') {
-        console.error(`[WebRTC] ❌ ICE failed - Intentando ICE restart...`);
-        // ICE restart automático (como Google Meet)
-        if (pc.signalingState === 'stable') {
-          pc.restartIce();
-          console.log(`[WebRTC] 🔄 ICE restart iniciado`);
-        }
+      // Actualizar calidad de conexión según estado ICE
+      if (state === 'connected' || state === 'completed') {
+        console.log(`[WebRTC] ✅ ICE ${state} - Conexión P2P establecida!`);
+        setConnectionQuality('excellent');
+        setReconnectAttempts(0); // Reset de contador en conexión exitosa
+        setLastConnectionTime(Date.now());
+      }
+      
+      if (state === 'checking') {
+        setConnectionQuality('good');
       }
       
       if (state === 'disconnected') {
         console.warn(`[WebRTC] ⚠️ ICE disconnected - esperando reconexión...`);
-        // Esperar 3 segundos antes de intentar restart
+        setConnectionQuality('poor');
+        
+        // Esperar 5 segundos antes de intentar restart
         setTimeout(() => {
           if (pc.iceConnectionState === 'disconnected') {
-            console.log(`[WebRTC] 🔄 Sigue desconectado, intentando restart...`);
+            console.log(`[WebRTC] 🔄 Sigue desconectado tras 5s, intentando restart...`);
             if (pc.signalingState === 'stable') {
               pc.restartIce();
+            } else {
+              // Si no podemos hacer ICE restart, trigger full reconnect
+              autoReconnectRef.current?.('disconnected');
             }
           }
-        }, 3000);
+        }, 5000);
       }
       
-      if (state === 'connected' || state === 'completed') {
-        console.log(`[WebRTC] ✅ ICE ${state} - Conexión P2P establecida!`);
+      if (state === 'failed') {
+        console.error(`[WebRTC] ❌ ICE failed - Trigger auto-reconexión...`);
+        setConnectionQuality('disconnected');
+        
+        // Intentar ICE restart primero
+        if (pc.signalingState === 'stable') {
+          pc.restartIce();
+          console.log(`[WebRTC] 🔄 ICE restart iniciado`);
+          
+          // Si ICE restart no funciona en 8s, full reconnect
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'failed') {
+              console.error(`[WebRTC] ICE restart falló, iniciando reconexión completa`);
+              autoReconnectRef.current?.('ice-failed');
+            }
+          }, 8000);
+        } else {
+          // Si no podemos hacer restart, reconexión inmediata
+          autoReconnectRef.current?.('ice-failed');
+        }
       }
     };
     
@@ -384,16 +417,41 @@ export default function ReunionPage() {
     let remoteSet = false;
     
     pc.onconnectionstatechange = () => {
-      setConnState(pc.connectionState);
+      const state = pc.connectionState;
+      setConnState(state);
+      console.log(`[WebRTC] 🔌 Connection state: ${state}`);
       
-      if (pc.connectionState === 'connected') {
+      if (state === 'connected') {
         console.log(`[WebRTC] ✅ Conexión establecida`);
+        setConnectionQuality('excellent');
+        setReconnectAttempts(0); // Reset contador
+        setLastConnectionTime(Date.now());
+        
         import('./services').then(({ confirmConnection }) => {
           confirmConnection(rid).catch(() => {});
         });
       }
       
-      if (["connected","failed","disconnected","closed"].includes(pc.connectionState)) {
+      if (state === 'failed') {
+        console.error(`[WebRTC] ❌ Connection failed - trigger auto-reconexión`);
+        setConnectionQuality('disconnected');
+        autoReconnectRef.current?.('failed');
+      }
+      
+      if (state === 'disconnected') {
+        console.warn(`[WebRTC] ⚠️ Connection disconnected`);
+        setConnectionQuality('poor');
+        
+        // Esperar 8 segundos antes de reconectar completo
+        setTimeout(() => {
+          if (pc.connectionState === 'disconnected') {
+            console.log(`[WebRTC] Sigue desconectado tras 8s, reconectando...`);
+            autoReconnectRef.current?.('disconnected');
+          }
+        }, 8000);
+      }
+      
+      if (["connected","failed","disconnected","closed"].includes(state)) {
         if (candidatePollingRef.current) { 
           clearInterval(candidatePollingRef.current); 
           candidatePollingRef.current = null; 
@@ -621,7 +679,7 @@ export default function ReunionPage() {
         }); 
       },
     };
-  }, [sendPresence, localId]);
+  }, [sendPresence, localId]); // autoReconnect se define después
 
   const ensureLocalStream = useCallback(async () => {
     if (!localStreamRef.current) {
@@ -1164,54 +1222,173 @@ export default function ReunionPage() {
     }
   }, [isJoining, joinAndAnswer, startAsCaller, localId]);
 
-  // Reconectar en la misma sala reintentando la negociación
+  // 🔥 SISTEMA DE AUTO-RECONEXIÓN INTELIGENTE (Google Meet style)
+  // Monitorea la calidad de conexión y reconecta automáticamente si es necesario
+  const autoReconnect = useCallback(async (reason: 'failed' | 'disconnected' | 'timeout' | 'ice-failed') => {
+    if (!roomId || reconnecting || isJoining) {
+      console.log(`[AutoReconnect] ⚠️ Reconexión ya en progreso o sin sala`);
+      return;
+    }
+    
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const currentAttempt = reconnectAttempts + 1;
+    
+    if (currentAttempt > MAX_RECONNECT_ATTEMPTS) {
+      console.error(`[AutoReconnect] ❌ Máximo de intentos alcanzado (${MAX_RECONNECT_ATTEMPTS})`);
+      setJoinError('No se pudo establecer conexión estable. Por favor, recarga la página.');
+      setConnectionQuality('disconnected');
+      return;
+    }
+    
+    // Backoff exponencial: 2s, 4s, 8s, 16s, 32s
+    const delay = Math.min(2000 * Math.pow(2, currentAttempt - 1), 32000);
+    
+    console.log(`[AutoReconnect] 🔄 Intento ${currentAttempt}/${MAX_RECONNECT_ATTEMPTS} por: ${reason}`);
+    console.log(`[AutoReconnect] ⏱️ Esperando ${delay}ms antes de reconectar...`);
+    
+    setReconnecting(true);
+    setReconnectAttempts(currentAttempt);
+    setConnectionQuality('poor');
+    
+    // Limpiar timeout anterior si existe
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    reconnectTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log(`[AutoReconnect] 🧹 Limpiando estado anterior...`);
+        
+        // Limpiar polling
+        if (answerPollingRef.current) clearInterval(answerPollingRef.current);
+        if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+        answerPollingRef.current = null;
+        candidatePollingRef.current = null;
+        
+        // Cerrar conexiones
+        try { dataChannelRef.current?.close(); } catch {}
+        try { pcRef.current?.close(); } catch {}
+        dataChannelRef.current = null;
+        pcRef.current = null;
+        
+        // Limpiar servidor
+        try {
+          const { resetRoom } = await import('./services');
+          await resetRoom(roomId);
+          console.log(`[AutoReconnect] ✅ Servidor limpiado`);
+        } catch (err) {
+          console.warn(`[AutoReconnect] ⚠️ No se pudo limpiar servidor:`, err);
+        }
+        
+        // Pequeño delay adicional para asegurar limpieza
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setDcState('connecting');
+        setConnState('new');
+        
+        console.log(`[AutoReconnect] 🚀 Reiniciando conexión...`);
+        await autoJoinRoom(roomId);
+        
+        console.log(`[AutoReconnect] ✅ Reconexión completada`);
+        
+      } catch (err) {
+        console.error(`[AutoReconnect] ❌ Error en reconexión automática:`, err);
+        setJoinError(`Reintentando conexión (${currentAttempt}/${MAX_RECONNECT_ATTEMPTS})...`);
+        
+        // Reintentar si no hemos alcanzado el máximo
+        if (currentAttempt < MAX_RECONNECT_ATTEMPTS) {
+          setTimeout(() => autoReconnect(reason), 1000);
+        }
+      } finally {
+        setReconnecting(false);
+      }
+    }, delay);
+    
+  }, [roomId, reconnecting, isJoining, reconnectAttempts, autoJoinRoom]);
+
+  // Sincronizar ref con función para que setupPeer pueda usarla
+  useEffect(() => {
+    autoReconnectRef.current = autoReconnect;
+  }, [autoReconnect]);
+
+  // Reconexión manual (botón de usuario)
   const reconnect = useCallback(async () => {
     if (!roomId || reconnecting || isJoining) {
       console.log(`[Reconnect] ⚠️ Cancelando reconexión - roomId: ${!!roomId}, reconnecting: ${reconnecting}, isJoining: ${isJoining}`);
       return;
     }
     
-    console.log(`[Reconnect] 🔄 Iniciando reconexión para sala: ${roomId}`);
-    setReconnecting(true);
-    try {
-      // 1. LIMPIAR la negociación anterior en el servidor (crítico para evitar conflicto de roles)
-      try {
-        const { resetRoom } = await import('./services');
-        await resetRoom(roomId);
-        console.log(`[Reconnect] 🧹 Sala limpiada, lista para nueva negociación`);
-      } catch (resetErr) {
-        console.warn(`[Reconnect] ⚠️ Error limpiando sala (continuando):`, resetErr);
-      }
-      
-      // 2. Limpiar polling y conexiones locales
-      if (answerPollingRef.current) { clearInterval(answerPollingRef.current); answerPollingRef.current = null; }
-      if (candidatePollingRef.current) { clearInterval(candidatePollingRef.current); candidatePollingRef.current = null; }
-      try { dataChannelRef.current?.close(); } catch {}
-      try { pcRef.current?.close(); } catch {}
-      dataChannelRef.current = null;
-      pcRef.current = null;
-      setDcState('connecting');
-      setConnState('new');
-      
-      // 3. Usar autoJoinRoom para renegociar con roles FRESCOS
-      // Esto garantiza que quien reconecte primero será CALLER (independiente del rol anterior)
-      console.log(`[Reconnect] 🚀 Reiniciando negociación con asignación dinámica de roles`);
-      await autoJoinRoom(roomId);
-      
-    } catch (err) {
-      console.error(`[Reconnect] ❌ Error en reconexión:`, err);
-      setJoinError('Error al reconectar. Intenta de nuevo.');
-    } finally {
-      setReconnecting(false);
-      console.log(`[Reconnect] ✅ Proceso de reconexión finalizado`);
-    }
-  }, [roomId, reconnecting, isJoining, autoJoinRoom]);
+    console.log(`[Reconnect] 🔄 Reconexión manual iniciada para sala: ${roomId}`);
+    
+    // Reset de intentos en reconexión manual
+    setReconnectAttempts(0);
+    setJoinError('');
+    
+    await autoReconnect('disconnected');
+  }, [roomId, reconnecting, isJoining, autoReconnect]);
 
   useEffect(() => () => {
     if (answerPollingRef.current) clearInterval(answerPollingRef.current);
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    if (connectionHealthCheckRef.current) clearInterval(connectionHealthCheckRef.current);
     pcRef.current?.close();
   }, []);
+
+  // 🔥 HEALTH MONITOR: Monitoreo proactivo de conexión (Google Meet style)
+  // Verifica cada 5 segundos si la conexión está saludable
+  useEffect(() => {
+    if (!roomId || !pcRef.current) {
+      // Sin sala activa, limpiar monitor
+      if (connectionHealthCheckRef.current) {
+        clearInterval(connectionHealthCheckRef.current);
+        connectionHealthCheckRef.current = null;
+      }
+      return;
+    }
+    
+    console.log('[HealthMonitor] 🏥 Iniciando monitoreo de salud de conexión');
+    
+    // Verificar cada 5 segundos
+    connectionHealthCheckRef.current = setInterval(() => {
+      const pc = pcRef.current;
+      if (!pc) return;
+      
+      const iceState = pc.iceConnectionState;
+      const connState = pc.connectionState;
+      
+      console.log(`[HealthMonitor] 💊 Check: ICE=${iceState}, Connection=${connState}`);
+      
+      // Detectar estados problemáticos
+      if (iceState === 'failed' || connState === 'failed') {
+        console.error('[HealthMonitor] ❌ Conexión fallida detectada en health check');
+        clearInterval(connectionHealthCheckRef.current!);
+        connectionHealthCheckRef.current = null;
+      }
+      
+      if (iceState === 'disconnected' && connState === 'disconnected') {
+        console.warn('[HealthMonitor] ⚠️ Ambos estados desconectados, posible problema');
+        // Si está desconectado más de 10s (2 checks consecutivos), el timeout de setupPeer se encargará
+      }
+      
+      // Actualizar calidad basado en estados
+      if ((iceState === 'connected' || iceState === 'completed') && connState === 'connected') {
+        setConnectionQuality('excellent');
+      } else if (iceState === 'checking' || connState === 'connecting') {
+        setConnectionQuality('good');
+      } else if (iceState === 'disconnected' || connState === 'disconnected') {
+        setConnectionQuality('poor');
+      }
+      
+    }, 5000);
+    
+    return () => {
+      if (connectionHealthCheckRef.current) {
+        clearInterval(connectionHealthCheckRef.current);
+        connectionHealthCheckRef.current = null;
+      }
+    };
+  }, [roomId]);
 
   // 🔥 GOOGLE MEET OPTIMIZATION: Pre-warming de media stream
   // Obtener permisos y stream ANTES de que usuario haga clic en "Unirse"
@@ -1578,6 +1755,49 @@ export default function ReunionPage() {
           <section className="flex-1 relative bg-black overflow-hidden flex items-center justify-center">
             <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
             <video ref={localVideoRef} autoPlay muted playsInline className="absolute bottom-4 right-4 w-36 h-24 md:w-40 md:h-28 bg-black/70 rounded-lg shadow-lg object-cover border border-gray-700/80" />
+            
+            {/* 🔥 Indicador de calidad de conexión (Google Meet style) */}
+            {roomId && (
+              <div className="absolute top-4 left-4 z-10">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-sm shadow-lg transition-all duration-300 ${
+                  connectionQuality === 'excellent' ? 'bg-green-500/20 border border-green-500/50' :
+                  connectionQuality === 'good' ? 'bg-blue-500/20 border border-blue-500/50' :
+                  connectionQuality === 'poor' ? 'bg-yellow-500/20 border border-yellow-500/50' :
+                  'bg-red-500/20 border border-red-500/50'
+                }`}>
+                  {/* Icono de señal */}
+                  <div className="flex gap-0.5 items-end">
+                    <div className={`w-1 h-2 rounded-sm transition-all ${
+                      connectionQuality !== 'disconnected' ? 'bg-white' : 'bg-gray-500'
+                    }`} />
+                    <div className={`w-1 h-3 rounded-sm transition-all ${
+                      connectionQuality === 'excellent' || connectionQuality === 'good' ? 'bg-white' : 'bg-gray-500'
+                    }`} />
+                    <div className={`w-1 h-4 rounded-sm transition-all ${
+                      connectionQuality === 'excellent' ? 'bg-white' : 'bg-gray-500'
+                    }`} />
+                  </div>
+                  
+                  {/* Texto de estado */}
+                  <span className="text-xs font-medium text-white">
+                    {connectionQuality === 'excellent' ? 'Excelente' :
+                     connectionQuality === 'good' ? 'Buena' :
+                     connectionQuality === 'poor' ? 'Débil' :
+                     'Desconectado'}
+                  </span>
+                  
+                  {/* Indicador de reconexión */}
+                  {reconnecting && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span className="text-xs text-white">
+                        Reconectando{reconnectAttempts > 0 ? ` (${reconnectAttempts}/5)` : ''}...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
           {/* Sidebar expandible/colapsable */}
           <aside className={`w-80 bg-gray-900 p-4 flex flex-col transition-all duration-300 ${sidebarVisible ? 'block' : 'hidden'}`} style={{ minWidth: sidebarVisible ? 320 : 0 }}>
