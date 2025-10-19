@@ -375,10 +375,10 @@ export default function ReunionPage() {
         console.warn(`[WebRTC] ⚠️ ICE disconnected - esperando reconexión...`);
         setConnectionQuality('poor');
         
-        // Esperar 5 segundos antes de intentar restart
+        // PRODUCTION: Esperar 10 segundos antes de intentar restart (más tolerante)
         setTimeout(() => {
           if (pc.iceConnectionState === 'disconnected') {
-            console.log(`[WebRTC] 🔄 Sigue desconectado tras 5s, intentando restart...`);
+            console.log(`[WebRTC] 🔄 Sigue desconectado tras 10s, intentando restart...`);
             if (pc.signalingState === 'stable') {
               pc.restartIce();
             } else {
@@ -386,7 +386,7 @@ export default function ReunionPage() {
               autoReconnectRef.current?.('disconnected');
             }
           }
-        }, 5000);
+        }, 10000);
       }
       
       if (state === 'failed') {
@@ -398,13 +398,13 @@ export default function ReunionPage() {
           pc.restartIce();
           console.log(`[WebRTC] 🔄 ICE restart iniciado`);
           
-          // Si ICE restart no funciona en 8s, full reconnect
+          // PRODUCTION: Si ICE restart no funciona en 12s, full reconnect (más tiempo)
           setTimeout(() => {
             if (pc.iceConnectionState === 'failed') {
-              console.error(`[WebRTC] ICE restart falló, iniciando reconexión completa`);
+              console.error(`[WebRTC] ICE restart falló tras 12s, iniciando reconexión completa`);
               autoReconnectRef.current?.('ice-failed');
             }
-          }, 8000);
+          }, 12000);
         } else {
           // Si no podemos hacer restart, reconexión inmediata
           autoReconnectRef.current?.('ice-failed');
@@ -442,13 +442,13 @@ export default function ReunionPage() {
         console.warn(`[WebRTC] ⚠️ Connection disconnected`);
         setConnectionQuality('poor');
         
-        // Esperar 8 segundos antes de reconectar completo
+        // PRODUCTION: Esperar 15 segundos antes de reconectar completo (muy tolerante)
         setTimeout(() => {
           if (pc.connectionState === 'disconnected') {
-            console.log(`[WebRTC] Sigue desconectado tras 8s, reconectando...`);
+            console.log(`[WebRTC] Sigue desconectado tras 15s, reconectando...`);
             autoReconnectRef.current?.('disconnected');
           }
-        }, 8000);
+        }, 15000);
       }
       
       if (["connected","failed","disconnected","closed"].includes(state)) {
@@ -560,11 +560,11 @@ export default function ReunionPage() {
     
     let candidatePollAttempts = 0;
     let consecutiveEmptyPolls = 0;
-    const MAX_CANDIDATE_POLL_ATTEMPTS = 60; // 60 segundos máximo (aumentado)
-    const MAX_EMPTY_POLLS = 12; // Más intentos antes de detener
+    const MAX_CANDIDATE_POLL_ATTEMPTS = 80; // 80 segundos máximo (aumentado para producción)
+    const MAX_EMPTY_POLLS = 15; // Más intentos antes de detener (producción)
     let lastCandidateTimestamp = 0;
     let candidatesProcessed = 0;
-    let pollInterval = 200; // MUCHO MÁS RÁPIDO: 200ms (5 req/seg al inicio)
+    let pollInterval = 400; // PRODUCTION: 400ms inicial (más conservador que 200ms)
     
     if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
     
@@ -641,21 +641,22 @@ export default function ReunionPage() {
             }
           }
           
-          // Mantener polling ultra-rápido mientras hay actividad
-          if (pollInterval > 200) {
-            pollInterval = 200; // Volver a velocidad máxima
+          // PRODUCTION: Acelerar solo si hay mucha actividad de candidates
+          if (pollInterval > 300) {
+            pollInterval = 300; // Volver a velocidad alta (no ultra-rápida como 200ms)
             if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
             candidatePollingRef.current = setInterval(pollCandidates, pollInterval);
-            console.log(`[SetupPeer] ⚡ Polling acelerado a 200ms (actividad detectada)`);
+            console.log(`[SetupPeer] ⚡ Polling acelerado a 300ms (actividad detectada)`);
           }
         } else {
           consecutiveEmptyPolls++;
           
-          // Desacelerar MUCHO MÁS LENTAMENTE para no perder candidates tardíos
-          if (candidatePollAttempts > 20 && pollInterval < 1500) {
-            pollInterval = Math.min(pollInterval + 100, 1500); // Max 1.5s (no 2s)
+          // PRODUCTION: Desacelerar más gradualmente para compensar latencias
+          if (candidatePollAttempts > 15 && pollInterval < 2000) {
+            pollInterval = Math.min(pollInterval + 150, 2000); // Max 2s (más tolerante)
             if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
             candidatePollingRef.current = setInterval(pollCandidates, pollInterval);
+            console.log(`[SetupPeer] 🐌 Polling desacelerado a ${pollInterval}ms`);
           }
         }
       } catch (err) {
@@ -1026,11 +1027,12 @@ export default function ReunionPage() {
     console.log(`[AutoJoin] Mi clientId: ${myClientId}`);
 
     try {
-      // 🎲 GOOGLE MEET TECHNIQUE: Random jitter para evitar glare en entrada simultánea
+      // 🎲 PRODUCTION OPTIMIZATION: Mayor jitter para redes lentas
       // Si ambos entran EXACTAMENTE al mismo tiempo, este delay aleatorio hace que
       // uno vea la offer del otro antes de crear la suya
-      const jitter = Math.floor(Math.random() * 300); // 0-300ms aleatorio
-      console.log(`[AutoJoin] ⏱️ Jitter aleatorio: ${jitter}ms (evita glare simultáneo)`);
+      // En producción, necesitamos más margen debido a latencias variables
+      const jitter = Math.floor(Math.random() * 800) + 200; // 200-1000ms aleatorio
+      console.log(`[AutoJoin] ⏱️ Jitter aleatorio: ${jitter}ms (evita glare simultáneo en producción)`);
       await new Promise(resolve => setTimeout(resolve, jitter));
 
       // 1. Verificar estado de la sala y detectar conflictos
@@ -1123,38 +1125,67 @@ export default function ReunionPage() {
           throw err; // Re-lanzar otros errores
         }
         
-        // 🚀 GOOGLE MEET OPTIMIZATION: Race entre Answer y Glare Check
-        // No desperdiciar 800ms si answer llega antes
+        // 🚀 PRODUCTION OPTIMIZATION: Esperar Answer con timeouts adaptativos
+        // En producción, las respuestas pueden tardar más debido a latencias de red
         let answerReceived = false;
         
         const checkForAnswer = async (): Promise<boolean> => {
-          for (let i = 0; i < 8; i++) { // 8 * 100ms = 800ms máximo
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const state = await getState(rid);
-            if (state?.hasAnswer) {
-              answerReceived = true;
-              console.log('[AutoJoin] ⚡ Answer recibida rápidamente - sin glare!');
-              return true;
+          // 15 iteraciones * 300ms = 4500ms máximo (vs 800ms en versión anterior)
+          // Esto da suficiente margen para latencias de producción
+          for (let i = 0; i < 15; i++) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            try {
+              const state = await getState(rid);
+              if (state?.hasAnswer) {
+                answerReceived = true;
+                console.log(`[AutoJoin] ⚡ Answer recibida en ${(i + 1) * 300}ms`);
+                return true;
+              }
+            } catch (err) {
+              console.warn(`[AutoJoin] Error verificando answer (intento ${i + 1}):`, err);
+              // Continuar intentando incluso si hay error de red
             }
           }
           return false;
         };
         
-        // Esperar answer o timeout de 800ms (lo que ocurra primero)
+        // Esperar answer o timeout de 4500ms (lo que ocurra primero)
         await checkForAnswer();
         
         if (answerReceived) {
           // Conexión rápida exitosa - no necesitamos glare detection
+          console.log('[AutoJoin] ✅ Conexión establecida exitosamente');
           return;
         }
         
-        // Si llegamos aquí, pasaron 800ms sin answer - verificar glare
+        // Si llegamos aquí, pasaron 4.5s sin answer - verificar glare con reintentos
+        console.log('[AutoJoin] ⏳ No se recibió answer después de 4.5s, verificando estado...');
+        
         try {
-          const recheckState = await getState(rid);
+          let recheckState: { hasOffer?: boolean; hasAnswer?: boolean } | null = null;
+          
+          // Reintentar getState con backoff (importante para redes lentas)
+          for (let retry = 0; retry < 3; retry++) {
+            try {
+              recheckState = await getState(rid);
+              break; // Éxito, salir del loop
+            } catch (err) {
+              console.warn(`[AutoJoin] Error obteniendo estado (intento ${retry + 1}/3):`, err);
+              if (retry < 2) {
+                await new Promise(resolve => setTimeout(resolve, 500 * (retry + 1)));
+              }
+            }
+          }
+          
+          if (!recheckState) {
+            console.error('[AutoJoin] ❌ No se pudo obtener estado de la sala después de 3 intentos');
+            throw new Error('No se pudo verificar estado de la sala');
+          }
           
           // Double-check por si answer llegó justo ahora
           if (recheckState?.hasAnswer) {
-            console.log('[AutoJoin] ✅ Answer recibida después de 800ms');
+            console.log('[AutoJoin] ✅ Answer recibida después de verificación');
             return;
           }
           
@@ -1191,8 +1222,9 @@ export default function ReunionPage() {
                     // Limpiar estado
                     setConnState('new');
                     
-                    // Esperar 300ms y responder como CALLEE a la offer del otro peer
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    // PRODUCTION: Mayor delay para asegurar limpieza completa en redes lentas
+                    console.log('[AutoJoin] ⏳ Esperando 800ms para limpieza completa...');
+                    await new Promise(resolve => setTimeout(resolve, 800));
                     console.log('[AutoJoin] 📞 Respondiendo como CALLEE a la offer remota');
                     await joinAndAnswer(rid, recheckOffer.offer);
                   } else {
@@ -1280,8 +1312,9 @@ export default function ReunionPage() {
           console.warn(`[AutoReconnect] ⚠️ No se pudo limpiar servidor:`, err);
         }
         
-        // Pequeño delay adicional para asegurar limpieza
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // PRODUCTION: Delay adicional más largo para asegurar limpieza completa en redes lentas
+        console.log(`[AutoReconnect] ⏳ Esperando 1000ms para limpieza completa en producción...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         setDcState('connecting');
         setConnState('new');
