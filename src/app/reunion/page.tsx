@@ -1562,7 +1562,38 @@ export default function ReunionPage() {
     }
   }, []);
 
-  // Eliminado auto-join; mostrará botón "Unirse ahora" cuando sea hora
+  // 🚀 Auto-join cuando hay autoParams con autostart=true
+  useEffect(() => {
+    if (!autoParams?.rid || !autoParams.autostart || accessDenied) {
+      console.log('[AutoJoin] ⏸️ Esperando condiciones:', { 
+        hasRid: !!autoParams?.rid, 
+        autostart: autoParams?.autostart,
+        accessGranted: !accessDenied 
+      });
+      return;
+    }
+
+    // Evitar múltiples intentos simultáneos
+    if (isJoining || roomId) {
+      console.log('[AutoJoin] ⏸️ Ya está uniéndose o en sala:', { isJoining, roomId });
+      return;
+    }
+
+    console.log('[AutoJoin] 🎬 Iniciando conexión automática...', {
+      roomId: autoParams.rid,
+      who: autoParams.who,
+      uid: autoParams.uid,
+      did: autoParams.did
+    });
+
+    // Pequeño delay para asegurar que el componente está completamente montado
+    const timer = setTimeout(() => {
+      console.log('[AutoJoin] ▶️ Ejecutando autoJoinRoom()');
+      autoJoinRoom(autoParams.rid!);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [autoParams, accessDenied, isJoining, roomId, autoJoinRoom]);
 
   const handleEndCall = useCallback(async () => {
     console.log(`\n[EndCall] 🔚 Finalizando llamada...`);
