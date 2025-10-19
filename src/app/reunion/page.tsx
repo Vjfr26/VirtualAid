@@ -1029,16 +1029,97 @@ export default function ReunionPage() {
       : localId;
     console.log(`[AutoJoin] Mi clientId: ${myClientId} ${forceNewClientId ? '(NUEVO - Reconexión)' : '(Primera entrada)'}`);
 
+    // 🎯 DETERMINISTIC ROLE ASSIGNMENT (como Google Meet/Zoom)
+    // Usar parámetro 'who' para asignar roles fijos - elimina race conditions
+    const myRole = autoParams?.who; // 'doctor' o 'patient'
+    const forcedRole = myRole === 'doctor' ? 'caller' : myRole === 'patient' ? 'callee' : null;
+    
+    if (forcedRole) {
+      console.log(`[AutoJoin] � Rol FIJO asignado: ${forcedRole.toUpperCase()} (who=${myRole})`);
+      console.log(`[AutoJoin] ✅ Esto previene race conditions - roles determinísticos`);
+    } else {
+      console.log(`[AutoJoin] ⚠️ Sin parámetro 'who' - usando detección dinámica (puede causar glare)`);
+    }
 
     try {
-      // 🎲 PRODUCTION OPTIMIZATION: Mayor jitter para redes lentas
-      // Si ambos entran EXACTAMENTE al mismo tiempo, este delay aleatorio hace que
-      // uno vea la offer del otro antes de crear la suya
-      // En producción, necesitamos más margen debido a latencias variables
-      const jitter = Math.floor(Math.random() * 800) + 200; // 200-1000ms aleatorio
-      console.log(`[AutoJoin] ⏱️ Jitter aleatorio: ${jitter}ms (evita glare simultáneo en producción)`);
-      await new Promise(resolve => setTimeout(resolve, jitter));
+      // 🎲 Jitter SOLO si no hay rol fijo
+      if (!forcedRole) {
+        const jitter = Math.floor(Math.random() * 800) + 200; // 200-1000ms
+        console.log(`[AutoJoin] ⏱️ Jitter aleatorio: ${jitter}ms (sin rol fijo)`);
+        await new Promise(resolve => setTimeout(resolve, jitter));
+      } else {
+        console.log(`[AutoJoin] ⏭️ Saltando jitter - rol determinístico`);
+      }
 
+      // Si tengo ROL FIJO, ir directo a ese rol
+      if (forcedRole === 'caller') {
+        console.log('[AutoJoin] 📞 Rol FIJO: CALLER (doctor) - creando offer inmediatamente');
+        try {
+          await startAsCaller(rid, myClientId);
+        } catch (err: any) {
+          console.error('[AutoJoin] ❌ Error como CALLER fijo:', err);
+          throw err;
+        }
+        
+        // Esperar answer con timeout extendido para producción
+        let answerReceived = false;
+        for (let i = 0; i < 15; i++) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          try {
+            const state = await getState(rid);
+            if (state?.hasAnswer) {
+              answerReceived = true;
+              console.log(`[AutoJoin] ⚡ Answer recibida en ${(i + 1) * 300}ms`);
+              break;
+            }
+          } catch (err) {
+            console.warn(`[AutoJoin] Error verificando answer (intento ${i + 1}):`, err);
+          }
+        }
+        
+        if (answerReceived) {
+          console.log('[AutoJoin] ✅ CALLER: Conexión establecida exitosamente');
+        } else {
+          console.warn('[AutoJoin] ⏰ CALLER: Timeout esperando answer - peer puede estar reconectando');
+        }
+        return;
+      }
+      
+      if (forcedRole === 'callee') {
+        console.log('[AutoJoin] 📞 Rol FIJO: CALLEE (patient) - esperando offer del doctor');
+        
+        // Esperar offer del CALLER con polling
+        let offerReceived = false;
+        let existingOffer: string | null = null;
+        
+        for (let i = 0; i < 20; i++) { // 20 * 500ms = 10s máximo
+          await new Promise(resolve => setTimeout(resolve, 500));
+          try {
+            const offerResponse = await getOffer(rid);
+            if (offerResponse?.offer) {
+              existingOffer = offerResponse.offer;
+              offerReceived = true;
+              console.log(`[AutoJoin] ⚡ Offer recibida en ${(i + 1) * 500}ms`);
+              break;
+            }
+          } catch (err) {
+            console.warn(`[AutoJoin] Esperando offer del doctor (intento ${i + 1}/20)...`);
+          }
+        }
+        
+        if (offerReceived && existingOffer) {
+          console.log('[AutoJoin] 📞 CALLEE: Respondiendo a offer del doctor');
+          await joinAndAnswer(rid, existingOffer);
+          console.log('[AutoJoin] ✅ CALLEE: Conexión establecida exitosamente');
+        } else {
+          throw new Error('Timeout esperando offer del doctor - puede que no esté conectado aún');
+        }
+        return;
+      }
+
+      // 🔄 FALLBACK: Detección dinámica (solo si NO hay parámetro 'who')
+      console.log('[AutoJoin] 🔍 Modo FALLBACK: Detección dinámica de rol');
+      
       // 1. Verificar estado de la sala y detectar conflictos
       let existingOffer: string | null = null;
       let existingClientId: string | null = null;
@@ -1256,7 +1337,7 @@ export default function ReunionPage() {
       setIsJoining(false);
       console.log(`[AutoJoin] ✅ Proceso completado`);
     }
-  }, [isJoining, joinAndAnswer, startAsCaller, localId]);
+  }, [isJoining, joinAndAnswer, startAsCaller, localId, autoParams?.who]);
 
   // 🔥 SISTEMA DE AUTO-RECONEXIÓN INTELIGENTE (Google Meet style)
   // Monitorea la calidad de conexión y reconecta automáticamente si es necesario
