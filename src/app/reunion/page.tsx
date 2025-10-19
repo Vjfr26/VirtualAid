@@ -1008,7 +1008,7 @@ export default function ReunionPage() {
 
   // Perfect Negotiation: Resuelve race conditions automáticamente
   // Si ambos crean offer simultáneamente, uno cede basándose en clientId
-  const autoJoinRoom = useCallback(async (rid: string) => {
+  const autoJoinRoom = useCallback(async (rid: string, forceNewClientId: boolean = false) => {
     console.log(`[AutoJoin] 🚀 Iniciando conexión P2P para sala: ${rid}`);
 
     if (isJoining) {
@@ -1022,9 +1022,13 @@ export default function ReunionPage() {
     setDcState('connecting');
     setConnState('new');
 
-    // Generar clientId único y determinista para desempate
-    const myClientId = localId || `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[AutoJoin] Mi clientId: ${myClientId}`);
+    // 🔥 CRITICAL: Generar NUEVO clientId en reconexiones (como Google Meet)
+    // Esto asegura que cada reconexión sea como "entrar de nuevo"
+    const myClientId = (forceNewClientId || !localId) 
+      ? `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      : localId;
+    console.log(`[AutoJoin] Mi clientId: ${myClientId} ${forceNewClientId ? '(NUEVO - Reconexión)' : '(Primera entrada)'}`);
+
 
     try {
       // 🎲 PRODUCTION OPTIMIZATION: Mayor jitter para redes lentas
@@ -1289,40 +1293,63 @@ export default function ReunionPage() {
     
     reconnectTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log(`[AutoReconnect] 🧹 Limpiando estado anterior...`);
+        console.log(`[AutoReconnect] 🧹 LIMPIEZA TOTAL - Simulando entrada fresca (como Google Meet)...`);
         
-        // Limpiar polling
-        if (answerPollingRef.current) clearInterval(answerPollingRef.current);
-        if (candidatePollingRef.current) clearInterval(candidatePollingRef.current);
-        answerPollingRef.current = null;
-        candidatePollingRef.current = null;
+        // 🔥 CRITICAL: Limpiar polling y conexiones PRIMERO
+        if (answerPollingRef.current) {
+          clearInterval(answerPollingRef.current);
+          answerPollingRef.current = null;
+        }
+        if (candidatePollingRef.current) {
+          clearInterval(candidatePollingRef.current);
+          candidatePollingRef.current = null;
+        }
         
-        // Cerrar conexiones
-        try { dataChannelRef.current?.close(); } catch {}
-        try { pcRef.current?.close(); } catch {}
-        dataChannelRef.current = null;
-        pcRef.current = null;
+        // Cerrar conexiones WebRTC
+        try { 
+          if (dataChannelRef.current) {
+            dataChannelRef.current.close();
+            dataChannelRef.current = null;
+          }
+        } catch (e) {
+          console.warn('[AutoReconnect] Error cerrando dataChannel:', e);
+        }
         
-        // Limpiar servidor
+        try {
+          if (pcRef.current) {
+            pcRef.current.close();
+            pcRef.current = null;
+          }
+        } catch (e) {
+          console.warn('[AutoReconnect] Error cerrando peerConnection:', e);
+        }
+        
+        // 🔥 CRITICAL: Limpiar servidor (negociación completa)
         try {
           const { resetRoom } = await import('./services');
           await resetRoom(roomId);
-          console.log(`[AutoReconnect] ✅ Servidor limpiado`);
+          console.log(`[AutoReconnect] ✅ Sala limpiada en servidor`);
         } catch (err) {
-          console.warn(`[AutoReconnect] ⚠️ No se pudo limpiar servidor:`, err);
+          console.warn(`[AutoReconnect] ⚠️ No se pudo limpiar servidor (continuando):`, err);
         }
         
-        // PRODUCTION: Delay adicional más largo para asegurar limpieza completa en redes lentas
-        console.log(`[AutoReconnect] ⏳ Esperando 1000ms para limpieza completa en producción...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 🔥 GOOGLE MEET TECHNIQUE: Delay suficiente para asegurar limpieza completa
+        // En producción con latencias altas, esto es crítico
+        console.log(`[AutoReconnect] ⏳ Esperando 1500ms para limpieza total...`);
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
+        // 🔥 CRITICAL: Resetear TODOS los estados como en entrada fresca
         setDcState('connecting');
         setConnState('new');
+        setIsJoining(false); // IMPORTANTE: Resetear flag para permitir nueva entrada
         
-        console.log(`[AutoReconnect] 🚀 Reiniciando conexión...`);
-        await autoJoinRoom(roomId);
+        // 🔥 GOOGLE MEET TECHNIQUE: Reconectar como ENTRADA FRESCA
+        // autoJoinRoom generará un NUEVO clientId automáticamente
+        // Esto es equivalente a salir y entrar manualmente
+        console.log(`[AutoReconnect] 🚀 Iniciando reconexión FRESCA (nuevo clientId, roles limpios)...`);
+        await autoJoinRoom(roomId, true); // ← CRITICAL: forceNewClientId = true
         
-        console.log(`[AutoReconnect] ✅ Reconexión completada`);
+        console.log(`[AutoReconnect] ✅ Reconexión completada exitosamente`);
         
       } catch (err) {
         console.error(`[AutoReconnect] ❌ Error en reconexión automática:`, err);
