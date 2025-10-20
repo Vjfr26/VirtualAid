@@ -80,7 +80,33 @@ export default function MedicoDashboard() {
     }
     return ahora;
   };
-  
+
+  // 🛠️ HELPERS PARA NORMALIZACIÓN DE FECHAS (Fix para bug de Próxima Cita)
+  // Función más robusta del dashboard de usuario para consistencia
+  type FechaHoraParse = { date: Date; isoLocal: string };
+  function combinarFechaHoraLocal(fechaStr: string, horaStr?: string | null): FechaHoraParse {
+    // fechaStr esperado: YYYY-MM-DDTHH:mm:ss(.SSS)Z ; horaStr: HH:mm(:ss) opcional
+    if (!fechaStr) {
+      const now = new Date();
+      return { date: now, isoLocal: now.toISOString().slice(0,16).replace('T',' ') };
+    }
+    let fechaIso = fechaStr;
+    // Si la hora viene aparte y es válida, reemplazar la hora en el string ISO
+    if (horaStr && /^\d{2}:\d{2}(:\d{2})?$/.test(horaStr)) {
+      // Extraer solo la parte de fecha y la zona (Z o +...)
+      const match = fechaStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/);
+      if (match) {
+        const [ , ymd, , , zone ] = match;
+        // Si horaStr no tiene segundos, añadir :00
+        const horaFull = horaStr.length === 5 ? horaStr + ':00' : horaStr;
+        fechaIso = `${ymd}T${horaFull}${zone || 'Z'}`;
+      }
+    }
+    const dt = new Date(fechaIso);
+    const isoLocal = fechaIso.replace('T', ' ');
+    return { date: dt, isoLocal };
+  }
+
   // Estados principales
   const [medicoData, setMedicoData] = useState<Medico | null>(null);
   const [citas, setCitas] = useState<Cita[]>([]);
@@ -204,7 +230,7 @@ export default function MedicoDashboard() {
   
 
   // Filtro de citas: 'hoy', 'semana', 'todas', 'canceladas', 'finalizadas'
-  const [filtroCitas, setFiltroCitas] = useState<'hoy' | 'semana' | 'todas' | 'canceladas' | 'finalizadas'>('hoy');
+  const [filtroCitas, setFiltroCitas] = useState<'hoy' | 'semana' | 'todas' | 'canceladas' | 'finalizadas' | 'proximas'>('hoy');
   // Memoizar fechas para optimizar rendimiento
   const fechas = React.useMemo(() => {
     const hoy = new Date();
@@ -242,42 +268,54 @@ export default function MedicoDashboard() {
       // Mostrar todas las citas del día (sin importar la hora), excepto canceladas
       const hoyString = hoy.toISOString().split('T')[0];
       resultado = citas.filter(cita => {
-        const fechaCitaString = new Date(cita.fecha).toISOString().split('T')[0];
+        const fechaCitaString = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
         return fechaCitaString === hoyString && (cita.estado || '').toLowerCase() !== 'cancelada';
       }).sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+        const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
         return fa.getTime() - fb.getTime();
       });
     } else if (filtroCitas === 'semana') {
       // Mostrar TODAS las citas de la semana actual (de lunes a domingo)
       resultado = citas.filter(cita => {
-        const fechaCita = new Date(cita.fecha);
+        const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
         fechaCita.setHours(0,0,0,0);
         return fechaCita >= primerDiaSemana && fechaCita <= ultimoDiaSemana && (cita.estado || '').toLowerCase() !== 'cancelada';
       }).sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+        const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
         return fa.getTime() - fb.getTime();
       });
     } else if (filtroCitas === 'canceladas') {
       // Mostrar solo las citas canceladas (más recientes primero)
       resultado = citas.filter(cita => (cita.estado || '').toLowerCase() === 'cancelada')
         .sort((a, b) => {
-          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+          const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
           return fb.getTime() - fa.getTime();
         });
     } else if (filtroCitas === 'finalizadas') {
       // Mostrar solo las citas cuya fecha y hora ya pasaron (más recientes primero)
       const ahora = new Date();
       resultado = citas.filter(cita => {
-        const fechaCompleta = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+        const fechaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
         return fechaCompleta.getTime() < ahora.getTime();
       }).sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+        const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
         return fb.getTime() - fa.getTime();
+      });
+    } else if (filtroCitas === 'proximas') {
+      // Mostrar solo las citas futuras (fecha y hora aún no han pasado) y no canceladas
+      const ahora = new Date();
+      resultado = citas.filter(cita => {
+        const fechaCita = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
+        const estado = cita.estado?.toLowerCase() || 'programada';
+        return fechaCita.getTime() > ahora.getTime() && estado !== 'cancelada' && estado !== 'cancelado';
+      }).sort((a, b) => {
+        const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+        const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
+        return fa.getTime() - fb.getTime();
       });
     } else {
       // Todas: primero las citas que aún no han ocurrido (ahora o después), ordenadas por fecha/hora
@@ -285,24 +323,24 @@ export default function MedicoDashboard() {
       const ahora = new Date();
       const futuras = citas
         .filter(cita => {
-          const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+          const fechaCita = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
           return fechaCita.getTime() >= ahora.getTime();
         })
         .sort((a, b) => {
-          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+          const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
           return fa.getTime() - fb.getTime();
         });
 
       const pasadas = citas
         .filter(cita => {
-          const fechaCita = new Date(`${cita.fecha}T${cita.hora || '00:00'}`);
+          const fechaCita = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
           return fechaCita.getTime() < ahora.getTime();
         })
         .sort((a, b) => {
           // Mostrar las pasadas con las más recientes primero (más cercanas a ahora)
-          const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-          const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+          const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+          const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
           return fb.getTime() - fa.getTime();
         });
 
@@ -310,7 +348,7 @@ export default function MedicoDashboard() {
     }
     
     return resultado;
-  }, [filtroCitas, citas, hoy, primerDiaSemana, ultimoDiaSemana]);
+  }, [filtroCitas, citas, hoy, primerDiaSemana, ultimoDiaSemana]); // eslint-disable-line react-hooks/exhaustive-deps
   // Paginación visual (solo para 'todas')
   const [mostrarTodasLasCitas, setMostrarTodasLasCitas] = useState(false);
   // Calcular citas a mostrar según el filtro activo
@@ -318,8 +356,8 @@ export default function MedicoDashboard() {
     if (filtroCitas === 'todas') {
       // Para 'todas', usar la lógica de paginación
       const todasOrdenadas = [...citas].sort((a, b) => {
-        const fa = new Date(`${a.fecha}T${a.hora || '00:00'}`);
-        const fb = new Date(`${b.fecha}T${b.hora || '00:00'}`);
+        const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
+        const fb = combinarFechaHoraLocal(b.fecha, b.hora).date;
         return fa.getTime() - fb.getTime();
       });
       return mostrarTodasLasCitas ? todasOrdenadas : todasOrdenadas.slice(0, 4);
@@ -327,7 +365,7 @@ export default function MedicoDashboard() {
       // Para otros filtros, usar citasFiltradas directamente
       return citasFiltradas;
     }
-  }, [filtroCitas, citas, citasFiltradas, mostrarTodasLasCitas]);
+  }, [filtroCitas, citas, citasFiltradas, mostrarTodasLasCitas]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Estado de perfil editable
   const [perfil, setPerfil] = useState({
@@ -535,7 +573,7 @@ export default function MedicoDashboard() {
     const fechaString = fecha.toISOString().split('T')[0]; // Formato YYYY-MM-DD
     return citas.some(cita => {
       // Convertir la fecha de la cita al mismo formato
-      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
       return fechaCita === fechaString;
     });
   };
@@ -544,7 +582,7 @@ export default function MedicoDashboard() {
   const contarCitasEnFecha = (fecha: Date): number => {
     const fechaString = fecha.toISOString().split('T')[0];
     const citasEncontradas = citas.filter(cita => {
-      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
       return fechaCita === fechaString;
     });
     
@@ -565,7 +603,7 @@ export default function MedicoDashboard() {
     if (!fecha) return [];
     const fechaString = fecha.toISOString().split('T')[0];
     return citas.filter(cita => {
-      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
       return fechaCita === fechaString;
     });
   };
@@ -573,7 +611,7 @@ export default function MedicoDashboard() {
   // Función para determinar el estilo de la cita según su estado
   const getEstiloCita = (cita: Cita, fechaCita: Date) => {
     const ahora = new Date();
-    const fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
+    const fechaCitaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
     const estado = cita.estado?.toLowerCase() || 'programada';
     
     // Colores según el estado
@@ -801,12 +839,8 @@ export default function MedicoDashboard() {
     const esCompletada = (estado: string) =>
       estado.includes('complet') || estado.includes('final') || estado.includes('realiz') || estado.includes('asist');
     const parseFechaCita = (cita: Cita) => {
-      const base = cita.fecha ? `${cita.fecha}T${cita.hora || '00:00'}` : cita.created_at ?? '';
-      const fecha = new Date(base);
-      if (Number.isNaN(fecha.getTime())) {
-        return new Date();
-      }
-      return fecha;
+      // ✅ USAR FUNCIÓN CONSISTENTE DEL DASHBOARD USUARIO
+      return combinarFechaHoraLocal(cita.fecha, cita.hora).date;
     };
 
     let completadasActuales = 0;
@@ -818,34 +852,48 @@ export default function MedicoDashboard() {
       const fecha = parseFechaCita(cita);
       const estado = normalizarEstado(cita.estado);
       if (fecha >= start && fecha <= end) {
-        if (esCancelada(estado)) canceladasActuales += 1;
-        else if (esCompletada(estado)) completadasActuales += 1;
+        // ✅ CAMBIO: Contar citas donde asistio === true
+        if (cita.asistio === true) completadasActuales += 1;
+        else if (esCancelada(estado)) canceladasActuales += 1;
       } else if (fecha >= prevStart && fecha <= prevEnd) {
-        if (esCancelada(estado)) canceladasPrevias += 1;
-        else if (esCompletada(estado)) completadasPrevias += 1;
+        // ✅ CAMBIO: Contar citas donde asistio === true
+        if (cita.asistio === true) completadasPrevias += 1;
+        else if (esCancelada(estado)) canceladasPrevias += 1;
       }
     });
 
-    const parseFechaPago = (pago: Pago) => {
-      const fecha = new Date(`${pago.fecha_pago}T00:00:00`);
-      if (Number.isNaN(fecha.getTime())) {
-        return new Date(pago.created_at ?? Date.now());
-      }
-      return fecha;
+    // 💰 NUEVA LÓGICA: Sumar montos de citas pagadas en los últimos 7 días
+    // Filtrar citas que están en el período actual (últimos 7 días)
+    const citasEnPeriodoActual = citas.filter(cita => {
+      const fecha = parseFechaCita(cita);
+      return fecha >= start && fecha <= end;
+    });
+
+    // Filtrar citas que están en el período previo (7 días anteriores)
+    const citasEnPeriodoPrevio = citas.filter(cita => {
+      const fecha = parseFechaCita(cita);
+      return fecha >= prevStart && fecha <= prevEnd;
+    });
+
+    // Obtener los IDs de las citas en cada período
+    const citaIdsActuales = new Set(citasEnPeriodoActual.map(c => c.id));
+    const citaIdsPrevios = new Set(citasEnPeriodoPrevio.map(c => c.id));
+
+    // Calcular ingresos sumando los pagos de las citas en el período
+    // Solo contar pagos completados/pagados/confirmados
+    const esEstadoPagado = (estado: string) => {
+      const estadoNorm = estado.toLowerCase();
+      return estadoNorm === 'completado' || 
+             estadoNorm === 'pagado' || 
+             estadoNorm === 'confirmado';
     };
 
     const ingresosActuales = pagos
-      .filter(pago => {
-        const fecha = parseFechaPago(pago);
-        return fecha >= start && fecha <= end;
-      })
+      .filter(pago => citaIdsActuales.has(pago.cita_id) && esEstadoPagado(pago.estado))
       .reduce((total, pago) => total + (pago.monto ?? 0), 0);
 
     const ingresosPrevios = pagos
-      .filter(pago => {
-        const fecha = parseFechaPago(pago);
-        return fecha >= prevStart && fecha <= prevEnd;
-      })
+      .filter(pago => citaIdsPrevios.has(pago.cita_id) && esEstadoPagado(pago.estado))
       .reduce((total, pago) => total + (pago.monto ?? 0), 0);
 
     const conteoPorPaciente = new Map<string, number>();
@@ -906,7 +954,7 @@ export default function MedicoDashboard() {
       ingresosComparativa,
       retencionLabel,
     };
-  }, [citas, pagos, currentTime]);
+  }, [citas, pagos, currentTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resumen para el grid superior (datos generales)
   const resumen = [
@@ -1297,7 +1345,7 @@ export default function MedicoDashboard() {
                   {(() => {
                     const hoy = new Date().toISOString().split('T')[0];
                     const citasHoy = citas.filter(cita => {
-                      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+                      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
                       return fechaCita === hoy;
                     });
                     const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
@@ -1332,89 +1380,87 @@ export default function MedicoDashboard() {
                       </div>
                     );
                   })()}
-                  {/* Próxima cita */}
+                  {/* Próxima cita - VERSIÓN CORREGIDA con normalización de fechas */}
                     {(() => {
-                      // Utilidad para formatear YYYY-MM-DD en zona local del servidor
-                      const formatDate = (d: Date): string => {
-                        const pad = (n: number): string => String(n).padStart(2, '0');
-                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-                      };
-
-                      // USAR EL ESTADO currentTime (se actualiza cada minuto)
+                      // ✅ USAR FUNCIÓN CONSISTENTE DEL DASHBOARD USUARIO
                       const ahoraServidor = currentTime;
-                      const hoy = formatDate(ahoraServidor);
+                      const hoy = combinarFechaHoraLocal(ahoraServidor.toISOString()).date.toISOString().split('T')[0];
 
-                      // Citas de hoy que aún no han pasado
+                      // 📋 PASO 1: Filtrar citas de HOY que aún no han pasado
                       const citasHoyFuturas = citas
                         .filter(cita => {
-                          if (cita.fecha !== hoy) return false;
+                          const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+                          if (fechaCita !== hoy) return false; // ✅ Compara strings correctamente
 
-                          let fechaCitaCompleta;
-                          try {
-                            fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
-                            if (isNaN(fechaCitaCompleta.getTime())) {
-                              fechaCitaCompleta = new Date(`${cita.fecha} ${cita.hora}`);
-                            }
-                          } catch (e) {
-                            return false;
-                          }
+                          const fechaCitaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
+                          if (!fechaCitaCompleta) return false;
 
                           const estadoCita = cita.estado?.toLowerCase() || 'pendiente';
                           const noEsCancelada = estadoCita !== 'cancelada' && estadoCita !== 'cancelado';
 
-                          return !isNaN(fechaCitaCompleta.getTime()) &&
-                                fechaCitaCompleta > ahoraServidor &&
-                                noEsCancelada;
+                          return fechaCitaCompleta > ahoraServidor && noEsCancelada;
                         })
                         .sort((a, b) => {
-                          const fechaA = new Date(`${a.fecha}T${a.hora}`);
-                          const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                          const fechaA = combinarFechaHoraLocal(a.fecha, a.hora).date;
+                          const fechaB = combinarFechaHoraLocal(b.fecha, b.hora).date;
+                          if (!fechaA || !fechaB) return 0;
                           return fechaA.getTime() - fechaB.getTime();
                         });
 
-                      // Citas de días futuros (no hoy)
+                      // 📅 PASO 2: Filtrar citas de DÍAS FUTUROS
                       const citasDiasFuturos = citas
                         .filter(cita => {
-                          if (cita.fecha <= hoy) return false;
+                          const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+                          if (fechaCita <= hoy) return false; // ✅ Compara strings correctamente
 
-                          let fechaCitaCompleta;
-                          try {
-                            fechaCitaCompleta = new Date(`${cita.fecha}T${cita.hora}`);
-                            if (isNaN(fechaCitaCompleta.getTime())) {
-                              fechaCitaCompleta = new Date(`${cita.fecha} ${cita.hora}`);
-                            }
-                          } catch (e) {
-                            return false;
-                          }
+                          const fechaCitaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
+                          if (!fechaCitaCompleta) return false;
 
                           const estadoCita = cita.estado?.toLowerCase() || 'pendiente';
                           const noEsCancelada = estadoCita !== 'cancelada' && estadoCita !== 'cancelado';
 
-                          return !isNaN(fechaCitaCompleta.getTime()) && noEsCancelada;
+                          return noEsCancelada;
                         })
                         .sort((a, b) => {
-                          const fechaA = new Date(`${a.fecha}T${a.hora}`);
-                          const fechaB = new Date(`${b.fecha}T${b.hora}`);
+                          const fechaA = combinarFechaHoraLocal(a.fecha, a.hora).date;
+                          const fechaB = combinarFechaHoraLocal(b.fecha, b.hora).date;
+                          if (!fechaA || !fechaB) return 0;
                           return fechaA.getTime() - fechaB.getTime();
                         });
 
-                      // Determinar la próxima cita según la lógica solicitada
-                      let proximaCita = null;
+                      // 🎯 PASO 3: Determinar la próxima cita
+                      let proximaCita: Cita | null = null;
                       let esHoy = false;
                       let esMañana = false;
 
                       if (citasHoyFuturas.length > 0) {
-                        // Hay citas hoy pendientes
                         proximaCita = citasHoyFuturas[0];
                         esHoy = true;
                       } else if (citasDiasFuturos.length > 0) {
-                        // No hay más citas hoy, mostrar la primera de días futuros
                         proximaCita = citasDiasFuturos[0];
-                        // Verificar si es mañana
+                        
                         const mañana = new Date(ahoraServidor);
                         mañana.setDate(mañana.getDate() + 1);
-                        const mañanaStr = formatDate(mañana);
-                        esMañana = proximaCita.fecha === mañanaStr;
+                        const mañanaStr = combinarFechaHoraLocal(mañana.toISOString()).date.toISOString().split('T')[0];
+                        esMañana = combinarFechaHoraLocal(proximaCita.fecha).date.toISOString().split('T')[0] === mañanaStr;
+                      }
+
+                      // 🐛 DEBUG en desarrollo
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log('🔍 Debug Próxima Cita:', {
+                          hoy,
+                          totalCitas: citas.length,
+                          citasHoyFuturas: citasHoyFuturas.length,
+                          citasDiasFuturos: citasDiasFuturos.length,
+                          proximaCita: proximaCita ? {
+                            id: proximaCita.id,
+                            fecha: proximaCita.fecha,
+                            hora: proximaCita.hora,
+                            paciente: proximaCita.usuario_id
+                          } : null,
+                          esHoy,
+                          esMañana
+                        });
                       }
 
                       return (
@@ -1464,9 +1510,13 @@ export default function MedicoDashboard() {
                               <div className="text-xs text-indigo-400">
                                 📋 {proximaCita.estado || 'Pendiente'}
                               </div>
-                              {/* Mostrar tiempo restante con contexto mejorado */}
+                              {/* Mostrar tiempo restante con contexto mejorado - VERSIÓN CORREGIDA */}
                               {(() => {
-                                const fechaCita = new Date(`${proximaCita.fecha}T${proximaCita.hora}`);
+                                const fechaCita = combinarFechaHoraLocal(proximaCita.fecha, proximaCita.hora).date;
+                                if (!fechaCita) {
+                                  return <div className="text-xs text-gray-500">⏱️ Calculando...</div>;
+                                }
+                                
                                 const diff = fechaCita.getTime() - ahoraServidor.getTime();
                                 const minutos = Math.floor(diff / (1000 * 60));
                                 const horas = Math.floor(minutos / 60);
@@ -1487,7 +1537,7 @@ export default function MedicoDashboard() {
                                     }
                                   }
                                 } else if (esMañana) {
-                                  const horasCita = new Date(`${proximaCita.fecha}T${proximaCita.hora}`).getHours();
+                                  const horasCita = fechaCita.getHours();
                                   const periodo = horasCita < 12 ? 'mañana' : horasCita < 18 ? 'tarde' : 'noche';
                                   return <div className="text-xs text-blue-600">🌅 Mañana por la {periodo}</div>;
                                 } else if (dias === 1) {
@@ -1508,7 +1558,7 @@ export default function MedicoDashboard() {
                               {/* Info simplificada */}
                               {citas.length > 0 && (
                                 <div className="mt-2 text-xs text-gray-400">
-                                  📊 {citas.length} citas totales | 🗓️ Hoy: {citas.filter(c => c.fecha === hoy).length}
+                                  📊 {citas.length} citas totales | 🗓️ Hoy: {citas.filter(c => combinarFechaHoraLocal(c.fecha).date.toISOString().split('T')[0] === hoy).length}
                                 </div>
                               )}
                             </div>
@@ -1540,7 +1590,7 @@ export default function MedicoDashboard() {
                     const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
                     
                     const citasMes = citas.filter(cita => {
-                      const fechaCita = new Date(cita.fecha);
+                      const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
                       return fechaCita >= inicioMes && fechaCita <= finMes;
                     });
                     
@@ -1575,24 +1625,10 @@ export default function MedicoDashboard() {
                           </div>
                         </div>
                         
-                        {/* Progreso visual */}
-                        <div className="bg-white/80 border border-amber-200 rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-gray-700">Progreso del mes</span>
-                            <span className="text-xs text-gray-500">{citasCompletadasMes}/{citasMes.length}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div 
-                              className="bg-gradient-to-r from-green-400 to-emerald-500 h-2.5 rounded-full transition-all duration-500"
-                              style={{ width: `${citasMes.length > 0 ? (citasCompletadasMes / citasMes.length) * 100 : 0}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
                         {/* Días más activos */}
                         {(() => {
                           const diasActividad = citasMes.reduce((acc: { [key: string]: number }, cita) => {
-                            const dia = new Date(cita.fecha).toLocaleDateString('es-ES', { weekday: 'long' });
+                            const dia = combinarFechaHoraLocal(cita.fecha).date.toLocaleDateString('es-ES', { weekday: 'long' });
                             acc[dia] = (acc[dia] || 0) + 1;
                             return acc;
                           }, {});
@@ -1641,17 +1677,17 @@ export default function MedicoDashboard() {
                   <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded mb-4" />
 
                   <div className="space-y-4">
-                    {/* Evolución de Citas: Completadas vs Canceladas */}
+                    {/* Evolución de Citas: Asistieron vs Canceladas */}
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">📊</span>
-                        <h3 className="text-sm font-bold text-indigo-900">Evolución de Citas (7d)</h3>
+                        <h3 className="text-sm font-bold text-indigo-900">Evolución de Asistencia (7d)</h3>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {/* Citas Completadas */}
                         <div className="bg-white/80 rounded-lg p-3 border border-green-200">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-green-700">Completadas</span>
+                            <span className="text-xs font-medium text-green-700">Asistieron</span>
                             <span className="text-xs text-green-600 font-semibold">
                               {tendenciasDashboard.diffCompletadas}
                             </span>
@@ -1697,28 +1733,28 @@ export default function MedicoDashboard() {
                       </div>
                     </div>
 
-                    {/* Grid de 2 columnas para ingresos y retención basado en tamaño del contenedor */}
-                    <div className="grid grid-cols-1 @lg:grid-cols-2 gap-4">
-                      {/* Comparativa de Ingresos */}
-                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 sm:p-4 flex flex-col h-full shadow-sm">
+                    {/* Grid de 2 columnas para ingresos y retención - Cards más compactos */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Ingresos Semanales - Card más compacto */}
+                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 flex flex-col shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl sm:text-2xl bg-emerald-100 rounded-full p-1.5 sm:p-2 shadow-inner">💰</span>
-                          <h3 className="text-sm sm:text-base font-bold text-emerald-900 leading-tight">Ingresos Semanales</h3>
+                          <span className="text-lg bg-emerald-100 rounded-lg p-1.5 shadow-inner">💰</span>
+                          <h3 className="text-xs font-bold text-emerald-900 leading-tight">Ingresos Semanales</h3>
                         </div>
-                        <div className="flex-1 flex flex-col justify-center">
-                          <div className="text-xs text-emerald-700 mb-1">Últimos 7 días</div>
-                          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mb-1 tracking-tight break-words">
+                        <div className="flex-1">
+                          <div className="text-xs text-emerald-700 mb-0.5">Citas pagadas (7d)</div>
+                          <div className="text-xl font-extrabold text-emerald-700 mb-1 tracking-tight">
                             {formatearMonto(tendenciasDashboard.ingresosActuales)}
                           </div>
-                          <div className="text-xs text-emerald-600 font-medium flex items-center gap-1 flex-wrap">
-                            <span className="break-words">{tendenciasDashboard.ingresosComparativa}</span>
+                          <div className="text-xs text-emerald-600 font-medium">
+                            {tendenciasDashboard.ingresosComparativa}
                           </div>
-                          {/* Indicador comparativo */}
+                          {/* Indicador comparativo compacto */}
                           {tendenciasDashboard.ingresosPrevios > 0 && (
-                            <div className="mt-2 pt-2 border-t border-emerald-200">
+                            <div className="mt-1.5 pt-1.5 border-t border-emerald-200">
                               <div className="flex justify-between text-xs gap-2">
-                                <span className="text-gray-600 flex-shrink-0">Período anterior:</span>
-                                <span className="text-gray-700 font-medium text-right break-words">
+                                <span className="text-gray-600">7d previos:</span>
+                                <span className="text-gray-700 font-medium">
                                   {formatearMonto(tendenciasDashboard.ingresosPrevios)}
                                 </span>
                               </div>
@@ -1727,19 +1763,19 @@ export default function MedicoDashboard() {
                         </div>
                       </div>
 
-                      {/* Tasa de Retención */}
-                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 sm:p-4 flex flex-col h-full shadow-sm">
+                      {/* Tasa de Retención - Card más compacto */}
+                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 flex flex-col shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl sm:text-2xl bg-purple-100 rounded-full p-1.5 sm:p-2 shadow-inner">🔄</span>
-                          <h3 className="text-sm sm:text-base font-bold text-purple-900 leading-tight">Tasa de Retención</h3>
+                          <span className="text-lg bg-purple-100 rounded-lg p-1.5 shadow-inner">🔄</span>
+                          <h3 className="text-xs font-bold text-purple-900 leading-tight">Tasa de Retención</h3>
                         </div>
-                        <div className="flex-1 flex flex-col justify-center">
-                          <div className="text-xs text-purple-700 mb-1">Pacientes recurrentes</div>
-                          <div className="text-2xl sm:text-3xl font-extrabold text-purple-700 mb-2 tracking-tight break-words">
+                        <div className="flex-1">
+                          <div className="text-xs text-purple-700 mb-0.5">Pacientes recurrentes</div>
+                          <div className="text-xl font-extrabold text-purple-700 mb-1 tracking-tight">
                             {tendenciasDashboard.retencionLabel}
                           </div>
                           <div className="text-xs text-purple-600">
-                            Pacientes con más de una cita
+                            Con más de una cita
                           </div>
                         </div>
                       </div>

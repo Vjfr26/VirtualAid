@@ -123,6 +123,12 @@ export default function CitasSection({ ctx }: { ctx: any }) {
                 >
                   Finalizadas
                 </button>
+                <button
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${ctx.filtroCitas === 'proximas' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+                  onClick={() => { ctx.setFiltroCitas('proximas'); ctx.setMostrarTodasLasCitas(false); }}
+                >
+                  Próximas
+                </button>
               </div>
             </div>
           </div>
@@ -162,21 +168,24 @@ export default function CitasSection({ ctx }: { ctx: any }) {
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="p-4 bg-yellow-50 rounded-full mb-4">
                       <span className="text-3xl text-yellow-500">
-                        {ctx.filtroCitas === 'hoy' ? '⏳' : 
-                         ctx.filtroCitas === 'canceladas' ? '🚫' :
-                         ctx.filtroCitas === 'finalizadas' ? '✅' : '📅'}
+                      {ctx.filtroCitas === 'hoy' ? '⏳' : 
+                       ctx.filtroCitas === 'canceladas' ? '🚫' :
+                       ctx.filtroCitas === 'finalizadas' ? '✅' :
+                       ctx.filtroCitas === 'proximas' ? '🔮' : '📅'}
                       </span>
                     </div>
                     <p className="text-yellow-700 font-semibold text-lg">
                       {ctx.filtroCitas === 'hoy' ? 'No hay citas hoy' :
                        ctx.filtroCitas === 'canceladas' ? 'No hay citas canceladas' :
                        ctx.filtroCitas === 'finalizadas' ? 'No hay citas finalizadas' :
+                       ctx.filtroCitas === 'proximas' ? 'No hay citas próximas' :
                        'No hay citas'}
                     </p>
                     <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
                       {ctx.filtroCitas === 'hoy' ? 'No hay citas programadas para hoy. Puedes revisar "Todas".' :
                        ctx.filtroCitas === 'canceladas' ? 'No tienes citas canceladas registradas.' :
                        ctx.filtroCitas === 'finalizadas' ? 'No tienes citas finalizadas aún.' :
+                       ctx.filtroCitas === 'proximas' ? 'No tienes citas programadas para fechas futuras.' :
                        'No hay citas disponibles con los filtros actuales.'}
                     </p>
                   </div>

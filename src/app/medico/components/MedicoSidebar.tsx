@@ -22,7 +22,7 @@ export default function MedicoSidebar({
     { id: 'citas', icon: '📅', label: 'Citas' },
     { id: 'disponibilidad', icon: '🕒', label: 'Disponibilidad' },
     { id: 'pacientes', icon: '👤', label: 'Pacientes' },
-    { id: 'billing', icon: '💳', label: 'Billing' },
+    { id: 'billing', icon: '�', label: 'Billetera' },
     { id: 'perfil', icon: '⚙️', label: 'Perfil' }
   ];
 
