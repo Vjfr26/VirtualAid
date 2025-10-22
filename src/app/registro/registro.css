@@ -265,6 +265,228 @@
   text-decoration: underline;
 }
 
+.registro-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.registro-modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 9999;
+}
+
+.registro-modal {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 32px 80px -24px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  position: relative;
+  text-align: center;
+  animation: registroModalFadeIn 0.3s ease;
+}
+
+@keyframes registroModalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.registro-modalTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #2563eb, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.registro-modalDescription {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.registro-modalSummary {
+  background: rgba(241, 245, 249, 0.8);
+  border-radius: 16px;
+  padding: 16px 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.registro-modalSummary span {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.registro-modalSummary strong {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.registro-modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.registro-modalButton {
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.registro-modalButtonPrimary {
+  background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+  color: #fff;
+  box-shadow: 0 16px 40px -20px rgba(37, 99, 235, 0.6);
+}
+
+.registro-modalButtonPrimary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px -18px rgba(37, 99, 235, 0.7);
+}
+
+.registro-modalButtonSecondary {
+  background: rgba(248, 250, 252, 0.95);
+  color: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.registro-modalButtonSecondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.registro-modalButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.registro-modalFilePicker {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+  border: 2px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.85);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.registro-modalFilePicker:hover {
+  border-color: rgba(37, 99, 235, 0.6);
+  background: rgba(237, 242, 252, 0.75);
+}
+
+.registro-modalFilePicker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.registro-modalFilePickerLabel {
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.registro-modalFileInfo {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.registro-modalFileInfo ul {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+}
+
+.registro-modalFileInfo li {
+  margin-bottom: 4px;
+}
+
+.registro-modalError {
+  background: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.registro-modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.registro-modalLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.registro-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
 /* Ocultar botón de Next.js Dev Tools */
 button[data-nextjs-data-overlay-console-button] {
   display: none !important;
@@ -369,6 +591,10 @@ div[data-nextjs-toast] {
     font-size: 16px;
     font-weight: 600;
   }
+
+  .registro-modal {
+    padding: 28px 24px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -430,6 +656,15 @@ div[data-nextjs-toast] {
   
   .registro-loginLink .registro-link {
     font-size: 13px;
+  }
+
+  .registro-modal {
+    padding: 24px 18px;
+  }
+
+  .registro-modalButtons {
+    flex-direction: column;
+    gap: 10px;
   }
 }
 

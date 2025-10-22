@@ -622,7 +622,8 @@ body.login-page footer {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(37, 99, 235, 0.15);
   transition: var(--transition);
-  z-index: 20;
+  z-index: 99999 !important; /* force above other stacking contexts for debugging */
+  pointer-events: auto !important;
   font-size: clamp(0.75rem, 1.8vw, 0.875rem);
   box-shadow: var(--shadow-sm);
   display: flex;

@@ -72,7 +72,7 @@ export default function LoginPage() {
   return (
     <div className="loginPageLayout">
       <div className="loginContainer">
-        <Link href="/" className="homeLink">{t('back_home', 'Back to Home')}</Link>
+      <Link href="/" className="homeLink" aria-label={t('back_home', 'Back to Home')}>{t('back_home', 'Back to Home')}</Link>
         <div className="loginTopActions">
           <TopActions />
         </div>

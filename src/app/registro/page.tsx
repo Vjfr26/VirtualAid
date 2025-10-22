@@ -6,19 +6,41 @@ import "./registro.css";
 import TopActions from "../components/TopActions";
 import Footer from "../components/Footer";
 
+type UserType = "patient" | "doctor";
+type DoctorModalStep = "none" | "verify" | "documents" | "success";
+
+const getInitialFormState = () => ({
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  specialty: "",
+  licenseNumber: "",
+  phone: "",
+  experiencia: "",
+  educacion: "",
+  biografia: "",
+});
+
+const parseResponse = async (res: Response) => {
+  const contentType = res.headers.get("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  const text = await res.text();
+  return { message: text };
+};
+
 export default function Register() {
   const { t } = useTranslation('common');
-  const [userType, setUserType] = useState("patient");
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    specialty: "",
-    licenseNumber: "",
-    phone: "",
-  });
+  const [userType, setUserType] = useState<UserType>("patient");
+  const [form, setForm] = useState(getInitialFormState);
+  const [doctorModalStep, setDoctorModalStep] = useState<DoctorModalStep>("none");
+  const [doctorDocuments, setDoctorDocuments] = useState<FileList | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,8 +58,27 @@ export default function Register() {
     "Otolaryngology"
   ];
 
+  const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ");
+
+  const resetForm = () => {
+    setForm(getInitialFormState());
+  };
+
+  const handleUserTypeChange = (type: UserType) => {
+    setUserType(type);
+    if (type !== "doctor") {
+      setDoctorModalStep("none");
+      setDoctorDocuments(null);
+      setSubmissionError(null);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (submissionError) {
+      setSubmissionError(null);
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
@@ -49,28 +90,52 @@ export default function Register() {
       alert("Password must be at least 6 characters long");
       return false;
     }
+    if (userType === "doctor") {
+      if (!form.specialty) {
+        alert("Selecciona tu especialidad para continuar");
+        return false;
+      }
+      if (!form.licenseNumber) {
+        alert("Ingresa tu número de licencia profesional");
+        return false;
+      }
+    }
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
 
-    let endpoint = "";
-    let body = {};
-    console.log("Submitting form:", form);
-    if (userType === "patient") {
-      endpoint = "/api/usuario/registrar";
-      body = {
+
+  const submitRegistration = async (type: UserType): Promise<boolean> => {
+    setIsSubmitting(true);
+    if (type === "doctor") {
+      setSubmissionError(null);
+    }
+
+    const endpoint =
+      type === "patient"
+        ? "/api/usuario/registrar"
+        : "/api/medico/registrar";
+
+    let requestInit: RequestInit;
+
+    if (type === "patient") {
+      const payload = {
         nombre: form.firstName,
         apellido: form.lastName,
         email: form.email,
         password: form.password,
         tlf: form.phone,
       };
+      console.log("Submitting patient registration:", { ...payload, password: "[hidden]" });
+      requestInit = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      };
     } else {
-      endpoint = "/api/medico/registrar";
-      body = {
+      const payload = {
         nombre: form.firstName,
         apellido: form.lastName,
         email: form.email,
@@ -79,31 +144,251 @@ export default function Register() {
         id: form.licenseNumber,
         tlf: form.phone,
         estado: "pendiente",
+        experiencia: form.experiencia,
+        educacion: form.educacion,
+        biografia: form.biografia,
+      };
+
+      console.log("Submitting doctor registration:", {
+        nombre: form.firstName,
+        apellido: form.lastName,
+        email: form.email,
+        especializacion: form.specialty,
+        id: form.licenseNumber,
+      });
+
+      requestInit = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       };
     }
 
-    await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.ok) {
-          alert(`${userType === "patient" ? "Paciente" : "Médico"} registrado correctamente! Recuerda verificar tu correo para activar tu cuenta.`);
+    try {
+      const res = await fetch(endpoint, requestInit);
+      const data = await parseResponse(res);
+
+      if (!res.ok) {
+        if (type === "doctor") {
+          setSubmissionError(data.message || "Error en el registro");
         } else {
           alert(data.message || "Error en el registro");
         }
-      })
-      .catch(() => {
+        return false;
+      }
+
+      resetForm();
+
+      if (type === "patient") {
+        alert("Paciente registrado correctamente! Recuerda verificar tu correo para activar tu cuenta.");
+      } else {
+        setDoctorModalStep("success");
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error durante el registro:", error);
+      if (type === "doctor") {
+        setSubmissionError("Error de conexión con el servidor");
+      } else {
         alert("Error de conexión con el servidor");
-      });
+      }
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDoctorConfirm = async () => {
+    if (!form.experiencia.trim() || !form.educacion.trim() || !form.biografia.trim()) {
+      setSubmissionError("Por favor completa todos los campos solicitados.");
+      return;
+    }
+
+    const success = await submitRegistration("doctor");
+    if (success) {
+      setDoctorDocuments(null);
+    }
+  };
+
+  const handleDoctorSuccessClose = () => {
+    setDoctorModalStep("none");
+    setSubmissionError(null);
+    setDoctorDocuments(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (userType === "doctor") {
+      setSubmissionError(null);
+      setDoctorModalStep("verify");
+      return;
+    }
+
+    await submitRegistration("patient");
   };
 
   return (
     <>
+    {userType === "doctor" && doctorModalStep !== "none" && (
+      <div className="registro-modalOverlay" role="dialog" aria-modal="true">
+        <div className="registro-modal">
+          {doctorModalStep === "verify" && (
+            <>
+              <h2 className="registro-modalTitle" id="doctor-verify-modal-title">
+                {t('doctor_verify_title', 'Confirma tus datos')}
+              </h2>
+              <p className="registro-modalDescription">
+                {t('doctor_verify_message', 'Por favor verifica que la información ingresada coincide con tus documentos oficiales. Nuestro equipo revisará cada dato para validar tu identidad profesional.')}
+              </p>
+              <div className="registro-modalSummary" aria-labelledby="doctor-verify-modal-title">
+                <div>
+                  <span>{t('full_name', 'Nombre completo')}</span>
+                  <strong>{fullName || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+                <div>
+                  <span>{t('email_address', 'Correo electrónico')}</span>
+                  <strong>{form.email || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+                <div>
+                  <span>{t('phone_number', 'Teléfono')}</span>
+                  <strong>{form.phone || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+                <div>
+                  <span>{t('specialty', 'Especialidad')}</span>
+                  <strong>{form.specialty || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+                <div>
+                  <span>{t('license_number', 'Número de licencia')}</span>
+                  <strong>{form.licenseNumber || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+              </div>
+              <div className="registro-modalButtons">
+                <button
+                  type="button"
+                  className="registro-modalButton registro-modalButtonSecondary"
+                  onClick={() => setDoctorModalStep("none")}
+                >
+                  {t('review', 'Revisar información')}
+                </button>
+                <button
+                  type="button"
+                  className="registro-modalButton registro-modalButtonPrimary"
+                  onClick={() => setDoctorModalStep("documents")}
+                >
+                  {t('continue', 'Continuar')}
+                </button>
+              </div>
+            </>
+          )}
+
+          {doctorModalStep === "documents" && (
+            <>
+              <h2 className="registro-modalTitle" id="doctor-documents-modal-title">
+                {t('doctor_documents_title', 'Información adicional')}
+              </h2>
+              <p className="registro-modalDescription">
+                {t('doctor_documents_message', 'Necesitamos conocer más sobre tu trayectoria profesional para validar tu perfil médico.')}
+              </p>
+              <div className="registro-modalForm">
+                <div className="registro-inputGroup">
+                  <label htmlFor="doctor-experiencia" className="registro-modalLabel">
+                    {t('work_experience', 'Experiencia laboral en tu ámbito')}
+                  </label>
+                  <textarea
+                    id="doctor-experiencia"
+                    className="registro-input registro-textarea"
+                    placeholder={t('work_experience_placeholder', 'Describe tu experiencia profesional...')}
+                    value={form.experiencia}
+                    onChange={(e) => setForm({ ...form, experiencia: e.target.value })}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="registro-inputGroup">
+                  <label htmlFor="doctor-educacion" className="registro-modalLabel">
+                    {t('education', 'Educación')}
+                  </label>
+                  <textarea
+                    id="doctor-educacion"
+                    className="registro-input registro-textarea"
+                    placeholder={t('education_placeholder', 'Universidades, títulos obtenidos...')}
+                    value={form.educacion}
+                    onChange={(e) => setForm({ ...form, educacion: e.target.value })}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="registro-inputGroup">
+                  <label htmlFor="doctor-biografia" className="registro-modalLabel">
+                    {t('biography', 'Breve biografía')}
+                  </label>
+                  <textarea
+                    id="doctor-biografia"
+                    className="registro-input registro-textarea"
+                    placeholder={t('biography_placeholder', 'Cuéntanos un poco sobre ti...')}
+                    value={form.biografia}
+                    onChange={(e) => setForm({ ...form, biografia: e.target.value })}
+                    rows={3}
+                    required
+                  />
+                </div>
+              </div>
+              {submissionError && (
+                <div className="registro-modalError" role="alert">
+                  {submissionError}
+                </div>
+              )}
+              <div className="registro-modalButtons">
+                <button
+                  type="button"
+                  className="registro-modalButton registro-modalButtonSecondary"
+                  onClick={() => {
+                    setDoctorModalStep("verify");
+                    setSubmissionError(null);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {t('back', 'Regresar')}
+                </button>
+                <button
+                  type="button"
+                  className="registro-modalButton registro-modalButtonPrimary"
+                  onClick={handleDoctorConfirm}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? t('processing', 'Procesando...') : t('confirm', 'Confirmar envío')}
+                </button>
+              </div>
+            </>
+          )}
+
+          {doctorModalStep === "success" && (
+            <>
+              <h2 className="registro-modalTitle" id="doctor-success-modal-title">
+                {t('doctor_success_title', 'Solicitud enviada')}
+              </h2>
+              <p className="registro-modalDescription">
+                {t('doctor_success_message', 'Tu solicitud fue recibida correctamente. Nuestro equipo revisará la documentación y te notificaremos por correo electrónico cuando el proceso haya finalizado.')}
+              </p>
+              <div className="registro-modalButtons">
+                <button
+                  type="button"
+                  className="registro-modalButton registro-modalButtonPrimary"
+                  onClick={handleDoctorSuccessClose}
+                >
+                  {t('close', 'Aceptar')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
     <div className="registro-container">
       <Link href="/" className="registro-homeLink">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -125,14 +410,14 @@ export default function Register() {
         <div className="registro-tabs">
           <button
             className={`registro-tab ${userType === "patient" ? "registro-active" : ""}`}
-            onClick={() => setUserType("patient")}
+            onClick={() => handleUserTypeChange("patient")}
             type="button"
           >
             {t('patient', 'Patient')}
           </button>
           <button
             className={`registro-tab ${userType === "doctor" ? "registro-active" : ""}`}
-            onClick={() => setUserType("doctor")}
+            onClick={() => handleUserTypeChange("doctor")}
             type="button"
           >
             {t('doctor', 'Doctor')}
@@ -265,9 +550,11 @@ export default function Register() {
           )}
 
           <div className="registro-formActions">
-            <button className="registro-button" type="submit">
+            <button className="registro-button" type="submit" disabled={isSubmitting}>
               <span className="registro-buttonIcon">✨</span>
-              {t('create_account', 'Create Account')}
+              {userType === "patient" && isSubmitting
+                ? t('processing', 'Processing...')
+                : t('create_account', 'Create Account')}
             </button>
             
             <div className="registro-loginLink">
