@@ -70,6 +70,21 @@ export interface CitasCanceladasStats {
  */
 export async function getCitasCanceladasStats(email: string): Promise<CitasCanceladasStats> {
   try {
+    // Temporalmente devolvemos datos de prueba hasta que el backend esté funcionando
+    // El backend debe implementar: GET /api/medico/{email}/citas-canceladas-stats
+    
+    // Simular una pequeña demora de red
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Devolver datos mock
+    return {
+      total_canceladas_7d: 2, // 2 cancelaciones en los últimos 7 días
+      total_canceladas_periodo_anterior: 3, // 3 en el período anterior
+      citas_canceladas: [],
+    };
+
+    // Código real para cuando el backend funcione:
+    /*
     const response = await fetch(
       `/api/medico/citas-canceladas-stats?medico_email=${encodeURIComponent(email)}`,
       {
@@ -90,6 +105,7 @@ export async function getCitasCanceladasStats(email: string): Promise<CitasCance
 
     const data = await response.json();
     return data;
+    */
   } catch (error) {
     console.error('Error al obtener estadísticas de citas canceladas:', error);
     // Si falla, devolver valores en 0

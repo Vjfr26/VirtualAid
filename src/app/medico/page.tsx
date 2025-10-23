@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import Footer from "../components/Footer";
 import TopActions from '../components/TopActions';
 import { useMediaQuery } from 'react-responsive';
@@ -61,16 +62,20 @@ const DIAS_IDX_MAP: Record<string, number> = {
 
 // Componente de carga
 function PantallaCarga() {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 bg-white/85 z-[10000] flex items-center justify-center flex-col">
       <div className="animate-spin rounded-full border-8 border-primary-200 border-t-primary h-20 w-20 mb-6"></div>
-      <span className="text-primary-700 text-xl font-bold">Cargando panel...</span>
+      <span className="text-primary-700 text-xl font-bold">{t('medico.loading.overlay')}</span>
     </div>
   );
 }
 
 export default function MedicoDashboard() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || 'es';
+  const translate = React.useCallback((key: string, options?: Record<string, unknown>) => i18n.t(key, options), [i18n]);
   
   // FUNCIÓN PARA OBTENER LA FECHA CORRECTA DEL SERVIDOR
   const obtenerFechaServidor = () => {
@@ -147,7 +152,8 @@ export default function MedicoDashboard() {
       setNuevoPassword,
       setConfirmarPassword,
       setCambiandoPassword,
-      cambiarContrasena
+      cambiarContrasena,
+      translate
     );
     await handler(e, passwordActual, nuevoPassword, confirmarPassword);
   };
@@ -197,6 +203,7 @@ export default function MedicoDashboard() {
     const handler = createEliminarHorarioHandler(
       setLoadingEliminar, eliminarHorarioService, getHorarios, setHorarios, 
       groupHorariosByDay, setDisponibilidad, setNotificacionDisponibilidad,
+      translate,
       setMostrarConfirmacion, setHorarioAEliminar
     );
     await handler(medicoData, horarioAEliminar);
@@ -208,7 +215,7 @@ export default function MedicoDashboard() {
   
   const confirmarAgregarHorarios = async () => {
     const handler = createAgregarHorariosHandler(
-      setLoadingHorarios, agregarHorario, setNotificacionDisponibilidad, setNuevoDia,
+      setLoadingHorarios, agregarHorario, setNotificacionDisponibilidad, translate, setNuevoDia,
       setNuevasHoras, getHorarios, setHorarios, groupHorariosByDay, setDisponibilidad,
       setMostrarConfirmacionAgregar, setDatosAgregar
     );
@@ -339,7 +346,7 @@ export default function MedicoDashboard() {
     }
     
     return resultado;
-  }, [filtroCitas, citas, hoy, primerDiaSemana, ultimoDiaSemana]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filtroCitas, citas, hoy, primerDiaSemana, ultimoDiaSemana]);
   // Paginación visual (solo para 'todas')
   const [mostrarTodasLasCitas, setMostrarTodasLasCitas] = useState(false);
   // Calcular citas a mostrar según el filtro activo
@@ -356,7 +363,7 @@ export default function MedicoDashboard() {
       // Para otros filtros, usar citasFiltradas directamente
       return citasFiltradas;
     }
-  }, [filtroCitas, citas, citasFiltradas, mostrarTodasLasCitas]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filtroCitas, citas, citasFiltradas, mostrarTodasLasCitas]);
   
   // Estado de perfil editable
   const [perfil, setPerfil] = useState({
@@ -368,9 +375,10 @@ export default function MedicoDashboard() {
   });
   
   // Nombre del médico formateado
+  const doctorShort = t('doctor_short');
   const doctorName = medicoData 
-    ? `Dr. ${medicoData.nombre} ${medicoData.apellido}` 
-    : `Dr. ${perfil.nombre} ${perfil.apellido}`;
+    ? `${doctorShort} ${medicoData.nombre} ${medicoData.apellido}` 
+    : `${doctorShort} ${perfil.nombre} ${perfil.apellido}`;
 
   // Edición inline de perfil
   const [formPerfil, setFormPerfil] = useState({ ...perfil });
@@ -427,12 +435,12 @@ export default function MedicoDashboard() {
           }),
           getHorarios(email).catch(err => {
             console.error('Error cargando horarios:', err);
-            setErrorHorarios(`Error cargando horarios: ${err.message}`);
+            setErrorHorarios(translate('medico.errors.fetch_schedule'));
             return [];
           }),
           getCitas(email).catch(err => {
             console.error('Error cargando citas:', err);
-            setErrorCitas(`Error cargando citas: ${err.message}`);
+            setErrorCitas(translate('medico.errors.fetch_appointments'));
             return [];
           }),
           getPagosMedico(email).catch(err => {
@@ -513,10 +521,10 @@ export default function MedicoDashboard() {
         setUsuariosMap(usuariosNombres);
       } catch (err) {
         console.error("Error al cargar datos del médico:", err);
-        setError("No se pudieron cargar los datos del perfil del médico.");
+  setError(translate('medico.errors.fetch_profile'));
         // Agregamos la asignación a los errores específicos
-        setErrorCitas("No se pudieron cargar las citas.");
-        setErrorHorarios("No se pudieron cargar los horarios.");
+  setErrorCitas(translate('medico.errors.fetch_appointments'));
+  setErrorHorarios(translate('medico.errors.fetch_schedule'));
   // Error de pagos ya controlado en catch de la promesa de pagos
         setPerfil({
           nombre: "",
@@ -535,7 +543,7 @@ export default function MedicoDashboard() {
       }
     };
     fetchDashboardData();
-  }, [router]);
+  }, [router, translate]);
 
   // Función para refrescar datos manualmente
   const refrescarDatos = async () => {
@@ -545,7 +553,7 @@ export default function MedicoDashboard() {
     try {
       const email = getSessionFromApi()?.email;
       if (!email) {
-        throw new Error('No hay sesión activa');
+        throw new Error(translate('medico.errors.no_active_session'));
       }
       
       // Obtener todas las citas del médico
@@ -573,7 +581,8 @@ export default function MedicoDashboard() {
       
     } catch (err) {
       console.error('Error al refrescar citas:', err);
-      setErrorCitas(`Error al refrescar: ${err}`);
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorCitas(translate('medico.errors.refresh_appointments', { error: message }));
     } finally {
       setLoadingCitas(false);
     }
@@ -684,7 +693,7 @@ export default function MedicoDashboard() {
         const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const diaSemana = dias.indexOf(nuevoDia);
         if (diaSemana === -1) {
-          setNotificacionDisponibilidad({ tipo: 'error', mensaje: 'Día inválido seleccionado.' });
+          setNotificacionDisponibilidad({ tipo: 'error', mensaje: translate('medico.availability.invalid_day') });
           setTimeout(() => setNotificacionDisponibilidad(null), 4000);
           return;
         }
@@ -702,7 +711,13 @@ export default function MedicoDashboard() {
         });
         
         if (existentesEnDia.length > 0) {
-          setNotificacionDisponibilidad({ tipo: 'error', mensaje: `Ya existen las franjas: ${existentesEnDia.join(', ')} para ${nuevoDia}` });
+          setNotificacionDisponibilidad({
+            tipo: 'error',
+            mensaje: translate('medico.availability.duplicate_slots', {
+              slots: existentesEnDia.join(', '),
+              day: nuevoDia,
+            }),
+          });
           setTimeout(() => setNotificacionDisponibilidad(null), 4500);
           return;
         }
@@ -727,7 +742,7 @@ export default function MedicoDashboard() {
         const horarioEncontrado = horarios.find(h => h.id === id);
         if (horarioEncontrado) {
           await eliminarHorarioService(medicoData.email, id);
-          setNotificacionDisponibilidad({ tipo: 'success', mensaje: 'Horario eliminado correctamente.' });
+          setNotificacionDisponibilidad({ tipo: 'success', mensaje: translate('medico.availability.delete_success') });
           // Refrescar horarios desde el backend y la tabla de disponibilidad
           const horariosData = await getHorarios(medicoData.email);
           setHorarios(horariosData);
@@ -735,7 +750,7 @@ export default function MedicoDashboard() {
         }
       }
     } catch (error) {
-      setNotificacionDisponibilidad({ tipo: 'error', mensaje: 'Error al eliminar el horario.' });
+      setNotificacionDisponibilidad({ tipo: 'error', mensaje: translate('medico.availability.delete_error') });
       console.error("Error al eliminar horario:", error);
     } finally {
       setLoadingEliminar(null);
@@ -927,17 +942,25 @@ export default function MedicoDashboard() {
     let ingresosComparativa = '';
     if (ingresosPrevios > 0) {
       const diff = ingresosActuales - ingresosPrevios;
-      const percent = Math.round((diff / ingresosPrevios) * 100);
+      const percent = ingresosPrevios === 0 ? 0 : Math.round((diff / ingresosPrevios) * 100);
       const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
       const sign = diff > 0 ? '+' : '';
-      ingresosComparativa = ` (${arrow}${sign}${percent}% vs. 7d prev)`;
+      ingresosComparativa = translate('medico.dashboard.trends.revenue_comparison', {
+        arrow,
+        sign,
+        percent: Math.abs(percent),
+      });
     } else if (ingresosActuales > 0) {
-      ingresosComparativa = ' (nuevo)';
+      ingresosComparativa = translate('medico.dashboard.trends.revenue_new');
     }
 
     const retencionLabel = totalPacientesUnicos > 0
-      ? `${Math.round(tasaRetencion)}% (${pacientesRecurrentes}/${totalPacientesUnicos})`
-      : 'Sin datos';
+      ? translate('medico.dashboard.trends.retention_ratio', {
+          percent: Math.round(tasaRetencion),
+          recurrent: pacientesRecurrentes,
+          total: totalPacientesUnicos,
+        })
+      : translate('medico.dashboard.trends.retention_no_data');
 
     const totalActualCitas = completadasActuales + canceladasActuales;
     const totalPrevioCitas = completadasPrevias + canceladasPrevias;
@@ -964,16 +987,17 @@ export default function MedicoDashboard() {
       ingresosComparativa,
       retencionLabel,
     };
-  }, [citas, pagos, currentTime, citasCanceladasStats]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [citas, pagos, currentTime, citasCanceladasStats, translate]);
 
   // Resumen para el grid superior (datos generales)
   const resumen = [
-    { titulo: "Total Citas", valor: citas.length, icono: "�", color: "#e3f2fd", bg: "bg-blue-300/40", accent: "bg-gradient-primary-soft" },
-    { titulo: "Total Pacientes", valor: pacientes.length, icono: "👤", color: "#90caf9", bg: "bg-orange-200/40", accent: "bg-gradient-secondary-soft" },
-    { titulo: "Disponibilidad", valor: disponibilidad.length, icono: "🕒", color: "#ececec", bg: "bg-purple-300/40", accent: "bg-gradient-accent-soft" },
-    { 
-      titulo: "Ingresos", 
-      valor: loadingPagos ? "..." : formatearMonto(totalIngresos), 
+    { key: 'totalAppointments', titulo: t('medico.dashboard.summary.total_appointments'), valor: citas.length, icono: "📅", color: "#e3f2fd", bg: "bg-blue-300/40", accent: "bg-gradient-primary-soft" },
+    { key: 'totalPatients', titulo: t('medico.dashboard.summary.total_patients'), valor: pacientes.length, icono: "👤", color: "#90caf9", bg: "bg-orange-200/40", accent: "bg-gradient-secondary-soft" },
+    { key: 'availability', titulo: t('medico.dashboard.summary.availability'), valor: disponibilidad.length, icono: "🕒", color: "#ececec", bg: "bg-purple-300/40", accent: "bg-gradient-accent-soft" },
+    {
+      key: 'revenue',
+      titulo: t('medico.dashboard.summary.revenue'),
+      valor: loadingPagos ? "..." : formatearMonto(totalIngresos),
       icono: "💰", 
       color: "#fff0d4ff", 
       bg: "bg-emerald-300/40", 
@@ -1180,26 +1204,26 @@ export default function MedicoDashboard() {
                 <span className="text-4xl">🗑️</span>
               </div>
               <h3 className="text-lg font-bold text-red-800 mb-2">
-                Confirmar Eliminación de Horario
+                {t('medico.modals.delete_title')}
               </h3>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
                 <p className="text-gray-700 mb-3 text-sm">
-                  Estás a punto de eliminar permanentemente el siguiente horario de atención:
+                  {t('medico.modals.delete_description')}
                 </p>
                 <div className="bg-white border border-red-300 rounded-lg p-3 mb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">📅</span>
-                    <span className="font-bold text-red-800">Día:</span>
+                    <span className="font-bold text-red-800">{t('medico.modals.delete_day_label')}</span>
                     <span className="text-gray-800 font-semibold">{horarioAEliminar.dia}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">⏰</span>
-                    <span className="font-bold text-red-800">Horario:</span>
+                    <span className="font-bold text-red-800">{t('medico.modals.delete_slot_label')}</span>
                     <span className="text-gray-800 font-semibold">{horarioAEliminar.hora}</span>
                   </div>
                 </div>
                 <p className="text-red-700 text-sm font-medium">
-                  ⚠️ Esta acción no se puede deshacer
+                  {t('medico.modals.delete_warning')}
                 </p>
               </div>
               <div className="flex gap-4 justify-center">
@@ -1210,7 +1234,7 @@ export default function MedicoDashboard() {
                   }}
                   className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={confirmarEliminacion}
@@ -1220,10 +1244,10 @@ export default function MedicoDashboard() {
                   {loadingEliminar === horarioAEliminar?.horario?.id ? (
                     <>
                       <div className="animate-spin rounded-full border-2 border-white/30 border-t-white h-4 w-4"></div>
-                      Eliminando...
+                      {t('medico.modals.deleting')}
                     </>
                   ) : (
-                    'Eliminar'
+                    t('medico.modals.delete_confirm')
                   )}
                 </button>
               </div>
@@ -1241,10 +1265,10 @@ export default function MedicoDashboard() {
                 <span className="text-4xl">📅</span>
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Confirmar Agregar Horarios
+                {t('medico.modals.add_title')}
               </h3>
               <p className="text-gray-600 mb-4">
-                ¿Estás seguro de que deseas agregar las siguientes franjas horarias para el día <span className="font-semibold text-gray-800">{datosAgregar.dia}</span>?
+                {t('medico.modals.add_description', { day: datosAgregar.dia })}
               </p>
               <div className="mb-6 max-h-32 overflow-y-auto">
                 <div className="flex flex-wrap gap-1 justify-center">
@@ -1263,7 +1287,7 @@ export default function MedicoDashboard() {
                   }}
                   className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={confirmarAgregarHorarios}
@@ -1273,10 +1297,10 @@ export default function MedicoDashboard() {
                   {loadingHorarios ? (
                     <>
                       <div className="animate-spin rounded-full border-2 border-white/30 border-t-white h-4 w-4"></div>
-                      Agregando...
+                      {t('medico.modals.adding')}
                     </>
                   ) : (
-                    'Agregar Horarios'
+                    t('medico.modals.add_confirm')
                   )}
                 </button>
               </div>
@@ -1316,7 +1340,7 @@ export default function MedicoDashboard() {
         <DashboardHeader doctorName={doctorName} />
         {loading && (
           <div className="w-full bg-primary-100 text-primary-700 p-3 rounded-lg mb-4 text-center">
-            Cargando datos del médico...
+            {t('medico.loading.dashboard_data')}
           </div>
         )}
         {error && (
@@ -1349,8 +1373,8 @@ export default function MedicoDashboard() {
                       <span className="text-xl">📈</span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">Estadísticas de Hoy</h2>
-                      <p className="text-blue-100 text-xs">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.today.title')}</h2>
+                      <p className="text-blue-100 text-xs">{new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 </div>
@@ -1371,25 +1395,25 @@ export default function MedicoDashboard() {
                         {/* Total de citas hoy */}
                         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 text-center">
                           <div className="text-2xl font-bold text-blue-700 mb-1">{citasHoy.length}</div>
-                          <div className="text-xs text-blue-600 font-medium">Citas Hoy</div>
+                          <div className="text-xs text-blue-600 font-medium">{t('medico.dashboard.today.card_appointments')}</div>
                         </div>
                         
                         {/* Citas completadas */}
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
                           <div className="text-2xl font-bold text-green-700 mb-1">{citasCompletadas}</div>
-                          <div className="text-xs text-green-600 font-medium">Completadas</div>
+                          <div className="text-xs text-green-600 font-medium">{t('medico.dashboard.today.card_completed')}</div>
                         </div>
                         
                         {/* Citas pendientes */}
                         <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 text-center">
                           <div className="text-2xl font-bold text-orange-700 mb-1">{citasPendientes}</div>
-                          <div className="text-xs text-orange-600 font-medium">Pendientes</div>
+                          <div className="text-xs text-orange-600 font-medium">{t('medico.dashboard.today.card_pending')}</div>
                         </div>
                         
                         {/* Citas canceladas */}
                         <div className="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 text-center">
                           <div className="text-2xl font-bold text-red-700 mb-1">{citasCanceladas}</div>
-                          <div className="text-xs text-red-600 font-medium">Canceladas</div>
+                          <div className="text-xs text-red-600 font-medium">{t('medico.dashboard.today.card_cancelled')}</div>
                         </div>
                       </div>
                     );
@@ -1482,23 +1506,23 @@ export default function MedicoDashboard() {
                           <div className="flex items-center gap-2 mb-2 justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">⏰</span>
-                              <h3 className="font-semibold text-indigo-800 text-sm">Próxima Cita</h3>
+                              <h3 className="font-semibold text-indigo-800 text-sm">{t('medico.dashboard.next.title')}</h3>
                             </div>
                             <div className="flex gap-1">
                               <button
                                 onClick={refrescarDatos}
                                 disabled={loadingCitas}
                                 className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition-colors"
-                                title="Refrescar datos de citas"
+                                title={t('medico.dashboard.next.refresh_title')}
                               >
                                 {loadingCitas ? '⟳' : '🔄'}
                               </button>
                             </div>
                           </div>
                           {loadingCitas ? (
-                            <div className="text-xs text-gray-500">Cargando próximas citas...</div>
+                            <div className="text-xs text-gray-500">{t('medico.dashboard.next.loading')}</div>
                           ) : errorCitas ? (
-                            <div className="text-xs text-red-500">Error al cargar citas: {errorCitas}</div>
+                            <div className="text-xs text-red-500">{t('medico.dashboard.next.error', { error: errorCitas })}</div>
                           ) : proximaCita ? (
                             <div className="space-y-1">
                               <div className="font-medium text-indigo-700">
@@ -1507,10 +1531,10 @@ export default function MedicoDashboard() {
                                   ? proximaCita.usuario_id.split('@')[0].split('.').map(part => 
                                       part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
                                     ).join(' ')
-                                  : proximaCita.usuario_id || 'Usuario sin nombre')}
+                                  : proximaCita.usuario_id || t('medico.dashboard.next.no_name'))}
                               </div>
                               <div className="text-xs text-indigo-600">
-                                📅 {esHoy ? 'Hoy' : esMañana ? 'Mañana' : combinarFechaHoraLocal(proximaCita.fecha).date.toLocaleDateString('es-ES', {
+                                📅 {esHoy ? t('today') : esMañana ? t('medico.dashboard.next.time.tomorrow') : combinarFechaHoraLocal(proximaCita.fecha).date.toLocaleDateString(locale, {
                                   weekday: 'short',
                                   day: 'numeric', 
                                   month: 'short'
@@ -1522,13 +1546,13 @@ export default function MedicoDashboard() {
                                 </div>
                               )}
                               <div className="text-xs text-indigo-400">
-                                📋 {proximaCita.estado || 'Pendiente'}
+                                📋 {proximaCita.estado || t('medico.dashboard.next.pending_status')}
                               </div>
                               {/* Mostrar tiempo restante con contexto mejorado - VERSIÓN CORREGIDA */}
                               {(() => {
                                 const fechaCita = combinarFechaHoraLocal(proximaCita.fecha, proximaCita.hora).date;
                                 if (!fechaCita) {
-                                  return <div className="text-xs text-gray-500">⏱️ Calculando...</div>;
+                                  return <div className="text-xs text-gray-500">{t('medico.dashboard.next.time.calculating')}</div>;
                                 }
                                 
                                 const diff = fechaCita.getTime() - ahoraServidor.getTime();
@@ -1538,41 +1562,44 @@ export default function MedicoDashboard() {
 
                                 if (esHoy) {
                                   if (minutos <= 15) {
-                                    return <div className="text-xs text-red-600 font-semibold">⚠️ ¡En {minutos} minuto{minutos !== 1 ? 's' : ''}!</div>;
+                                    return <div className="text-xs text-red-600 font-semibold">{t('medico.dashboard.next.time.starts_in_minutes_alert', { minutes: minutos, suffix: minutos !== 1 ? 's' : '' })}</div>;
                                   } else if (minutos < 60) {
-                                    return <div className="text-xs text-orange-600">⏱️ En {minutos} minuto{minutos !== 1 ? 's' : ''}</div>;
+                                    return <div className="text-xs text-orange-600">{t('medico.dashboard.next.time.starts_in_minutes', { minutes: minutos, suffix: minutos !== 1 ? 's' : '' })}</div>;
                                   } else {
                                     const horasRestantes = Math.floor(minutos / 60);
                                     const minutosRestantes = minutos % 60;
                                     if (minutosRestantes > 0) {
-                                      return <div className="text-xs text-orange-600">⏱️ En {horasRestantes}h {minutosRestantes}m</div>;
+                                      return <div className="text-xs text-orange-600">{t('medico.dashboard.next.time.starts_in_hours_minutes', { hours: horasRestantes, minutes: minutosRestantes })}</div>;
                                     } else {
-                                      return <div className="text-xs text-orange-600">⏱️ En {horasRestantes} hora{horasRestantes !== 1 ? 's' : ''}</div>;
+                                      return <div className="text-xs text-orange-600">{t('medico.dashboard.next.time.starts_in_hours', { hours: horasRestantes, suffix: horasRestantes !== 1 ? 's' : '' })}</div>;
                                     }
                                   }
                                 } else if (esMañana) {
                                   const horasCita = fechaCita.getHours();
-                                  const periodo = horasCita < 12 ? 'mañana' : horasCita < 18 ? 'tarde' : 'noche';
-                                  return <div className="text-xs text-blue-600">🌅 Mañana por la {periodo}</div>;
+                                  const periodoKey = horasCita < 12 ? 'morning' : horasCita < 18 ? 'afternoon' : 'evening';
+                                  return <div className="text-xs text-blue-600">{t('medico.dashboard.next.time.tomorrow_period', { period: t(`medico.dashboard.next.time.period.${periodoKey}`) })}</div>;
                                 } else if (dias === 1) {
-                                  return <div className="text-xs text-green-600">📅 Mañana</div>;
+                                  return <div className="text-xs text-green-600">{t('medico.dashboard.next.time.tomorrow')}</div>;
                                 } else if (dias > 0) {
-                                  return <div className="text-xs text-green-600">⏱️ En {dias} día{dias > 1 ? 's' : ''}</div>;
+                                  return <div className="text-xs text-green-600">{t('medico.dashboard.next.time.starts_in_days', { days: dias, suffix: dias > 1 ? 's' : '' })}</div>;
                                 } else {
-                                  return <div className="text-xs text-green-600">⏱️ Próximamente</div>;
+                                  return <div className="text-xs text-green-600">{t('medico.dashboard.next.time.coming_soon')}</div>;
                                 }
                               })()}
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500">
                               {citas.length === 0 ? 
-                                '📋 No hay citas registradas' : 
-                                '📅 No hay citas próximas programadas'
+                                t('medico.dashboard.next.no_appointments') : 
+                                t('medico.dashboard.next.no_upcoming')
                               }
                               {/* Info simplificada */}
                               {citas.length > 0 && (
                                 <div className="mt-2 text-xs text-gray-400">
-                                  📊 {citas.length} citas totales | 🗓️ Hoy: {citas.filter(c => formatLocalYYYYMMDD(combinarFechaHoraLocal(c.fecha).date) === hoy).length}
+                                  {t('medico.dashboard.next.summary', {
+                                    total: citas.length,
+                                    today: citas.filter(c => formatLocalYYYYMMDD(combinarFechaHoraLocal(c.fecha).date) === hoy).length
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -1592,8 +1619,8 @@ export default function MedicoDashboard() {
                       <span className="text-xl">📊</span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">Métricas del Mes</h2>
-                      <p className="text-amber-100 text-xs">{new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.monthly.title')}</h2>
+                      <p className="text-amber-100 text-xs">{new Date().toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</p>
                     </div>
                   </div>
                 </div>
@@ -1620,29 +1647,29 @@ export default function MedicoDashboard() {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 text-center">
                             <div className="text-xl font-bold text-blue-700 mb-1">{citasMes.length}</div>
-                            <div className="text-xs text-blue-600 font-medium">Citas Totales</div>
+                            <div className="text-xs text-blue-600 font-medium">{t('medico.dashboard.monthly.total_appointments')}</div>
                           </div>
-                          
+
                           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 text-center">
                             <div className="text-xl font-bold text-green-700 mb-1">{citasCompletadasMes}</div>
-                            <div className="text-xs text-green-600 font-medium">Completadas</div>
+                            <div className="text-xs text-green-600 font-medium">{t('medico.dashboard.monthly.completed_appointments')}</div>
                           </div>
-                          
+
                           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3 text-center">
                             <div className="text-xl font-bold text-purple-700 mb-1">{pacientesUnicos}</div>
-                            <div className="text-xs text-purple-600 font-medium">Pacientes</div>
+                            <div className="text-xs text-purple-600 font-medium">{t('medico.dashboard.monthly.unique_patients')}</div>
                           </div>
-                          
+
                           <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3 text-center">
                             <div className="text-xl font-bold text-amber-700 mb-1">{tasaExito}%</div>
-                            <div className="text-xs text-amber-600 font-medium">Tasa Éxito</div>
+                            <div className="text-xs text-amber-600 font-medium">{t('medico.dashboard.monthly.success_rate')}</div>
                           </div>
                         </div>
                         
                         {/* Días más activos */}
                         {(() => {
                           const diasActividad = citasMes.reduce((acc: { [key: string]: number }, cita) => {
-                            const dia = combinarFechaHoraLocal(cita.fecha).date.toLocaleDateString('es-ES', { weekday: 'long' });
+                            const dia = combinarFechaHoraLocal(cita.fecha).date.toLocaleDateString(locale, { weekday: 'long' });
                             acc[dia] = (acc[dia] || 0) + 1;
                             return acc;
                           }, {});
@@ -1653,13 +1680,13 @@ export default function MedicoDashboard() {
                           
                           return diasMasActivos.length > 0 ? (
                             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3">
-                              <div className="text-xs font-semibold text-amber-800 mb-2">📅 Días más activos:</div>
+                              <div className="text-xs font-semibold text-amber-800 mb-2">{t('medico.dashboard.monthly.active_days')}</div>
                               <div className="space-y-1">
                                 {diasMasActivos.map(([dia, cantidad]) => (
                                   <div key={dia} className="flex justify-between items-center">
                                     <span className="text-xs text-amber-700 capitalize">{dia}</span>
                                     <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">
-                                      {cantidad} citas
+                                      {t('medico.dashboard.monthly.active_day_count', { count: cantidad })}
                                     </span>
                                   </div>
                                 ))}
@@ -1682,8 +1709,8 @@ export default function MedicoDashboard() {
                       <span className="text-xl">📈</span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">Tendencias</h2>
-                      <p className="text-indigo-100 text-xs">Análisis de los últimos 7 días</p>
+                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.trends.title')}</h2>
+                      <p className="text-indigo-100 text-xs">{t('medico.dashboard.trends.subtitle')}</p>
                     </div>
                   </div>
                 </div>
@@ -1695,13 +1722,13 @@ export default function MedicoDashboard() {
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">📊</span>
-                        <h3 className="text-sm font-bold text-indigo-900">Evolución de Asistencia (7d)</h3>
+                        <h3 className="text-sm font-bold text-indigo-900">{t('medico.dashboard.trends.evolution_title')}</h3>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {/* Citas Completadas */}
                         <div className="bg-white/80 rounded-lg p-3 border border-green-200">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-green-700">Asistieron</span>
+                            <span className="text-xs font-medium text-green-700">{t('medico.dashboard.trends.attended_label')}</span>
                             <span className="text-xs text-green-600 font-semibold">
                               {tendenciasDashboard.diffCompletadas}
                             </span>
@@ -1710,13 +1737,13 @@ export default function MedicoDashboard() {
                             {tendenciasDashboard.completadasActuales}
                           </div>
                           <div className="text-xs text-green-600 mt-1">
-                            {tendenciasDashboard.completadasPct}% del total
+                            {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.completadasPct })}
                           </div>
                         </div>
                         {/* Citas Canceladas */}
                         <div className="bg-white/80 rounded-lg p-3 border border-red-200">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-red-700">Canceladas</span>
+                            <span className="text-xs font-medium text-red-700">{t('medico.dashboard.trends.cancelled_label')}</span>
                             <span className="text-xs text-red-600 font-semibold">
                               {tendenciasDashboard.diffCanceladas}
                             </span>
@@ -1725,7 +1752,7 @@ export default function MedicoDashboard() {
                             {tendenciasDashboard.canceladasActuales}
                           </div>
                           <div className="text-xs text-red-600 mt-1">
-                            {tendenciasDashboard.canceladasPct}% del total
+                            {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.canceladasPct })}
                           </div>
                         </div>
                       </div>
@@ -1742,7 +1769,7 @@ export default function MedicoDashboard() {
                           ></div>
                         </div>
                         <div className="text-xs text-gray-600 text-center mt-1">
-                          {tendenciasDashboard.totalActualCitas} citas en los últimos 7 días
+                          {t('medico.dashboard.trends.total_label', { count: tendenciasDashboard.totalActualCitas })}
                         </div>
                       </div>
                     </div>
@@ -1753,10 +1780,10 @@ export default function MedicoDashboard() {
                       <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 flex flex-col shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-lg bg-emerald-100 rounded-lg p-1.5 shadow-inner">💰</span>
-                          <h3 className="text-xs font-bold text-emerald-900 leading-tight">Ingresos Semanales</h3>
+                          <h3 className="text-xs font-bold text-emerald-900 leading-tight">{t('medico.dashboard.trends.revenue_title')}</h3>
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs text-emerald-700 mb-0.5">Citas pagadas (7d)</div>
+                          <div className="text-xs text-emerald-700 mb-0.5">{t('medico.dashboard.trends.revenue_subtitle')}</div>
                           <div className="text-xl font-extrabold text-emerald-700 mb-1 tracking-tight">
                             {formatearMonto(tendenciasDashboard.ingresosActuales)}
                           </div>
@@ -1767,7 +1794,7 @@ export default function MedicoDashboard() {
                           {tendenciasDashboard.ingresosPrevios > 0 && (
                             <div className="mt-1.5 pt-1.5 border-t border-emerald-200">
                               <div className="flex justify-between text-xs gap-2">
-                                <span className="text-gray-600">7d previos:</span>
+                                <span className="text-gray-600">{t('medico.dashboard.trends.revenue_previous')}</span>
                                 <span className="text-gray-700 font-medium">
                                   {formatearMonto(tendenciasDashboard.ingresosPrevios)}
                                 </span>
@@ -1781,15 +1808,15 @@ export default function MedicoDashboard() {
                       <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 flex flex-col shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-lg bg-purple-100 rounded-lg p-1.5 shadow-inner">🔄</span>
-                          <h3 className="text-xs font-bold text-purple-900 leading-tight">Tasa de Retención</h3>
+                          <h3 className="text-xs font-bold text-purple-900 leading-tight">{t('medico.dashboard.trends.retention_title')}</h3>
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs text-purple-700 mb-0.5">Pacientes recurrentes</div>
+                          <div className="text-xs text-purple-700 mb-0.5">{t('medico.dashboard.trends.retention_subtitle')}</div>
                           <div className="text-xl font-extrabold text-purple-700 mb-1 tracking-tight">
                             {tendenciasDashboard.retencionLabel}
                           </div>
                           <div className="text-xs text-purple-600">
-                            Con más de una cita
+                            {t('medico.dashboard.trends.retention_note')}
                           </div>
                         </div>
                       </div>

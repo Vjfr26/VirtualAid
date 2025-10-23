@@ -15,6 +15,68 @@ import ar from '@/../public/locales/ar/common.json';
 import tr from '@/../public/locales/tr/common.json';
 import pl from '@/../public/locales/pl/common.json';
 
+type LocaleDictionary = Record<string, unknown>;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const deepClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const mergeDeep = (base: unknown, override: unknown): unknown => {
+  if (Array.isArray(override)) {
+    return override.slice();
+  }
+
+  if (isPlainObject(override)) {
+    const result: Record<string, unknown> = isPlainObject(base) ? { ...base } : {};
+    Object.keys(override).forEach((key) => {
+      result[key] = mergeDeep(result[key], override[key]);
+    });
+    return result;
+  }
+
+  if (override !== undefined) {
+    return override;
+  }
+
+  if (Array.isArray(base)) {
+    return base.slice();
+  }
+
+  if (isPlainObject(base)) {
+    return { ...base };
+  }
+
+  return base;
+};
+
+const rawLocales: Record<string, LocaleDictionary> = {
+  es,
+  en,
+  fr,
+  de,
+  it,
+  pt,
+  ru,
+  zh,
+  ja,
+  ar,
+  tr,
+  pl,
+};
+
+const buildResources = () => {
+  const resources: Record<string, { common: LocaleDictionary }> = {};
+  Object.entries(rawLocales).forEach(([lng, locale]) => {
+    const merged = mergeDeep(deepClone(en) as LocaleDictionary, locale) as LocaleDictionary;
+    resources[lng] = { common: merged };
+  });
+  return resources;
+};
+
+const resources = buildResources();
+
 
 const getInitialLanguage = () => {
   // No usar localStorage durante SSR para evitar desajustes.
@@ -24,20 +86,9 @@ const getInitialLanguage = () => {
 i18n
   .use(initReactI18next)
   .init({
-    resources: {
-      es: { common: es },
-      en: { common: en },
-      fr: { common: fr },
-      de: { common: de },
-      it: { common: it },
-      pt: { common: pt },
-      ru: { common: ru },
-      zh: { common: zh },
-      ja: { common: ja },
-      ar: { common: ar },
-      tr: { common: tr },
-      pl: { common: pl },
-    },
+    resources,
+    ns: ['common'],
+    defaultNS: 'common',
     lng: getInitialLanguage(),
     fallbackLng: 'en',
     interpolation: {

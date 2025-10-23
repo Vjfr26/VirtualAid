@@ -399,6 +399,770 @@
       "terms": "Terms of Use"
     }
   },
+  "medico": {
+    "appointments": {
+      "calendar": {
+        "title": "Appointments Calendar",
+        "subtitle": "Visualize your schedule at a glance",
+        "no_appointments": "No appointments scheduled for this day",
+        "more": "+{{count}} more",
+        "select_day_prompt": "Select a day to view appointments"
+      },
+      "panel": {
+        "title": "Scheduled Appointments",
+        "count": "{{count}} appointment(s) registered"
+      },
+      "filters": {
+        "label": "Filter appointments",
+        "today": "Today",
+        "all": "All",
+        "cancelled": "Cancelled",
+        "completed": "Completed",
+        "upcoming": "Upcoming"
+      },
+      "list": {
+        "loading_title": "Loading appointments",
+        "loading_subtitle": "Retrieving your latest meetings...",
+        "error_title": "Unable to load appointments",
+        "retry": "Retry",
+        "empty_title": "No appointments registered",
+        "empty_description": "When you schedule appointments, they will appear here for quick access.",
+        "empty_filters": {
+          "hoy": {
+            "title": "No appointments today",
+            "description": "There are no appointments scheduled for today. Try viewing all appointments."
+          },
+          "canceladas": {
+            "title": "No cancelled appointments",
+            "description": "You don't have any cancelled appointments on record."
+          },
+          "finalizadas": {
+            "title": "No completed appointments",
+            "description": "You haven't completed any appointments yet."
+          },
+          "proximas": {
+            "title": "No upcoming appointments",
+            "description": "There are no appointments scheduled for future dates."
+          },
+          "default": {
+            "title": "No appointments found",
+            "description": "No appointments match the selected filters."
+          }
+        },
+        "toggle": {
+          "show_more": "Show more appointments (+{{count}})",
+          "show_less": "Show fewer appointments"
+        }
+      },
+      "status": {
+        "confirmada": "Confirmed",
+        "pendiente": "Pending",
+        "cancelada": "Cancelled",
+        "finalizada": "Completed",
+        "unknown": "No status"
+      },
+      "fields": {
+        "patient_unknown": "Unknown patient",
+        "user_placeholder": "User {{id}}",
+        "date_unavailable": "Date unavailable",
+        "time_unavailable": "Time unavailable"
+      },
+      "actions": {
+        "room_not_ready_minutes": "The meeting room will be available in about {{minutes}} minute(s).",
+        "room_not_ready_generic": "The meeting room isn't ready yet. Try again closer to the appointment time.",
+        "join_disabled_title": "This appointment has already finished",
+        "join_enabled_title": "Start meeting with this patient",
+        "meeting_finished": "Appointment finished",
+        "meeting_finished_short": "Finished",
+        "join_meeting": "Start meeting",
+        "join_meeting_short": "Meeting"
+      },
+      "advice": {
+        "title": "Tip:",
+        "description": "You can start a video meeting directly from each appointment."
+      }
+    },
+    "sidebar": {
+      "header": {
+        "title": "Medical Panel",
+        "status": "System online",
+        "tip": "Manage your medical practice end-to-end"
+      },
+      "menu": {
+        "dashboard": "Dashboard",
+        "appointments": "Appointments",
+        "availability": "Availability",
+        "patients": "Patients",
+        "billing": "Billing",
+        "profile": "Profile"
+      }
+    },
+    "header": {
+      "title": "Doctor Dashboard",
+      "welcome": "Welcome,",
+      "doctor_fallback": "Doctor",
+      "session_active": "Active session",
+      "online": "Online"
+    },
+    "loading": {
+      "overlay": "Loading dashboard...",
+      "dashboard_data": "Loading doctor data..."
+    },
+    "errors": {
+      "fetch_profile": "Failed to load doctor profile data.",
+      "fetch_appointments": "Failed to load appointments.",
+      "fetch_schedule": "Failed to load schedules.",
+      "refresh_appointments": "Refresh error: {{error}}",
+      "no_active_session": "No active session"
+    },
+    "availability": {
+      "header": {
+        "title": "My Availability",
+        "subtitle": "Configure your consultation hours"
+      },
+      "summary": {
+        "title": "Availability Summary",
+        "days": "Configured days",
+        "slots": "Total time slots",
+        "status": "Profile status"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "form": {
+        "title": "Add New Schedule",
+        "day_label": "Day of the week",
+        "day_placeholder": "✨ Select a day",
+        "slots_label": "Available slots",
+        "slots_select_day": "Select a day to view available slots.",
+        "slots_none": "No slots available for {{day}}.",
+        "selected_prefix": "Selected:",
+        "submit_saving": "Saving...",
+        "submit_label": "Save Schedule"
+      },
+      "loading": {
+        "title": "Loading schedules",
+        "subtitle": "Retrieving your availability..."
+      },
+      "list": {
+        "title": "Your Configured Schedules",
+        "workday": "Workday",
+        "slots_title": "Available slots:"
+      },
+      "empty": {
+        "title": "Set up your first availability!",
+        "description": "You have no schedules yet. Use the form above to add your consultation hours and start seeing patients."
+      },
+      "warnings": {
+        "slot_with_appointments": "Cannot delete: there are {{count}} scheduled appointment(s) in this time slot."
+      },
+      "errors": {
+        "load_title": "Error loading availability",
+        "find_slot": "Could not find the schedule to delete."
+      },
+      "invalid_day": "Invalid day selected.",
+      "duplicate_slots": "The following slots already exist: {{slots}} for {{day}}",
+      "delete_success": "Schedule deleted successfully.",
+      "delete_error": "Error deleting the schedule.",
+      "add_success": "{{count}} time slot(s) added successfully.",
+      "add_error": "Error adding the schedule."
+    },
+    "password": {
+      "min_length": "Password must be at least 6 characters long.",
+      "mismatch": "Passwords do not match.",
+      "require_current": "You must enter your current password.",
+      "missing_user": "User data not available.",
+      "change_success": "Password updated successfully!",
+      "change_error": "Error changing the password."
+    },
+    "modals": {
+      "delete_title": "Confirm Schedule Deletion",
+      "delete_description": "You are about to permanently delete the following availability slot:",
+      "delete_day_label": "Day:",
+      "delete_slot_label": "Slot:",
+      "delete_warning": "⚠️ This action cannot be undone",
+      "delete_confirm": "Delete",
+      "deleting": "Deleting...",
+      "add_title": "Confirm Add Slots",
+      "add_description": "Are you sure you want to add the following time slots for {{day}}?",
+      "add_confirm": "Add Slots",
+      "adding": "Adding..."
+    },
+    "billing": {
+      "title": "My Wallet",
+      "subtitle": "Manage your finances and payment methods",
+      "balance": {
+        "label": "Current Balance",
+        "loading": "Loading...",
+        "description": "Sum of all paid appointments",
+        "withdraw": "Request Withdrawal"
+      },
+      "loading": "Loading wallet...",
+      "notImplemented": {
+        "title": "Wallet System Under Development",
+        "description": "The wallet system is currently under development and is not yet available in the backend.",
+        "statusTitle": "Development status:",
+        "items": {
+          "ui": "• User interface: Completed ✅",
+          "payments": "• Payment methods management: Completed ✅",
+          "profiles": "• Billing profiles: Completed ✅",
+          "api": "• Backend API: In progress 🚧",
+          "database": "• Database: In progress 🚧"
+        },
+        "note": "Once it's implemented, you'll be able to manage your entire wallet from here."
+      },
+      "setup": {
+        "title": "Set Up Your Wallet",
+        "description": "To start managing your finances, you need to create a billing profile.",
+        "button": "Create Billing Profile"
+      },
+      "tabs": {
+        "profile": "Profile",
+        "methods": "Payment Methods",
+        "invoices": "Invoices"
+      },
+      "profileSection": {
+        "title": "Billing Profile",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save Changes",
+        "legalName": {
+          "label": "Legal Name *",
+          "placeholder": "Full name or legal entity"
+        },
+        "taxId": {
+          "label": "Tax ID *",
+          "placeholder": "12345678A"
+        },
+        "fields": {
+          "legalName": "Legal Name",
+          "taxId": "Tax ID",
+          "email": "Email",
+          "profileId": "Profile ID",
+          "notSpecified": "Not specified",
+          "notAvailable": "Not available"
+        }
+      },
+      "addressSection": {
+        "title": "Billing Address",
+        "add": "Add Address",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save Address",
+        "empty": "No address configured",
+        "fields": {
+          "address": "Address *",
+          "city": "City *",
+          "postalCode": "Postal Code *",
+          "region": "Province/State",
+          "country": "Country *"
+        },
+        "placeholders": {
+          "address": "Street, number, apartment...",
+          "country": "Spain"
+        }
+      },
+      "paymentMethods": {
+        "title": "Payment Methods",
+        "add": "Add Method",
+        "emptyTitle": "No payment methods",
+        "emptyDescription": "Add your first card or payment method to start receiving payments.",
+        "addButton": "Add Payment Method",
+        "default": "Default",
+        "secondary": "Secondary",
+        "deleteConfirm": "Are you sure you want to delete this payment method?"
+      },
+      "invoices": {
+        "title": "Invoice History",
+        "count": "{{count}} invoice",
+        "count_plural": "{{count}} invoices",
+        "emptyTitle": "No invoices",
+        "emptyDescription": "When you receive payments, the invoices will appear here automatically.",
+        "columns": {
+          "id": "ID",
+          "amount": "Amount",
+          "status": "Status",
+          "date": "Date",
+          "actions": "Actions"
+        },
+        "status": {
+          "paid": "Paid",
+          "pending": "Pending"
+        },
+        "viewDetails": "View Details"
+      },
+      "modal": {
+        "addTitle": "Add Payment Method",
+        "editTitle": "Edit Payment Method",
+        "provider": "Provider",
+        "providers": {
+          "stripe": "Stripe (Card)",
+          "paypal": "PayPal",
+          "manual": "Bank Transfer"
+        },
+        "cardNumber": "Card Number",
+        "expMonth": "Expiration Month",
+        "expYear": "Expiration Year",
+        "cvc": "CVC",
+        "default": "Set as default method",
+        "addAction": "Add",
+        "updateAction": "Update",
+        "saving": "Saving...",
+        "cancel": "Cancel"
+      }
+    },
+    "dashboard": {
+      "summary": {
+        "total_appointments": "Total Appointments",
+        "total_patients": "Total Patients",
+        "availability": "Availability",
+        "revenue": "Revenue",
+        "revenue_detail_title": "Revenue Details",
+        "revenue_detail": {
+          "month_total": "Month Total",
+          "total": "Overall Total",
+          "completed_payments": "Completed Payments",
+          "recent_payments": "Recent Payments",
+          "no_payments": "No payments found"
+        }
+      },
+      "today": {
+        "title": "Today's Stats",
+        "card_appointments": "Appointments Today",
+        "card_completed": "Completed",
+        "card_pending": "Pending",
+        "card_cancelled": "Cancelled"
+      },
+      "next": {
+        "title": "Next Appointment",
+        "refresh_title": "Refresh appointments data",
+        "loading": "Loading upcoming appointments...",
+        "error": "Error loading appointments: {{error}}",
+        "no_name": "Unnamed patient",
+        "pending_status": "Pending",
+        "no_appointments": "📋 No appointments registered",
+        "no_upcoming": "📅 No upcoming appointments",
+        "summary": "📊 {{total}} total appointments | 🗓️ Today: {{today}}",
+        "time": {
+          "calculating": "⏱️ Calculating...",
+          "starts_in_minutes_alert": "⚠️ In {{minutes}} minute{{suffix}}!",
+          "starts_in_minutes": "⏱️ In {{minutes}} minute{{suffix}}",
+          "starts_in_hours_minutes": "⏱️ In {{hours}}h {{minutes}}m",
+          "starts_in_hours": "⏱️ In {{hours}} hour{{suffix}}",
+          "tomorrow_period": "🌅 Tomorrow in the {{period}}",
+          "tomorrow": "📅 Tomorrow",
+          "starts_in_days": "⏱️ In {{days}} day{{suffix}}",
+          "coming_soon": "⏱️ Coming soon",
+          "period": {
+            "morning": "morning",
+            "afternoon": "afternoon",
+            "evening": "evening"
+          }
+        }
+      },
+      "monthly": {
+        "title": "Monthly Metrics",
+        "total_appointments": "Total Appointments",
+        "completed_appointments": "Completed",
+        "unique_patients": "Patients",
+        "success_rate": "Success Rate",
+        "active_days": "📅 Busiest days:",
+        "active_day_count": "{{count}} appointments"
+      },
+      "trends": {
+        "title": "Trends",
+        "subtitle": "Last 7 days analysis",
+        "evolution_title": "Attendance Trend (7d)",
+        "attended_label": "Attended",
+        "cancelled_label": "Cancelled",
+        "total_label": "{{count}} appointments in the last 7 days",
+        "revenue_title": "Weekly Revenue",
+        "revenue_subtitle": "Paid appointments (7d)",
+        "revenue_previous": "Previous 7d:",
+        "retention_title": "Retention Rate",
+        "retention_subtitle": "Returning patients",
+        "retention_note": "With more than one appointment",
+        "total_percentage": "{{percent}}% of total",
+        "revenue_comparison": " ({{arrow}}{{sign}}{{percent}}% vs. previous 7d)",
+        "revenue_new": " (new)",
+        "retention_ratio": "{{percent}}% ({{recurrent}}/{{total}})",
+        "retention_no_data": "No data"
+      }
+    },
+    "patients": {
+      "header": {
+        "title": "Patient Management",
+        "subtitle": "{{count}} registered patient(s)"
+      },
+      "search": {
+        "placeholder": "Search by name, email or reason...",
+        "clear": "Clear search",
+        "results": "{{count}} result(s)"
+      },
+      "states": {
+        "loadingTitle": "Loading patients",
+        "loadingSubtitle": "Getting information about your patients...",
+        "errorTitle": "Error loading patients",
+        "retry": "Retry",
+        "emptyTitle": "No registered patients",
+        "emptyDescription": "Patients will appear here when they schedule appointments with you.",
+        "noResultsTitle": "No results found",
+        "noResultsDescription": "Try different search terms."
+      },
+      "card": {
+        "nameUnknown": "Patient without name",
+        "age": "{{count}} year",
+        "age_plural": "{{count}} years",
+        "ageUnknown": "Age not specified",
+        "reasonLabel": "Reason",
+        "reasonFallback": "Not specified",
+        "actions": {
+          "history": "History",
+          "historyTooltip": "View medical history",
+          "schedule": "Schedule",
+          "scheduleTooltip": "Schedule new appointment",
+          "prescriptions": "Prescriptions",
+          "prescriptionsTooltip": "View prescriptions",
+          "report": "Report",
+          "reportTooltip": "Report patient"
+        }
+      },
+      "stats": {
+        "total": "Total",
+        "active": "Active",
+        "results": "Results",
+        "pending": "Pending"
+      },
+      "tip": {
+        "title": "Tip:",
+        "description": "Use search to find patients quickly by name or email."
+      },
+      "common": {
+        "fields": {
+          "name": "Name",
+          "age": "Age",
+          "weight": "Weight",
+          "height": "Height",
+          "bloodType": "Blood type",
+          "status": "Status",
+          "reason": "Reason",
+          "email": "Email",
+          "emergencyContact": "Emergency contact",
+          "emergencyRelation": "Relationship",
+          "emergencyPhone": "Emergency phone"
+        },
+        "unspecified": "Not specified",
+        "notAvailable": "Not available",
+        "ageValue": "{{count}} year",
+        "ageValue_plural": "{{count}} years",
+        "doctorPrefix": "Dr. {{name}}",
+        "doctorFallback": "Doctor",
+        "locale": "en-US",
+        "actions": {
+          "cancel": "Cancel",
+          "close": "Close"
+        }
+      },
+      "modals": {
+        "common": {
+          "patient": "Patient: {{name}}"
+        },
+        "history": {
+          "title": "Medical History",
+          "patientInfo": {
+            "title": "Patient Information",
+            "currentReason": "Current reason"
+          },
+          "visits": {
+            "title": "Recent Visits",
+            "sampleGeneral": {
+              "title": "General Consultation",
+              "date": "Nov 15, 2024",
+              "description": "Routine checkup, patient in good general health."
+            },
+            "sampleFollowup": {
+              "title": "Follow-up",
+              "date": "Oct 10, 2024",
+              "description": "Post-treatment control, favorable evolution."
+            }
+          },
+          "details": {
+            "personalInfo": "Personal Information",
+            "emergencyContact": "Emergency Contact",
+            "sampleRelation": "Family member"
+          },
+          "timeline": {
+            "labels": {
+              "symptoms": "Symptoms",
+              "diagnosis": "Diagnosis",
+              "treatment": "Treatment",
+              "notes": "Notes",
+              "type": "Type",
+              "results": "Results"
+            },
+            "entry1": {
+              "title": "Consultation - Nov 15, 2024",
+              "symptoms": "Headache, dizziness",
+              "diagnosis": "Tension migraine",
+              "treatment": "Ibuprofen 400mg every 8h",
+              "notes": "Recommend stress reduction and improved sleep habits"
+            },
+            "entry2": {
+              "title": "Consultation - Nov 02, 2024",
+              "symptoms": "Persistent cough, congestion",
+              "diagnosis": "Acute bronchitis",
+              "treatment": "Antibiotics, expectorant syrup",
+              "notes": "Favorable evolution, continue treatment"
+            },
+            "entry3": {
+              "title": "Exam - Oct 20, 2024",
+              "type": "Complete blood test",
+              "results": "All values within normal range",
+              "notes": "Excellent general health"
+            }
+          },
+          "actions": {
+            "print": "Print History"
+          }
+        },
+        "appointment": {
+          "title": "Schedule Appointment",
+          "sectionTitle": "Schedule New Appointment",
+          "fields": {
+            "date": "Date",
+            "time": "Time",
+            "type": "Consultation type",
+            "reason": "Reason"
+          },
+          "types": {
+            "general": "General Consultation",
+            "followup": "Follow-up",
+            "specialized": "Specialized",
+            "emergency": "Emergency"
+          },
+          "placeholders": {
+            "reason": "Describe the reason for consultation..."
+          },
+          "actions": {
+            "schedule": "Schedule Appointment"
+          },
+          "success": "Appointment scheduled successfully",
+          "status": {
+            "confirmed": "Confirmed",
+            "scheduled": "Scheduled",
+            "completed": "Completed",
+            "cancelled": "Cancelled",
+            "default": "Pending"
+          },
+          "stats": {
+            "total": "Total",
+            "upcoming": "Upcoming",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+          },
+          "filters": {
+            "label": "Filter by",
+            "all": "All",
+            "upcoming": "Upcoming",
+            "completed": "Completed",
+            "cancelled": "Cancelled",
+            "confirmed": "Confirmed"
+          },
+          "list": {
+            "title": "Appointment History",
+            "empty": "No appointments recorded",
+            "emptyHint": "Appointments will appear here when scheduled.",
+            "note": "Note: {{note}}",
+            "timeLabel": "Time"
+          },
+          "info": {
+            "title": "Information",
+            "description": "Here you can view and manage all appointments for this patient."
+          }
+        },
+        "prescriptions": {
+          "title": "Medical Prescriptions",
+          "sectionTitle": "Patient Prescriptions",
+          "fields": {
+            "medicine": "Medicine",
+            "instructions": "Instructions",
+            "dose": "Dose",
+            "duration": "Duration",
+            "quantity": "Quantity",
+            "withMeals": "With meals",
+            "id": "ID"
+          },
+          "sampleTitle": "Prescription #{{number}}",
+          "sampleDate": "Date: {{date}}",
+          "samples": {
+            "medicine1": "Paracetamol 500mg",
+            "instructions1": "Take 1 tablet every 8 hours",
+            "medicine2": "Amoxicillin 500mg",
+            "instructions2": "Take 1 capsule every 12 hours"
+          },
+          "actions": {
+            "new": "New Prescription",
+            "newPlaceholder": "Function to create new prescription (coming soon)",
+            "print": "Print Prescriptions"
+          },
+          "loading": "Loading prescriptions...",
+          "empty": {
+            "title": "No prescriptions",
+            "description": "This patient has no prescriptions registered yet."
+          },
+          "status": {
+            "active": "Active",
+            "inactive": "Inactive"
+          },
+          "prescribedBy": "Prescribed by: {{doctor}}",
+          "prescribedOn": "Date: {{date}}"
+        },
+        "message": {
+          "title": "Send Message",
+          "sectionTitle": "Message to Patient",
+          "to": "To: {{name}}",
+          "fields": {
+            "subject": "Subject",
+            "body": "Message",
+            "type": "Message type",
+            "markImportant": "Mark as important",
+            "markUrgent": "Mark as urgent"
+          },
+          "placeholders": {
+            "subject": "E.g: Test results",
+            "body": "Write your message here..."
+          },
+          "types": {
+            "reminder": "Reminder",
+            "instructions": "Instructions",
+            "results": "Results",
+            "followup": "Follow-up",
+            "general": "General"
+          },
+          "actions": {
+            "send": "Send Message"
+          },
+          "success": "Message sent successfully"
+        },
+        "report": {
+          "title": "Report Patient"
+        },
+        "newPrescription": {
+          "title": "New Medical Prescription",
+          "sections": {
+            "medicine": "Medicine Information",
+            "timing": "Administration and Duration",
+            "additional": "Additional Instructions"
+          },
+          "fields": {
+            "medicine": "Medicine",
+            "dose": "Dose",
+            "frequency": "Frequency",
+            "duration": "Duration",
+            "quantity": "Total Quantity",
+            "withMeals": "Administer with meals",
+            "notes": "Instructions and notes"
+          },
+          "placeholders": {
+            "select": "Select",
+            "medicine": "E.g: Ibuprofen 400mg",
+            "dose": "E.g: 1 tablet every 8 hours",
+            "duration": "E.g: 7 days",
+            "quantity": "E.g: 21 tablets",
+            "notes": "Write specific instructions for the patient..."
+          },
+          "frequency": {
+            "every4h": "Every 4 hours",
+            "every6h": "Every 6 hours",
+            "every8h": "Every 8 hours",
+            "every12h": "Every 12 hours",
+            "daily": "Once a day",
+            "custom": "Custom"
+          },
+          "withMeals": {
+            "yes": "Yes - With meals",
+            "no": "Not necessary",
+            "before": "Before meals",
+            "after": "After meals",
+            "water": "With plenty of water"
+          },
+          "actions": {
+            "save": "Save Prescription"
+          }
+        }
+      },
+      "alerts": {
+        "printInlineFailed": "Print error. Please try again.",
+        "printPreparationFailed": "Error preparing print. Please try again.",
+        "noPrescriptionsToPrint": "No prescriptions to print.",
+        "printPrescriptionsFailed": "Error printing prescriptions. Please try again.",
+        "printPrescriptionsPreparationFailed": "Error preparing prescription print.",
+        "missingPrescriptionFields": "Please complete all required fields (medicine, dose and duration)",
+        "noSelectedPatient": "No patient selected",
+        "prescriptionSaved": "✅ Prescription saved successfully",
+        "prescriptionSaveError": "❌ Error saving prescription: {{error}}",
+        "unknownError": "Unknown error",
+        "prescriptionCreationError": "❌ Error creating prescription"
+      }
+    },
+    "profile": {
+      "header": {
+        "title": "Dr. {{name}}",
+        "titleFallback": "Dr. First Last",
+        "specialtyUnknown": "Specialty not specified",
+        "panel": "Medical Panel",
+        "changePassword": "Change password"
+      },
+      "avatar": {
+        "upload": "Upload photo",
+        "uploading": "Uploading...",
+        "success": "Avatar updated successfully!",
+        "error": "Error updating avatar",
+        "selectImage": "Select an image",
+        "noUserData": "No user data"
+      },
+      "stats": {
+        "title": "Statistics",
+        "todayAppointments": "Appointments today",
+        "totalPatients": "Patients"
+      },
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "specialty": "Specialty",
+        "email": "Email address",
+        "emailShort": "Email"
+      },
+      "actions": {
+        "edit": "Edit profile",
+        "save": "Save changes",
+        "cancel": "Cancel"
+      },
+      "password": {
+        "title": "Change Password",
+        "currentPassword": "Current password",
+        "newPassword": "New password",
+        "confirmPassword": "Confirm new password",
+        "save": "Save password",
+        "cancel": "Cancel",
+        "success": "Password updated successfully",
+        "error": "Error changing password"
+      },
+      "messages": {
+        "profileUpdated": "Profile updated!",
+        "errorSaving": "Error saving profile",
+        "imageSavedNoUrl": "The image was saved, but we didn't receive the URL. Refresh the page to see it."
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "placeholders": {
+        "noData": "-"
+      }
+    }
+  },
   "legal": {
     "privacy": {
       "title": "Privacy Policy",

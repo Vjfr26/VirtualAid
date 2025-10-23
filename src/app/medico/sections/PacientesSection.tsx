@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Image from "next/image";
 import { combinarFechaHoraLocal } from '../utils';
 import { getRecetasPaciente, crearReceta, getInfoMedicoActual, type NuevaRecetaData } from '../services/recetas';
@@ -10,6 +11,7 @@ interface PacientesSectionProps {
 }
 
 export default function PacientesSection({ ctx }: PacientesSectionProps) {
+  const { t } = useTranslation('common');
   const {
     pacientes,
     loadingCitas,
@@ -30,18 +32,14 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
   };
 
   const handleAgendarCita = (paciente: any) => {
-    setPacienteSeleccionado(paciente);
     setModalAbierto('cita');
   };
 
   const handleVerRecetas = (paciente: any) => {
     setPacienteSeleccionado(paciente);
     setModalAbierto('recetas');
-    // Cargar recetas del paciente cuando se abre el modal
-    cargarRecetasPaciente(paciente.email);
   };
 
-  // Función para cargar recetas de un paciente desde la base de datos
   const cargarRecetasPaciente = async (emailPaciente: string) => {
     setLoadingRecetas(true);
     try {
@@ -72,6 +70,37 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
     // Resetear filtro de citas al cerrar modal
     setFiltroCitas('confirmadas');
   };
+
+  const modalTitles = React.useMemo(() => ({
+    historial: t('medico.patients.modals.history.title'),
+    cita: t('medico.patients.modals.appointment.title'),
+    recetas: t('medico.patients.modals.prescriptions.title'),
+    mensaje: t('medico.patients.modals.message.title'),
+    reportar: t('medico.patients.modals.report.title')
+  }), [t]);
+
+  const patientFieldLabels = React.useMemo(() => ({
+    name: t('medico.patients.common.fields.name'),
+    age: t('medico.patients.common.fields.age'),
+    weight: t('medico.patients.common.fields.weight'),
+    height: t('medico.patients.common.fields.height'),
+    bloodType: t('medico.patients.common.fields.bloodType'),
+    status: t('medico.patients.common.fields.status'),
+    reason: t('medico.patients.common.fields.reason'),
+    unspecified: t('medico.patients.common.unspecified'),
+    email: t('medico.patients.common.fields.email'),
+    emergencyContact: t('medico.patients.common.fields.emergencyContact'),
+    emergencyRelation: t('medico.patients.common.fields.emergencyRelation'),
+    emergencyPhone: t('medico.patients.common.fields.emergencyPhone')
+  }), [t]);
+
+  const appointmentStatusLabels = React.useMemo(() => ({
+    confirmada: t('medico.patients.modals.appointment.status.confirmed'),
+    programada: t('medico.patients.modals.appointment.status.scheduled'),
+    completada: t('medico.patients.modals.appointment.status.completed'),
+    cancelada: t('medico.patients.modals.appointment.status.cancelled'),
+    default: t('medico.patients.modals.appointment.status.default')
+  }), [t]);
 
   // Función para imprimir el historial médico del paciente (abre nueva ventana y llama a print)
   const handlePrintHistorial = (paciente: any) => {
@@ -263,7 +292,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
           window.print();
         } catch (err) {
           console.error('Error al imprimir en la misma página', err);
-          alert('No se pudo iniciar la impresión. Usa el diálogo de impresión del navegador (Ctrl/Cmd+P) o revisa la configuración.');
+          alert(t('medico.patients.alerts.printInlineFailed'));
         }
 
         // Limpiar después de impresión
@@ -274,7 +303,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
       }, 250);
     } catch (err) {
       console.error('Error inyectando contenido para impresión', err);
-      alert('No se pudo preparar la vista de impresión. Intenta usar el menú del navegador.');
+      alert(t('medico.patients.alerts.printPreparationFailed'));
     }
   };
 
@@ -299,7 +328,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
     const recetas = recetasPaciente.length > 0 ? recetasPaciente : [];
 
     if (recetas.length === 0) {
-      alert('No hay recetas para este paciente. Por favor, cree una receta antes de imprimir.');
+      alert(t('medico.patients.alerts.noPrescriptionsToPrint'));
       return;
     }
 
@@ -412,7 +441,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
           window.print();
         } catch (err) {
           console.error('Error al imprimir recetas', err);
-          alert('No se pudo iniciar la impresión de recetas. Usa Ctrl/Cmd+P para imprimir.');
+          alert(t('medico.patients.alerts.printPrescriptionsFailed'));
         }
 
         setTimeout(() => {
@@ -422,7 +451,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
       }, 250);
     } catch (err) {
       console.error('Error preparando impresión de recetas', err);
-      alert('No se pudo preparar la vista de impresión de recetas.');
+      alert(t('medico.patients.alerts.printPrescriptionsPreparationFailed'));
     }
   };
 
@@ -435,12 +464,12 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
   const handleGuardarReceta = async () => {
     // Validar campos requeridos
     if (!nuevaReceta.medicamento || !nuevaReceta.dosis || !nuevaReceta.duracion) {
-      alert('Por favor complete los campos requeridos: Medicamento, Dosis y Duración');
+      alert(t('medico.patients.alerts.missingPrescriptionFields'));
       return;
     }
 
     if (!pacienteSeleccionado) {
-      alert('Error: No hay paciente seleccionado');
+      alert(t('medico.patients.alerts.noSelectedPatient'));
       return;
     }
 
@@ -479,13 +508,13 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
           indicaciones: ''
         });
         setModalNuevaReceta(false);
-        alert('Receta guardada exitosamente en la base de datos');
+        alert(t('medico.patients.alerts.prescriptionSaved'));
       } else {
-        alert(`Error guardando receta: ${resultado.error || 'Error desconocido'}`);
+        alert(t('medico.patients.alerts.prescriptionSaveError', { error: resultado.error || t('medico.patients.alerts.unknownError') }));
       }
     } catch (error) {
       console.error('Error creando receta:', error);
-      alert('Error al crear la receta. Por favor intente nuevamente.');
+      alert(t('medico.patients.alerts.prescriptionCreationError'));
     }
   };
 
@@ -537,7 +566,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
   return (
     <>
       <div className="bg-gradient-to-br from-white via-purple-50/40 to-pink-50/30 backdrop-blur-sm rounded-3xl shadow-xl border border-slate-200/60 flex flex-col overflow-hidden min-h-[80vh]">
-      {/* Header mejorado */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-pink-700 p-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-transparent"></div>
         <div className="relative flex items-center gap-3">
@@ -545,14 +574,14 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             <span className="text-2xl">👥</span>
           </div>
           <div>
-            <h2 className="font-bold text-white text-xl tracking-wide">Mis Pacientes</h2>
-            <p className="text-purple-100 text-sm">{pacientes.length} pacientes registrados</p>
+            <h2 className="font-bold text-white text-xl tracking-wide">{t('medico.patients.header.title')}</h2>
+            <p className="text-purple-100 text-sm">{t('medico.patients.header.subtitle', { count: pacientes.length })}</p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 p-6 flex flex-col min-h-0">
-        {/* Barra de búsqueda mejorada */}
+        {/* Search bar */}
         <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-slate-100 shadow-sm">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -560,7 +589,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             </div>
             <input
               type="text"
-              placeholder="Buscar paciente por nombre o motivo..."
+              placeholder={t('medico.patients.search.placeholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white/90 backdrop-blur-sm placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm font-medium"
@@ -568,6 +597,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             {search && (
               <button
                 onClick={() => setSearch('')}
+                aria-label={t('medico.patients.search.clear')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
               >
                 <span className="text-gray-400 hover:text-gray-600 text-lg">✕</span>
@@ -576,7 +606,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
           </div>
           {search && (
             <div className="mt-2 text-sm text-purple-600">
-              <span className="font-medium">{pacientesFiltrados.length}</span> resultado(s) encontrado(s)
+              {t('medico.patients.search.results', { count: pacientesFiltrados.length })}
             </div>
           )}
         </div>
@@ -586,18 +616,18 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
           {loadingCitas ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full border-4 border-purple-200 border-t-purple-600 h-12 w-12 mb-4"></div>
-              <p className="text-purple-600 font-semibold text-lg">Cargando pacientes...</p>
-              <p className="text-gray-500 text-sm mt-2">Por favor espere un momento</p>
+              <p className="text-purple-600 font-semibold text-lg">{t('medico.patients.states.loadingTitle')}</p>
+              <p className="text-gray-500 text-sm mt-2">{t('medico.patients.states.loadingSubtitle')}</p>
             </div>
           ) : errorCitas ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="p-4 bg-red-100 rounded-full mb-4">
                 <span className="text-2xl text-red-600">⚠️</span>
               </div>
-              <p className="text-red-700 font-semibold text-lg">Error al cargar pacientes</p>
+              <p className="text-red-700 font-semibold text-lg">{t('medico.patients.states.errorTitle')}</p>
               <p className="text-red-600 text-sm mt-2 text-center max-w-md">{errorCitas}</p>
               <button className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg transition-colors text-sm font-semibold">
-                Reintentar
+                {t('medico.patients.states.retry')}
               </button>
             </div>
           ) : pacientes.length === 0 ? (
@@ -605,9 +635,9 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               <div className="p-4 bg-purple-100 rounded-full mb-4">
                 <span className="text-3xl text-purple-500">👥</span>
               </div>
-              <p className="text-purple-700 font-semibold text-lg">No hay pacientes registrados</p>
+              <p className="text-purple-700 font-semibold text-lg">{t('medico.patients.states.emptyTitle')}</p>
               <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
-                Cuando tenga pacientes asignados, aparecerán aquí con toda la información detallada.
+                {t('medico.patients.states.emptyDescription')}
               </p>
             </div>
           ) : pacientesFiltrados.length === 0 ? (
@@ -615,9 +645,9 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               <div className="p-4 bg-yellow-100 rounded-full mb-4">
                 <span className="text-3xl text-yellow-500">🔍</span>
               </div>
-              <p className="text-yellow-700 font-semibold text-lg">No se encontraron pacientes</p>
+              <p className="text-yellow-700 font-semibold text-lg">{t('medico.patients.states.noResultsTitle')}</p>
               <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
-                Intente con otros términos de búsqueda o revise la lista completa.
+                {t('medico.patients.states.noResultsDescription')}
               </p>
             </div>
           ) : (
@@ -645,7 +675,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                         <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-purple-200 shadow-lg bg-white">
                           <Image
                             src={avatarUrl}
-                            alt={p.nombre}
+                            alt={p.nombre || t('medico.patients.card.nameUnknown')}
                             width={64}
                             height={64}
                             className="w-full h-full object-cover"
@@ -669,7 +699,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             </h3>
                             <div className="flex items-center gap-1 text-sm text-gray-500">
                               <span>👤</span>
-                              <span>{p.edad} años</span>
+                              <span>{p.edad ? t('medico.patients.card.age', { count: p.edad }) : t('medico.patients.card.ageUnknown')}</span>
                             </div>
                           </div>
                           
@@ -678,10 +708,10 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-4 border border-purple-200 shadow-sm">
                               <div className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
                                 <span className="text-purple-600 text-base">🏥</span>
-                                <span>Motivo de consulta</span>
+                                <span>{t('medico.patients.card.reasonLabel')}</span>
                               </div>
                               <p className="text-sm text-gray-700 font-medium leading-relaxed">
-                                {p.motivo || 'No especificado'}
+                                {p.motivo || t('medico.patients.card.reasonFallback')}
                               </p>
                             </div>
                           </div>
@@ -693,37 +723,37 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                                 <button
                                   onClick={() => handleHistorialMedico(p)}
                                   className="px-3 py-2 bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 justify-center hover:bg-blue-600 transition-colors cursor-pointer"
-                                  title="Ver historial médico"
+                                  title={t('medico.patients.card.actions.historyTooltip')}
                                 >
                                   <span>📋</span>
-                                  <span>Historial</span>
+                                  <span>{t('medico.patients.card.actions.history')}</span>
                                 </button>
 
                                 <button
                                   onClick={() => handleAgendarCita(p)}
                                   className="px-3 py-2 bg-green-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 justify-center hover:bg-green-600 transition-colors cursor-pointer"
-                                  title="Agendar nueva cita"
+                                  title={t('medico.patients.card.actions.scheduleTooltip')}
                                 >
                                   <span>📅</span>
-                                  <span>Cita</span>
+                                  <span>{t('medico.patients.card.actions.schedule')}</span>
                                 </button>
 
                                 <button
                                   onClick={() => handleVerRecetas(p)}
                                   className="px-3 py-2 bg-orange-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 justify-center hover:bg-orange-600 transition-colors cursor-pointer"
-                                  title="Ver recetas médicas"
+                                  title={t('medico.patients.card.actions.prescriptionsTooltip')}
                                 >
                                   <span>💊</span>
-                                  <span>Recetas</span>
+                                  <span>{t('medico.patients.card.actions.prescriptions')}</span>
                                 </button>
 
                                 <button
                                   onClick={() => handleReportarPaciente(p)}
                                   className="px-3 py-2 bg-red-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 justify-center hover:bg-red-600 transition-colors cursor-pointer"
-                                  title="Reportar como caso urgente"
+                                  title={t('medico.patients.card.actions.reportTooltip')}
                                 >
                                   <span>⚠️</span>
-                                  <span>Reportar</span>
+                                  <span>{t('medico.patients.card.actions.report')}</span>
                                 </button>
                               </div>
                             </div>
@@ -746,19 +776,19 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">{pacientes.length}</div>
-                  <div className="text-sm text-purple-700 font-medium">Total Pacientes</div>
+                  <div className="text-sm text-purple-700 font-medium">{t('medico.patients.stats.total')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">{Math.floor(pacientes.length * 0.8)}</div>
-                  <div className="text-sm text-green-700 font-medium">Pacientes Activos</div>
+                  <div className="text-sm text-green-700 font-medium">{t('medico.patients.stats.active')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">{search ? pacientesFiltrados.length : pacientes.length}</div>
-                  <div className="text-sm text-blue-700 font-medium">Resultados Mostrados</div>
+                  <div className="text-sm text-blue-700 font-medium">{t('medico.patients.stats.results')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-orange-600">{Math.floor(pacientes.length * 0.15)}</div>
-                  <div className="text-sm text-orange-700 font-medium">Consultas Pendientes</div>
+                  <div className="text-sm text-orange-700 font-medium">{t('medico.patients.stats.pending')}</div>
                 </div>
               </div>
             </div>
@@ -767,8 +797,8 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-4 border border-indigo-100">
               <div className="flex items-center gap-2 text-sm text-indigo-700">
                 <span className="text-lg">💡</span>
-                <span className="font-semibold">Consejo:</span>
-                <span>Utiliza los botones de acción para gestionar tus pacientes de manera eficiente</span>
+                <span className="font-semibold">{t('medico.patients.tip.title')}</span>
+                <span>{t('medico.patients.tip.description')}</span>
               </div>
             </div>
           </div>
@@ -799,19 +829,17 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                       </span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-xl">
-                        {modalAbierto === 'historial' ? 'Historial Médico' : 
-                         modalAbierto === 'cita' ? 'Agendar Cita' :
-                         modalAbierto === 'recetas' ? 'Recetas Médicas' : 'Enviar Mensaje'}
-                      </h2>
-                      <p className="text-purple-100">{pacienteSeleccionado.nombre}</p>
+                          <h2 className="font-bold text-xl">
+                            {modalAbierto ? modalTitles[modalAbierto] : ''}
+                          </h2>
+                          <p className="text-purple-100">{t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}</p>
                     </div>
                   </div>
                   <button 
                     onClick={cerrarModal}
                     className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
                   >
-                    <span className="text-white text-xl">✕</span>
+                        <span className="text-white text-xl">✕</span>
                   </button>
                 </div>
               </div>
@@ -822,43 +850,43 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                   <div className="space-y-6">
                     {/* Información del Paciente */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-gray-800 mb-3">Información del Paciente</h3>
+                      <h3 className="font-semibold text-gray-800 mb-3">{t('medico.patients.modals.history.patientInfo.title')}</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600">Nombre:</span>
-                          <p className="font-medium">{pacienteSeleccionado.nombre}</p>
+                          <span className="text-gray-600">{patientFieldLabels.name}:</span>
+                          <p className="font-medium">{pacienteSeleccionado.nombre || patientFieldLabels.unspecified}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Edad:</span>
-                          <p className="font-medium">{pacienteSeleccionado.edad} años</p>
+                          <span className="text-gray-600">{patientFieldLabels.age}:</span>
+                          <p className="font-medium">{pacienteSeleccionado.edad ? t('medico.patients.common.ageValue', { count: pacienteSeleccionado.edad }) : patientFieldLabels.unspecified}</p>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-600">Motivo actual:</span>
-                          <p className="font-medium">{pacienteSeleccionado.motivo || 'No especificado'}</p>
+                          <span className="text-gray-600">{t('medico.patients.modals.history.patientInfo.currentReason')}:</span>
+                          <p className="font-medium">{pacienteSeleccionado.motivo || patientFieldLabels.unspecified}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Historial de Consultas */}
                     <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">Historial de Consultas</h3>
+                      <h3 className="font-semibold text-gray-800 mb-3">{t('medico.patients.modals.history.visits.title')}</h3>
                       <div className="space-y-3">
                         {/* Consulta simulada */}
                         <div className="border border-gray-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-medium text-blue-600">Consulta General</h4>
-                            <span className="text-xs text-gray-500">15/08/2024</span>
+                            <h4 className="font-medium text-blue-600">{t('medico.patients.modals.history.visits.sampleGeneral.title')}</h4>
+                            <span className="text-xs text-gray-500">{t('medico.patients.modals.history.visits.sampleGeneral.date')}</span>
                           </div>
-                          <p className="text-sm text-gray-700">Revisión rutinaria. Paciente en buen estado general.</p>
-                          <p className="text-xs text-gray-500 mt-2">Dr. {ctx.medicoInfo?.nombre || 'Médico'}</p>
+                          <p className="text-sm text-gray-700">{t('medico.patients.modals.history.visits.sampleGeneral.description')}</p>
+                          <p className="text-xs text-gray-500 mt-2">{t('medico.patients.common.doctorPrefix', { name: ctx.medicoInfo?.nombre || t('medico.patients.common.doctorFallback') })}</p>
                         </div>
                         <div className="border border-gray-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-medium text-orange-600">Control de Seguimiento</h4>
-                            <span className="text-xs text-gray-500">02/08/2024</span>
+                            <h4 className="font-medium text-orange-600">{t('medico.patients.modals.history.visits.sampleFollowup.title')}</h4>
+                            <span className="text-xs text-gray-500">{t('medico.patients.modals.history.visits.sampleFollowup.date')}</span>
                           </div>
-                          <p className="text-sm text-gray-700">Control post-tratamiento. Evolución favorable.</p>
-                          <p className="text-xs text-gray-500 mt-2">Dr. {ctx.medicoInfo?.nombre || 'Médico'}</p>
+                          <p className="text-sm text-gray-700">{t('medico.patients.modals.history.visits.sampleFollowup.description')}</p>
+                          <p className="text-xs text-gray-500 mt-2">{t('medico.patients.common.doctorPrefix', { name: ctx.medicoInfo?.nombre || t('medico.patients.common.doctorFallback') })}</p>
                         </div>
                       </div>
                     </div>
@@ -868,11 +896,11 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 {modalAbierto === 'cita' && (
                   <div className="space-y-6">
                     <div className="bg-blue-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-blue-800 mb-3">Agendar Nueva Cita</h3>
+                      <h3 className="font-semibold text-blue-800 mb-3">{t('medico.patients.modals.appointment.sectionTitle')}</h3>
                       <form className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.appointment.fields.date')}</label>
                             <input 
                               type="date" 
                               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -880,7 +908,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.appointment.fields.time')}</label>
                             <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                               <option>09:00</option>
                               <option>10:00</option>
@@ -892,20 +920,20 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Consulta</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.appointment.fields.type')}</label>
                           <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option>Consulta General</option>
-                            <option>Control de Seguimiento</option>
-                            <option>Consulta Especializada</option>
-                            <option>Emergencia</option>
+                            <option>{t('medico.patients.modals.appointment.types.general')}</option>
+                            <option>{t('medico.patients.modals.appointment.types.followup')}</option>
+                            <option>{t('medico.patients.modals.appointment.types.specialized')}</option>
+                            <option>{t('medico.patients.modals.appointment.types.emergency')}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de la Cita</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.appointment.fields.reason')}</label>
                           <textarea 
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={3}
-                            placeholder="Describa el motivo de la consulta..."
+                            placeholder={t('medico.patients.modals.appointment.placeholders.reason')}
                           ></textarea>
                         </div>
                         <div className="flex gap-3 pt-4">
@@ -914,17 +942,17 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             onClick={cerrarModal}
                             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            Cancelar
+                            {t('medico.patients.common.actions.cancel')}
                           </button>
                           <button 
                             type="button"
                             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             onClick={() => {
-                              alert('Cita agendada exitosamente');
+                              alert(t('medico.patients.modals.appointment.success'));
                               cerrarModal();
                             }}
                           >
-                            Agendar Cita
+                            {t('medico.patients.modals.appointment.actions.schedule')}
                           </button>
                         </div>
                       </form>
@@ -935,47 +963,47 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 {modalAbierto === 'recetas' && (
                   <div className="space-y-6">
                     <div className="bg-orange-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-orange-800 mb-3">Recetas Médicas</h3>
+                      <h3 className="font-semibold text-orange-800 mb-3">{t('medico.patients.modals.prescriptions.sectionTitle')}</h3>
                       <div className="space-y-4">
                         {/* Receta simulada */}
                         <div className="bg-white border border-orange-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-medium text-orange-600">Receta #001</h4>
-                            <span className="text-xs text-gray-500">Fecha: 15/08/2024</span>
+                            <h4 className="font-medium text-orange-600">{t('medico.patients.modals.prescriptions.sampleTitle', { number: '001' })}</h4>
+                            <span className="text-xs text-gray-500">{t('medico.patients.modals.prescriptions.sampleDate', { date: '15/08/2024' })}</span>
                           </div>
                           <div className="space-y-2 text-sm">
                             <div>
-                              <span className="font-medium">Medicamento:</span>
-                              <p>Ibuprofeno 400mg - Tomar cada 8 horas por 5 días</p>
+                              <span className="font-medium">{t('medico.patients.modals.prescriptions.fields.medicine')}:</span>
+                              <p>{t('medico.patients.modals.prescriptions.samples.medicine1')}</p>
                             </div>
                             <div>
-                              <span className="font-medium">Indicaciones:</span>
-                              <p>Tomar después de las comidas. No exceder la dosis.</p>
+                              <span className="font-medium">{t('medico.patients.modals.prescriptions.fields.instructions')}:</span>
+                              <p>{t('medico.patients.modals.prescriptions.samples.instructions1')}</p>
                             </div>
                           </div>
                         </div>
                         <div className="bg-white border border-orange-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-medium text-orange-600">Receta #002</h4>
-                            <span className="text-xs text-gray-500">Fecha: 02/08/2024</span>
+                            <h4 className="font-medium text-orange-600">{t('medico.patients.modals.prescriptions.sampleTitle', { number: '002' })}</h4>
+                            <span className="text-xs text-gray-500">{t('medico.patients.modals.prescriptions.sampleDate', { date: '02/08/2024' })}</span>
                           </div>
                           <div className="space-y-2 text-sm">
                             <div>
-                              <span className="font-medium">Medicamento:</span>
-                              <p>Vitamina D3 1000UI - Una cápsula diaria</p>
+                              <span className="font-medium">{t('medico.patients.modals.prescriptions.fields.medicine')}:</span>
+                              <p>{t('medico.patients.modals.prescriptions.samples.medicine2')}</p>
                             </div>
                             <div>
-                              <span className="font-medium">Indicaciones:</span>
-                              <p>Tomar con el desayuno durante 3 meses.</p>
+                              <span className="font-medium">{t('medico.patients.modals.prescriptions.fields.instructions')}:</span>
+                              <p>{t('medico.patients.modals.prescriptions.samples.instructions2')}</p>
                             </div>
                           </div>
                         </div>
                       </div>
                       <button 
                         className="w-full mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                        onClick={() => alert('Funcionalidad de nueva receta')}
+                        onClick={() => alert(t('medico.patients.modals.prescriptions.actions.newPlaceholder'))}
                       >
-                        + Nueva Receta
+                        {t('medico.patients.modals.prescriptions.actions.new')}
                       </button>
                     </div>
                   </div>
@@ -984,28 +1012,28 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 {modalAbierto === 'mensaje' && (
                   <div className="space-y-6">
                     <div className="bg-purple-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-purple-800 mb-3">Enviar Mensaje</h3>
+                      <h3 className="font-semibold text-purple-800 mb-3">{t('medico.patients.modals.message.sectionTitle')}</h3>
                       <form className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Asunto</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.message.fields.subject')}</label>
                           <input 
                             type="text" 
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Escriba el asunto del mensaje..."
+                            placeholder={t('medico.patients.modals.message.placeholders.subject')}
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.patients.modals.message.fields.body')}</label>
                           <textarea 
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             rows={6}
-                            placeholder="Escriba su mensaje aquí..."
+                            placeholder={t('medico.patients.modals.message.placeholders.body')}
                           ></textarea>
                         </div>
                         <div>
                           <label className="flex items-center gap-2">
                             <input type="checkbox" className="rounded" />
-                            <span className="text-sm text-gray-600">Marcar como importante</span>
+                            <span className="text-sm text-gray-600">{t('medico.patients.modals.message.fields.markImportant')}</span>
                           </label>
                         </div>
                         <div className="flex gap-3 pt-4">
@@ -1014,17 +1042,17 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             onClick={cerrarModal}
                             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            Cancelar
+                            {t('medico.patients.common.actions.cancel')}
                           </button>
                           <button 
                             type="button"
                             className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                             onClick={() => {
-                              alert('Mensaje enviado exitosamente');
+                              alert(t('medico.patients.modals.message.success'));
                               cerrarModal();
                             }}
                           >
-                            Enviar Mensaje
+                            {t('medico.patients.modals.message.actions.send')}
                           </button>
                         </div>
                       </form>
@@ -1044,7 +1072,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[80vh] sm:max-h-[85vh] lg:max-h-[90vh] overflow-y-auto mx-4 sm:mx-6 lg:mx-8">
           <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6 lg:p-8 rounded-t-2xl">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold">Historial Médico</h3>
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold">{modalTitles.historial}</h3>
               <button
                 onClick={() => setModalAbierto(null)}
                 className="text-white hover:text-gray-200 text-2xl font-bold cursor-pointer self-end sm:self-auto"
@@ -1053,24 +1081,24 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               </button>
             </div>
             <p className="text-blue-100 mt-2 text-sm sm:text-base">
-              Paciente: {pacienteSeleccionado.nombre}
+              {t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}
             </p>
           </div>
 
           <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-800 mb-2">Información Personal</h4>
-                <p><strong>Edad:</strong> {pacienteSeleccionado.edad} años</p>
-                <p><strong>Peso:</strong> {pacienteSeleccionado.peso || '70 kg'}</p>
-                <p><strong>Altura:</strong> {pacienteSeleccionado.altura || '1.75 m'}</p>
-                <p><strong>Tipo de Sangre:</strong> {pacienteSeleccionado.tipoSangre || 'O+'}</p>
+                <h4 className="font-semibold text-gray-800 mb-2">{t('medico.patients.modals.history.details.personalInfo')}</h4>
+                <p><strong>{patientFieldLabels.age}:</strong> {pacienteSeleccionado.edad ? t('medico.patients.common.ageValue', { count: pacienteSeleccionado.edad }) : patientFieldLabels.unspecified}</p>
+                <p><strong>{patientFieldLabels.weight}:</strong> {pacienteSeleccionado.peso || t('medico.patients.common.notAvailable')}</p>
+                <p><strong>{patientFieldLabels.height}:</strong> {pacienteSeleccionado.altura || t('medico.patients.common.notAvailable')}</p>
+                <p><strong>{patientFieldLabels.bloodType}:</strong> {pacienteSeleccionado.tipoSangre || t('medico.patients.common.notAvailable')}</p>
               </div>
               <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-800 mb-2">Contacto de Emergencia</h4>
-                <p><strong>Nombre:</strong> Ana García</p>
-                <p><strong>Relación:</strong> Esposa</p>
-                <p><strong>Teléfono:</strong> +34 655 987 321</p>
+                <h4 className="font-semibold text-gray-800 mb-2">{t('medico.patients.modals.history.details.emergencyContact')}</h4>
+                <p><strong>{patientFieldLabels.name}:</strong> Ana García</p>
+                <p><strong>{patientFieldLabels.emergencyRelation}:</strong> {t('medico.patients.modals.history.details.sampleRelation')}</p>
+                <p><strong>{patientFieldLabels.emergencyPhone}:</strong> +34 655 987 321</p>
               </div>
             </div>
 
@@ -1078,33 +1106,33 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                   <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                  Consulta - 15 Nov 2024
+                  {t('medico.patients.modals.history.timeline.entry1.title')}
                 </h4>
-                <p className="text-gray-600 mb-2"><strong>Síntomas:</strong> Dolor de cabeza, mareos</p>
-                <p className="text-gray-600 mb-2"><strong>Diagnóstico:</strong> Migraña tensional</p>
-                <p className="text-gray-600 mb-2"><strong>Tratamiento:</strong> Ibuprofeno 400mg cada 8h</p>
-                <p className="text-gray-600"><strong>Observaciones:</strong> Recomendar reducir estrés y mejorar hábitos de sueño</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.symptoms')}:</strong> {t('medico.patients.modals.history.timeline.entry1.symptoms')}</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.diagnosis')}:</strong> {t('medico.patients.modals.history.timeline.entry1.diagnosis')}</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.treatment')}:</strong> {t('medico.patients.modals.history.timeline.entry1.treatment')}</p>
+                <p className="text-gray-600"><strong>{t('medico.patients.modals.history.timeline.labels.notes')}:</strong> {t('medico.patients.modals.history.timeline.entry1.notes')}</p>
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                  Consulta - 02 Nov 2024
+                  {t('medico.patients.modals.history.timeline.entry2.title')}
                 </h4>
-                <p className="text-gray-600 mb-2"><strong>Síntomas:</strong> Tos persistente, congestión</p>
-                <p className="text-gray-600 mb-2"><strong>Diagnóstico:</strong> Bronquitis aguda</p>
-                <p className="text-gray-600 mb-2"><strong>Tratamiento:</strong> Antibióticos, jarabe expectorante</p>
-                <p className="text-gray-600"><strong>Observaciones:</strong> Evolución favorable, continuar tratamiento</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.symptoms')}:</strong> {t('medico.patients.modals.history.timeline.entry2.symptoms')}</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.diagnosis')}:</strong> {t('medico.patients.modals.history.timeline.entry2.diagnosis')}</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.treatment')}:</strong> {t('medico.patients.modals.history.timeline.entry2.treatment')}</p>
+                <p className="text-gray-600"><strong>{t('medico.patients.modals.history.timeline.labels.notes')}:</strong> {t('medico.patients.modals.history.timeline.entry2.notes')}</p>
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                   <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                  Examen - 20 Oct 2024
+                  {t('medico.patients.modals.history.timeline.entry3.title')}
                 </h4>
-                <p className="text-gray-600 mb-2"><strong>Tipo:</strong> Análisis de sangre completo</p>
-                <p className="text-gray-600 mb-2"><strong>Resultados:</strong> Todos los valores dentro del rango normal</p>
-                <p className="text-gray-600"><strong>Observaciones:</strong> Estado de salud general excelente</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.type')}:</strong> {t('medico.patients.modals.history.timeline.entry3.type')}</p>
+                <p className="text-gray-600 mb-2"><strong>{t('medico.patients.modals.history.timeline.labels.results')}:</strong> {t('medico.patients.modals.history.timeline.entry3.results')}</p>
+                <p className="text-gray-600"><strong>{t('medico.patients.modals.history.timeline.labels.notes')}:</strong> {t('medico.patients.modals.history.timeline.entry3.notes')}</p>
               </div>
             </div>
 
@@ -1113,10 +1141,10 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 onClick={() => setModalAbierto(null)}
                 className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
               >
-                Cerrar
+                {t('medico.patients.common.actions.close')}
               </button>
               <button onClick={() => handlePrintHistorial(pacienteSeleccionado)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-                Imprimir Historial
+                {t('medico.patients.modals.history.actions.print')}
               </button>
             </div>
           </div>
@@ -1129,7 +1157,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
   <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-4 sm:mx-6 lg:mx-8 max-h-[80vh] sm:max-h-[70vh] lg:max-h-[85vh] overflow-y-auto">
           <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-4 sm:p-6 lg:p-8 rounded-t-2xl">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold">Agendar Cita</h3>
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold">{modalTitles.cita}</h3>
               <button
                 onClick={() => setModalAbierto(null)}
                 className="text-white hover:text-gray-200 text-2xl font-bold cursor-pointer self-end sm:self-auto"
@@ -1138,7 +1166,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               </button>
             </div>
             <p className="text-green-100 mt-2 text-sm sm:text-base">
-              Paciente: {pacienteSeleccionado.nombre}
+              {t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}
             </p>
           </div>
 
@@ -1161,19 +1189,19 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                   <div className="bg-gray-100 p-3 rounded-lg">
                     <div className="text-lg font-bold text-gray-700">{totalCitas}</div>
-                    <div className="text-xs text-gray-600">Total</div>
+                    <div className="text-xs text-gray-600">{t('medico.patients.modals.appointment.stats.total')}</div>
                   </div>
                   <div className="bg-green-100 p-3 rounded-lg">
                     <div className="text-lg font-bold text-green-700">{proximas}</div>
-                    <div className="text-xs text-green-600">Próximas</div>
+                    <div className="text-xs text-green-600">{t('medico.patients.modals.appointment.stats.upcoming')}</div>
                   </div>
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <div className="text-lg font-bold text-blue-700">{completadas}</div>
-                    <div className="text-xs text-blue-600">Completadas</div>
+                    <div className="text-xs text-blue-600">{t('medico.patients.modals.appointment.stats.completed')}</div>
                   </div>
                   <div className="bg-red-100 p-3 rounded-lg">
                     <div className="text-lg font-bold text-red-700">{canceladas}</div>
-                    <div className="text-xs text-red-600">Canceladas</div>
+                    <div className="text-xs text-red-600">{t('medico.patients.modals.appointment.stats.cancelled')}</div>
                   </div>
                 </div>
               );
@@ -1187,7 +1215,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                     <span className="text-lg text-white">📅</span>
                   </div>
                   <h4 className="font-bold text-gray-800 text-lg">
-                    Citas del Paciente
+                    {t('medico.patients.modals.appointment.list.title')}
                   </h4>
                 </div>
                 
@@ -1197,18 +1225,18 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                     <div className="p-1 bg-blue-100 rounded-lg">
                       <span className="text-sm">🔍</span>
                     </div>
-                    <label className="text-sm font-semibold text-gray-700">Filtrar por:</label>
+                    <label className="text-sm font-semibold text-gray-700">{t('medico.patients.modals.appointment.filters.label')}</label>
                   </div>
                   <select 
                     value={filtroCitas}
                     onChange={(e) => setFiltroCitas(e.target.value)}
                     className="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:ring-3 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
                   >
-                    <option value="todas">📋 Todas las citas</option>
-                    <option value="proximas">⏰ Próximas</option>
-                    <option value="completadas">✅ Completadas</option>
-                    <option value="canceladas">❌ Canceladas</option>
-                    <option value="confirmadas">✔️ Confirmadas</option>
+                    <option value="todas">📋 {t('medico.patients.modals.appointment.filters.all')}</option>
+                    <option value="proximas">⏰ {t('medico.patients.modals.appointment.filters.upcoming')}</option>
+                    <option value="completadas">✅ {t('medico.patients.modals.appointment.filters.completed')}</option>
+                    <option value="canceladas">❌ {t('medico.patients.modals.appointment.filters.cancelled')}</option>
+                    <option value="confirmadas">✔️ {t('medico.patients.modals.appointment.filters.confirmed')}</option>
                   </select>
                 </div>
               </div>
@@ -1287,8 +1315,8 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                         <div className="p-4 bg-gray-50 rounded-full mb-4 w-16 h-16 mx-auto flex items-center justify-center">
                           <span className="text-2xl text-gray-400">📅</span>
                         </div>
-                        <p className="text-gray-500 font-medium">No hay citas que coincidan con el filtro seleccionado</p>
-                        <p className="text-gray-400 text-sm mt-2">Intente con otro filtro o revise todas las citas</p>
+                        <p className="text-gray-500 font-medium">{t('medico.patients.modals.appointment.list.empty')}</p>
+                        <p className="text-gray-400 text-sm mt-2">{t('medico.patients.modals.appointment.list.emptyHint')}</p>
                       </div>
                     );
                   }
@@ -1333,10 +1361,10 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getEstadoClasses(estado)}`}>
-                                {getEstadoEmoji(estado)} {estado.charAt(0).toUpperCase() + estado.slice(1)}
+                                {getEstadoEmoji(estado)} {appointmentStatusLabels[estado as keyof typeof appointmentStatusLabels] || appointmentStatusLabels.default}
                               </span>
                               <span className="text-sm font-medium text-gray-600">
-                                {fechaCita.toLocaleDateString('es-ES', { 
+                                {fechaCita.toLocaleDateString(t('medico.patients.common.locale'), { 
                                   weekday: 'short', 
                                   year: 'numeric', 
                                   month: 'short', 
@@ -1347,12 +1375,12 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             <h5 className="font-bold text-gray-800 mb-1">{cita.tipo}</h5>
                             <p className="text-gray-600 text-sm mb-1">{cita.motivo}</p>
                             {cita.notas && (
-                              <p className="text-gray-500 text-xs italic">Nota: {cita.notas}</p>
+                              <p className="text-gray-500 text-xs italic">{t('medico.patients.modals.appointment.list.note', { note: cita.notas })}</p>
                             )}
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-blue-600">{cita.hora}</div>
-                            <div className="text-xs text-gray-500">Hora de cita</div>
+                            <div className="text-xs text-gray-500">{t('medico.patients.modals.appointment.list.timeLabel')}</div>
                           </div>
                         </div>
                       </div>
@@ -1365,9 +1393,9 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
 
             {/* Información adicional */}
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">📋 Información</h4>
+              <h4 className="font-medium text-blue-800 mb-2">📋 {t('medico.patients.modals.appointment.info.title')}</h4>
               <p className="text-sm text-blue-600">
-                Las citas son gestionadas por el sistema de agendamiento. Los pacientes pueden solicitar nuevas citas a través de su portal.
+                {t('medico.patients.modals.appointment.info.description')}
               </p>
             </div>
 
@@ -1378,7 +1406,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 onClick={() => setModalAbierto(null)}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors cursor-pointer"
               >
-                Cerrar
+                {t('medico.patients.common.actions.close')}
               </button>
             </div>
           </div>
@@ -1391,7 +1419,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
         <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto m-4">
           <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-t-2xl">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-bold">Recetas Médicas</h3>
+              <h3 className="text-2xl font-bold">{modalTitles.recetas}</h3>
               <button
                 onClick={() => setModalAbierto(null)}
                 className="text-white hover:text-gray-200 text-2xl font-bold cursor-pointer"
@@ -1400,7 +1428,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               </button>
             </div>
             <p className="text-purple-100 mt-2">
-              Paciente: {pacienteSeleccionado.nombre}
+              {t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}
             </p>
           </div>
 
@@ -1411,7 +1439,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>💊</span>
-                <span>+ Nueva Receta</span>
+                <span>{t('medico.patients.modals.prescriptions.actions.new')}</span>
               </button>
             </div>
 
@@ -1419,16 +1447,16 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               {loadingRecetas ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <div className="animate-spin rounded-full border-4 border-purple-200 border-t-purple-600 h-12 w-12 mb-4"></div>
-                  <p className="text-purple-600 font-semibold">Cargando recetas...</p>
+                  <p className="text-purple-600 font-semibold">{t('medico.patients.modals.prescriptions.loading')}</p>
                 </div>
               ) : recetasPaciente.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="p-4 bg-purple-100 rounded-full mb-4 w-16 h-16 mx-auto flex items-center justify-center">
                     <span className="text-2xl text-purple-500">💊</span>
                   </div>
-                  <p className="text-purple-700 font-semibold text-lg">No hay recetas registradas</p>
+                  <p className="text-purple-700 font-semibold text-lg">{t('medico.patients.modals.prescriptions.empty.title')}</p>
                   <p className="text-gray-500 text-sm mt-2">
-                    Este paciente no tiene recetas médicas. Puede crear una nueva receta usando el botón superior.
+                    {t('medico.patients.modals.prescriptions.empty.description')}
                   </p>
                 </div>
               ) : (
@@ -1452,36 +1480,36 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                             ? 'bg-green-100 text-green-800 border border-green-300' 
                             : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                         }`}>
-                          {receta.estado === 'Activa' ? '🟢' : '🟡'} {receta.estado}
+                          {receta.estado === 'Activa' ? '🟢' : '🟡'} {t(`medico.patients.modals.prescriptions.status.${receta.estado === 'Activa' ? 'active' : 'inactive'}`)}
                         </span>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div className="space-y-2">
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-purple-600">💉 Dosis:</span> 
+                          <span className="font-semibold text-purple-600">💉 {t('medico.patients.modals.prescriptions.fields.dose')}:</span> 
                           <span>{receta.dosis}</span>
                         </p>
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-blue-600">⏰ Duración:</span> 
+                          <span className="font-semibold text-blue-600">⏰ {t('medico.patients.modals.prescriptions.fields.duration')}:</span> 
                           <span>{receta.duracion}</span>
                         </p>
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-green-600">📦 Cantidad:</span> 
+                          <span className="font-semibold text-green-600">📦 {t('medico.patients.modals.prescriptions.fields.quantity')}:</span> 
                           <span>{receta.cantidad}</span>
                         </p>
                       </div>
                       <div className="space-y-2">
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-orange-600">🍽️ Con comidas:</span> 
+                          <span className="font-semibold text-orange-600">🍽️ {t('medico.patients.modals.prescriptions.fields.withMeals')}:</span> 
                           <span>{receta.conComidas}</span>
                         </p>
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-red-600">📋 Indicación:</span> 
+                          <span className="font-semibold text-red-600">📋 {t('medico.patients.modals.prescriptions.fields.instructions')}:</span> 
                           <span>{receta.indicaciones}</span>
                         </p>
                         <p className="text-gray-700 flex items-start gap-2">
-                          <span className="font-semibold text-gray-600">🏷️ ID:</span> 
+                          <span className="font-semibold text-gray-600">🏷️ {t('medico.patients.modals.prescriptions.fields.id')}:</span> 
                           <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{receta.id}</span>
                         </p>
                       </div>
@@ -1489,12 +1517,14 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                     {receta.medico && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
                         <p className="text-xs text-gray-500">
-                          Prescrita por: <span className="font-semibold">{receta.medico}</span>
+                          {t('medico.patients.modals.prescriptions.prescribedBy', { doctor: receta.medico })}
                           {receta.fechaCreacion && (
                             <span className="ml-2">
-                              el {new Date(receta.fechaCreacion).toLocaleDateString('es-ES', { 
-                                year: 'numeric', month: 'long', day: 'numeric', 
-                                hour: '2-digit', minute: '2-digit' 
+                              {t('medico.patients.modals.prescriptions.prescribedOn', {
+                                date: new Date(receta.fechaCreacion).toLocaleDateString(t('medico.patients.common.locale'), {
+                                  year: 'numeric', month: 'long', day: 'numeric',
+                                  hour: '2-digit', minute: '2-digit'
+                                })
                               })}
                             </span>
                           )}
@@ -1512,14 +1542,14 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors cursor-pointer flex items-center gap-2"
               >
                 <span>❌</span>
-                <span>Cerrar</span>
+                <span>{t('medico.patients.common.actions.close')}</span>
               </button>
               <button 
                 onClick={() => handlePrintRecetas(pacienteSeleccionado)}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all cursor-pointer flex items-center gap-2"
               >
                 <span>🖨️</span>
-                <span>Imprimir Recetas PDF</span>
+                <span>{t('medico.patients.modals.prescriptions.actions.print')}</span>
               </button>
             </div>
           </div>
@@ -1532,7 +1562,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-lg lg:max-w-2xl mx-4 sm:mx-6 lg:mx-8 max-h-[70vh] sm:max-h-[75vh] lg:max-h-[80vh] overflow-y-auto">
           <div className="bg-gradient-to-r from-blue-600 to-teal-600 text-white p-6 rounded-t-2xl">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-bold">Enviar Mensaje</h3>
+              <h3 className="text-2xl font-bold">{modalTitles.mensaje}</h3>
               <button
                 onClick={() => setModalAbierto(null)}
                 className="text-white hover:text-gray-200 text-2xl font-bold cursor-pointer"
@@ -1541,42 +1571,42 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
               </button>
             </div>
             <p className="text-blue-100 mt-2">
-              Para: {pacienteSeleccionado.nombre}
+              {t('medico.patients.modals.message.to', { name: pacienteSeleccionado.nombre })}
             </p>
           </div>
 
           <form className="p-6 space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Asunto
+                {t('medico.patients.modals.message.fields.subject')}
               </label>
               <input
                 type="text"
-                placeholder="Ingresa el asunto del mensaje"
+                placeholder={t('medico.patients.modals.message.placeholders.subject')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Mensaje
+                {t('medico.patients.modals.message.fields.type')}
               </label>
               <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option>Recordatorio de Cita</option>
-                <option>Instrucciones Médicas</option>
-                <option>Resultados de Exámenes</option>
-                <option>Seguimiento</option>
-                <option>Información General</option>
+                <option>{t('medico.patients.modals.message.types.reminder')}</option>
+                <option>{t('medico.patients.modals.message.types.instructions')}</option>
+                <option>{t('medico.patients.modals.message.types.results')}</option>
+                <option>{t('medico.patients.modals.message.types.followup')}</option>
+                <option>{t('medico.patients.modals.message.types.general')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mensaje
+                {t('medico.patients.modals.message.fields.body')}
               </label>
               <textarea
                 rows={6}
-                placeholder="Escribe tu mensaje aquí..."
+                placeholder={t('medico.patients.modals.message.placeholders.body')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               ></textarea>
             </div>
@@ -1590,10 +1620,10 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 />
                 <div>
                   <label htmlFor="urgent" className="text-sm font-medium text-blue-800">
-                    Marcar como urgente
+                    {t('medico.patients.modals.message.fields.markUrgent')}
                   </label>
                   <p className="text-xs text-blue-600 mt-1">
-                    El paciente recibirá una notificación inmediata
+                    {t('medico.patients.modals.message.placeholders.urgentHint')}
                   </p>
                 </div>
               </div>
@@ -1605,13 +1635,13 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 onClick={() => setModalAbierto(null)}
                 className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
               >
-                Cancelar
+                {t('medico.patients.common.actions.cancel')}
               </button>
               <button
                 type="submit"
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-lg hover:from-blue-700 hover:to-teal-700 transition-all transform hover:scale-105 cursor-pointer"
               >
-                Enviar Mensaje
+                {t('medico.patients.modals.message.actions.send')}
               </button>
             </div>
           </form>
@@ -1624,19 +1654,19 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-lg lg:max-w-2xl mx-4 sm:mx-6 lg:mx-8">
           <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-4 sm:p-6 rounded-t-2xl">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg sm:text-2xl font-bold">Reportar Paciente</h3>
+              <h3 className="text-lg sm:text-2xl font-bold">{modalTitles.reportar}</h3>
               <button onClick={cerrarModal} className="text-white text-2xl font-bold cursor-pointer">×</button>
             </div>
-            <p className="text-red-100 mt-2 text-sm">Pac: {pacienteSeleccionado.nombre}</p>
+            <p className="text-red-100 mt-2 text-sm">{t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}</p>
           </div>
 
           <div className="p-4 sm:p-6 space-y-4">
             {!confirmStage ? (
               <div className="space-y-4">
-                <p className="text-gray-700">¿Confirmas que quieres reportar a este paciente?</p>
+                <p className="text-gray-700">{t('medico.patients.modals.report.confirmQuestion')}</p>
                 <div className="flex justify-end space-x-3">
-                  <button onClick={cerrarModal} className="px-4 py-2 bg-gray-200 rounded-lg text-gray-700 cursor-pointer">Cancelar</button>
-                  <button onClick={() => setConfirmStage(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer">Confirmar</button>
+                  <button onClick={cerrarModal} className="px-4 py-2 bg-gray-200 rounded-lg text-gray-700 cursor-pointer">{t('medico.patients.common.actions.cancel')}</button>
+                  <button onClick={() => setConfirmStage(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer">{t('medico.patients.common.actions.confirm')}</button>
                 </div>
               </div>
             ) : (
@@ -1644,31 +1674,31 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 e.preventDefault();
                 // Simular envío del reporte
                 console.log('Reporte enviado', { paciente: pacienteSeleccionado, reason: reportReason });
-                alert(`Reporte enviado para ${pacienteSeleccionado.nombre}`);
+                alert(t('medico.patients.modals.report.success', { name: pacienteSeleccionado.nombre }));
                 setReportReason('');
                 setConfirmStage(false);
                 cerrarModal();
               }} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Motivo del reporte</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('medico.patients.modals.report.fields.reason')}</label>
                   <select required value={reportReason} onChange={(e) => setReportReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">Selecciona una opción</option>
-                    <option value="mala conducta">Mala conducta</option>
-                    <option value="falta de pago">Falta de pago</option>
-                    <option value="violacion de normas">Violación de normas</option>
-                    <option value="otro">Otro (especificar)</option>
+                    <option value="">{t('medico.patients.modals.report.fields.placeholder')}</option>
+                    <option value="mala conducta">{t('medico.patients.modals.report.reasons.misconduct')}</option>
+                    <option value="falta de pago">{t('medico.patients.modals.report.reasons.payment')}</option>
+                    <option value="violacion de normas">{t('medico.patients.modals.report.reasons.rules')}</option>
+                    <option value="otro">{t('medico.patients.modals.report.reasons.other')}</option>
                   </select>
                 </div>
                 {reportReason === 'otro' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Especifica</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('medico.patients.modals.report.fields.otherLabel')}</label>
                     <textarea required value={reportReason} onChange={(e) => setReportReason(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" rows={3}></textarea>
                   </div>
                 )}
 
                 <div className="flex justify-end space-x-3">
-                  <button type="button" onClick={() => setConfirmStage(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-gray-700 cursor-pointer">Volver</button>
-                  <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer">Enviar Reporte</button>
+                  <button type="button" onClick={() => setConfirmStage(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-gray-700 cursor-pointer">{t('medico.patients.common.actions.back')}</button>
+                  <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer">{t('medico.patients.modals.report.actions.submit')}</button>
                 </div>
               </form>
             )}
@@ -1688,8 +1718,8 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                   <span className="text-2xl">💊</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold">Nueva Receta Médica</h3>
-                  <p className="text-purple-100 mt-1">Paciente: {pacienteSeleccionado.nombre}</p>
+                  <h3 className="text-2xl font-bold">{t('medico.patients.modals.newPrescription.title')}</h3>
+                  <p className="text-purple-100 mt-1">{t('medico.patients.modals.common.patient', { name: pacienteSeleccionado.nombre })}</p>
                 </div>
               </div>
               <button
@@ -1717,19 +1747,19 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
               <h4 className="font-bold text-purple-800 mb-4 flex items-center gap-2">
                 <span>💉</span>
-                <span>Información del Medicamento</span>
+                <span>{t('medico.patients.modals.newPrescription.sections.medicine')}</span>
               </h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Medicamento <span className="text-red-500">*</span>
+                    {t('medico.patients.modals.newPrescription.fields.medicine')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nuevaReceta.medicamento}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, medicamento: e.target.value})}
-                    placeholder="Ej: Ibuprofeno 400mg"
+                    placeholder={t('medico.patients.modals.newPrescription.placeholders.medicine')}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-purple-200 focus:border-purple-500 transition-all"
                     required
                   />
@@ -1737,13 +1767,13 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Dosis <span className="text-red-500">*</span>
+                    {t('medico.patients.modals.newPrescription.fields.dose')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nuevaReceta.dosis}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, dosis: e.target.value})}
-                    placeholder="Ej: 1 tablet cada 8 horas"
+                    placeholder={t('medico.patients.modals.newPrescription.placeholders.dose')}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-purple-200 focus:border-purple-500 transition-all"
                     required
                   />
@@ -1755,48 +1785,48 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
               <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
                 <span>⏰</span>
-                <span>Administración y Duración</span>
+                <span>{t('medico.patients.modals.newPrescription.sections.timing')}</span>
               </h4>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Frecuencia</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('medico.patients.modals.newPrescription.fields.frequency')}</label>
                   <select
                     value={nuevaReceta.frecuencia}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, frecuencia: e.target.value})}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-blue-200 focus:border-blue-500 transition-all"
                   >
-                    <option value="">Seleccionar</option>
-                    <option value="cada-4h">Cada 4 horas</option>
-                    <option value="cada-6h">Cada 6 horas</option>
-                    <option value="cada-8h">Cada 8 horas</option>
-                    <option value="cada-12h">Cada 12 horas</option>
-                    <option value="cada-24h">Una vez al día</option>
-                    <option value="personalizada">Personalizada</option>
+                    <option value="">{t('medico.patients.modals.newPrescription.placeholders.select')}</option>
+                    <option value="cada-4h">{t('medico.patients.modals.newPrescription.frequency.every4h')}</option>
+                    <option value="cada-6h">{t('medico.patients.modals.newPrescription.frequency.every6h')}</option>
+                    <option value="cada-8h">{t('medico.patients.modals.newPrescription.frequency.every8h')}</option>
+                    <option value="cada-12h">{t('medico.patients.modals.newPrescription.frequency.every12h')}</option>
+                    <option value="cada-24h">{t('medico.patients.modals.newPrescription.frequency.daily')}</option>
+                    <option value="personalizada">{t('medico.patients.modals.newPrescription.frequency.custom')}</option>
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Duración <span className="text-red-500">*</span>
+                    {t('medico.patients.modals.newPrescription.fields.duration')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nuevaReceta.duracion}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, duracion: e.target.value})}
-                    placeholder="Ej: 7 días"
+                    placeholder={t('medico.patients.modals.newPrescription.placeholders.duration')}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-blue-200 focus:border-blue-500 transition-all"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Cantidad Total</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('medico.patients.modals.newPrescription.fields.quantity')}</label>
                   <input
                     type="text"
                     value={nuevaReceta.cantidad}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, cantidad: e.target.value})}
-                    placeholder="Ej: 21 tablets"
+                    placeholder={t('medico.patients.modals.newPrescription.placeholders.quantity')}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-blue-200 focus:border-blue-500 transition-all"
                   />
                 </div>
@@ -1807,32 +1837,32 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
             <div className="bg-green-50 rounded-xl p-4 border border-green-200">
               <h4 className="font-bold text-green-800 mb-4 flex items-center gap-2">
                 <span>📋</span>
-                <span>Instrucciones Adicionales</span>
+                <span>{t('medico.patients.modals.newPrescription.sections.additional')}</span>
               </h4>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Administrar con comidas</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('medico.patients.modals.newPrescription.fields.withMeals')}</label>
                   <select
                     value={nuevaReceta.conComidas}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, conComidas: e.target.value})}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-green-200 focus:border-green-500 transition-all"
                   >
-                    <option value="">Seleccionar</option>
-                    <option value="Si">Sí - Con comidas</option>
-                    <option value="No">No necesario</option>
-                    <option value="Antes">Antes de comer</option>
-                    <option value="Después">Después de comer</option>
-                    <option value="Con mucha agua">Con abundante agua</option>
+                    <option value="">{t('medico.patients.modals.newPrescription.placeholders.select')}</option>
+                    <option value="Si">{t('medico.patients.modals.newPrescription.withMeals.yes')}</option>
+                    <option value="No">{t('medico.patients.modals.newPrescription.withMeals.no')}</option>
+                    <option value="Antes">{t('medico.patients.modals.newPrescription.withMeals.before')}</option>
+                    <option value="Después">{t('medico.patients.modals.newPrescription.withMeals.after')}</option>
+                    <option value="Con mucha agua">{t('medico.patients.modals.newPrescription.withMeals.water')}</option>
                   </select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Indicaciones y notas</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t('medico.patients.modals.newPrescription.fields.notes')}</label>
                   <textarea
                     value={nuevaReceta.indicaciones}
                     onChange={(e) => setNuevaReceta({...nuevaReceta, indicaciones: e.target.value})}
-                    placeholder="Escriba las indicaciones específicas para el paciente..."
+                    placeholder={t('medico.patients.modals.newPrescription.placeholders.notes')}
                     rows={4}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-3 focus:ring-green-200 focus:border-green-500 transition-all resize-none"
                   />
@@ -1859,14 +1889,14 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                 className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold flex items-center gap-2 justify-center"
               >
                 <span>❌</span>
-                <span>Cancelar</span>
+                <span>{t('medico.patients.common.actions.cancel')}</span>
               </button>
               <button
                 type="submit"
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors font-semibold flex items-center gap-2 justify-center"
               >
                 <span>💾</span>
-                <span>Guardar Receta</span>
+                <span>{t('medico.patients.modals.newPrescription.actions.save')}</span>
               </button>
             </div>
           </form>

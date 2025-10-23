@@ -23,10 +23,10 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
       // Actualizar perfil localmente
       ctx.setPerfil((prev: any) => ({ ...prev, ...ctx.formPerfil }));
       setEditing(false);
-      ctx.setMensajePerfil('¡Perfil actualizado!');
+      ctx.setMensajePerfil(t('medico.profile.messages.profileUpdated'));
       setTimeout(() => ctx.setMensajePerfil(''), 3000);
     } catch (e) {
-      ctx.setMensajePerfil('Error al guardar perfil');
+      ctx.setMensajePerfil(t('medico.profile.messages.errorSaving'));
       setTimeout(() => ctx.setMensajePerfil(''), 3000);
     } finally {
       ctx.setCargandoPerfil(false);
@@ -49,17 +49,17 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
             {ctx?.perfil?.activo && <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 rounded-full border-2 border-white" />}
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold leading-tight">{ctx.formPerfil?.nombre ? `Dr. ${nombreCompleto}` : 'Dr. Nombre Apellido'}</h2>
-            <p className="text-sm mt-1 opacity-90">{ctx.formPerfil?.especialidad || 'Especialidad no especificada'}</p>
+            <h2 className="text-2xl font-bold leading-tight">{ctx.formPerfil?.nombre ? t('medico.profile.header.title', { name: nombreCompleto }) : t('medico.profile.header.titleFallback')}</h2>
+            <p className="text-sm mt-1 opacity-90">{ctx.formPerfil?.especialidad || t('medico.profile.header.specialtyUnknown')}</p>
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-semibold">Panel Médico</span>
+              <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-semibold">{t('medico.profile.header.panel')}</span>
               <span className="text-xs bg-white/10 px-3 py-1 rounded-full">{ctx.formPerfil?.email}</span>
             </div>
           </div>
           <div className="flex flex-col md:flex-row gap-2">
             <button className="w-full md:w-auto bg-amber-400 text-white font-semibold px-4 py-2 rounded-lg shadow hover:scale-105 transition flex items-center justify-center gap-2 cursor-pointer" onClick={() => ctx.setMostrarCambioPassword(true)}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 8a5 5 0 1110 0v2a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2V8zm5-3a3 3 0 00-3 3v2h6V8a3 3 0 00-3-3z" clipRule="evenodd"/></svg>
-              <span className="text-sm">Cambiar contraseña</span>
+              <span className="text-sm">{t('medico.profile.header.changePassword')}</span>
             </button>
           </div>
         </div>
@@ -87,8 +87,8 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
               }
               ctx.setCargandoPerfil(true);
               try {
-                if (!ctx.medicoData) throw new Error("No hay datos de usuario");
-                if (!ctx.avatarFile) throw new Error('Seleccione una imagen');
+                if (!ctx.medicoData) throw new Error(t('medico.profile.avatar.noUserData'));
+                if (!ctx.avatarFile) throw new Error(t('medico.profile.avatar.selectImage'));
                 const fd = new FormData();
                 fd.append('archivo', ctx.avatarFile);
                 fd.append('uso', 'avatar');
@@ -187,7 +187,7 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                 }
                 if (!url) {
                   console.error('❌ Respuesta de avatar sin URL reconocible:', data);
-                  ctx.setMensajePerfil('La imagen se guardó, pero no recibimos la URL. Refresca la página para verla.');
+                  ctx.setMensajePerfil(t('medico.profile.messages.imageSavedNoUrl'));
                   return;
                 }
 
@@ -201,10 +201,10 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                 const rawRuta = typeof maybeRuta === 'string' && maybeRuta.length > 0 ? maybeRuta : null;
                 const persistValue = rawRuta ?? (avatarInfo.storagePath ? avatarInfo.storagePath : (typeof parsedUrl === 'string' && parsedUrl.length > 0 ? parsedUrl : url));
                 try { await ctx.updateMedicoAvatar(ctx.medicoData.email, persistValue); } catch (e) { console.warn('No se pudo persistir avatar de médico en backend:', e); }
-                ctx.setMensajePerfil("¡Avatar actualizado correctamente!");
+                ctx.setMensajePerfil(t('medico.profile.avatar.success'));
                 ctx.setAvatarFile(null);
               } catch (error: any) {
-                ctx.setMensajePerfil(error?.message || "Error al actualizar el avatar");
+                ctx.setMensajePerfil(error?.message || t('medico.profile.avatar.error'));
               } finally {
                 ctx.setCargandoPerfil(false);
                 setTimeout(() => ctx.setMensajePerfil(""), 3000);
@@ -229,16 +229,16 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                   ctx.setAvatarFile(file);
                 }}
               />
-              <button type="submit" disabled={ctx.cargandoPerfil || !ctx.avatarFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 font-semibold transition disabled:opacity-60">Subir foto</button>
+              <button type="submit" disabled={ctx.cargandoPerfil || !ctx.avatarFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 font-semibold transition disabled:opacity-60">{t('medico.profile.avatar.upload')}</button>
               {ctx.mensajePerfil && <div className="text-green-600 text-center font-semibold mt-1 text-sm">{ctx.mensajePerfil}</div>}
             </form>
           </div>
 
           <div className="w-full bg-white rounded-xl p-4 shadow hidden sm:block">
-            <h3 className="font-semibold mb-2">Estadísticas</h3>
+            <h3 className="font-semibold mb-2">{t('medico.profile.stats.title')}</h3>
             <div className="flex flex-col gap-2 text-sm text-slate-700">
-              <div className="flex justify-between"><span>Citas hoy</span><strong>4</strong></div>
-              <div className="flex justify-between"><span>Pacientes</span><strong>128</strong></div>
+              <div className="flex justify-between"><span>{t('medico.profile.stats.todayAppointments')}</span><strong>4</strong></div>
+              <div className="flex justify-between"><span>{t('medico.profile.stats.totalPatients')}</span><strong>128</strong></div>
             </div>
           </div>
         </div>
@@ -249,39 +249,39 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
             {editing ? (
               <>
                 <div>
-                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>Nombre</label>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>{t('medico.profile.fields.firstName')}</label>
                   <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.nombre || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, nombre: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>Apellido</label>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>{t('medico.profile.fields.lastName')}</label>
                   <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.apellido || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, apellido: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>Especialidad</label>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>{t('medico.profile.fields.specialty')}</label>
                   <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.especialidad || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, especialidad: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>Correo electrónico</label>
+                  <label className="text-xs font-semibold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>{t('medico.profile.fields.email')}</label>
                   <input className="w-full border border-slate-200 rounded-md px-3 py-2 mt-1 text-sm" value={ctx.formPerfil?.email || ''} onChange={(e) => ctx.setFormPerfil((f: any) => ({ ...f, email: e.target.value }))} />
                 </div>
               </>
             ) : (
               <>
                 <div>
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>Nombre</span>
-                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.nombre || '-'}</div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a2 2 0 100 4 2 2 0 000-4z"/><path fillRule="evenodd" d="M.458 16.042A8 8 0 1116.042.458 13.5 13.5 0 0010 6.75 13.5 13.5 0 00.458 16.042z" clipRule="evenodd"/></svg>{t('medico.profile.fields.firstName')}</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.nombre || t('medico.profile.placeholders.noData')}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>Apellido</span>
-                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.apellido || '-'}</div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fillRule="evenodd" d="M2 13a6 6 0 1112 0v1H2v-1z" clipRule="evenodd"/></svg>{t('medico.profile.fields.lastName')}</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.apellido || t('medico.profile.placeholders.noData')}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>Especialidad</span>
-                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.especialidad || '-'}</div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h14a1 1 0 011 1v1H2v-1z"/><path d="M4 7a4 4 0 118 0v1H4V7z"/></svg>{t('medico.profile.fields.specialty')}</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.especialidad || t('medico.profile.placeholders.noData')}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>Correo</span>
-                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.email || '-'}</div>
+                  <span className="text-xs text-slate-500 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.94A1.5 1.5 0 014 6h12a1.5 1.5 0 011.06.44L10 11 2.94 6.94z"/><path d="M18 8.56V14a2 2 0 01-2 2H4a2 2 0 01-2-2V8.56l8 4.4 8-4.4z"/></svg>{t('medico.profile.fields.emailShort')}</span>
+                  <div className="font-semibold text-slate-700">{ctx.formPerfil?.email || t('medico.profile.placeholders.noData')}</div>
                 </div>
               </>
             )}
@@ -290,12 +290,12 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
           {/* Cambio de contraseña (mantener lógica existente) */}
           {ctx.mostrarCambioPassword && (
             <form onSubmit={ctx.cambiarPassword} className="flex flex-col gap-3 mt-2 bg-white p-4 rounded-xl shadow">
-              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Contraseña actual" value={ctx.passwordActual} onChange={(e) => ctx.setPasswordActual(e.target.value)} required />
-              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Nueva contraseña" value={ctx.nuevoPassword} onChange={(e) => ctx.setNuevoPassword(e.target.value)} required />
-              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder="Confirmar nueva contraseña" value={ctx.confirmarPassword} onChange={(e) => ctx.setConfirmarPassword(e.target.value)} required />
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder={t('medico.profile.password.currentPassword')} value={ctx.passwordActual} onChange={(e) => ctx.setPasswordActual(e.target.value)} required />
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder={t('medico.profile.password.newPassword')} value={ctx.nuevoPassword} onChange={(e) => ctx.setNuevoPassword(e.target.value)} required />
+              <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none" placeholder={t('medico.profile.password.confirmPassword')} value={ctx.confirmarPassword} onChange={(e) => ctx.setConfirmarPassword(e.target.value)} required />
               <div className="flex gap-2 justify-center">
-                <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60" disabled={ctx.cambiandoPassword}>Guardar contraseña</button>
-                <button type="button" className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md px-6 py-2 font-semibold" onClick={() => { ctx.setMostrarCambioPassword(false); ctx.setPasswordActual(''); ctx.setNuevoPassword(''); ctx.setConfirmarPassword(''); ctx.setMensajePassword(''); }}>Cancelar</button>
+                <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white rounded-md px-6 py-2 font-semibold transition disabled:opacity-60" disabled={ctx.cambiandoPassword}>{t('medico.profile.password.save')}</button>
+                <button type="button" className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md px-6 py-2 font-semibold" onClick={() => { ctx.setMostrarCambioPassword(false); ctx.setPasswordActual(''); ctx.setNuevoPassword(''); ctx.setConfirmarPassword(''); ctx.setMensajePassword(''); }}>{t('medico.profile.password.cancel')}</button>
               </div>
               {ctx.mensajePassword && <div className="text-green-600 text-center font-semibold mt-2">{ctx.mensajePassword}</div>}
             </form>

@@ -132,6 +132,8 @@ export const verificarCitasEnHorario = (dia: string, hora: string, citas: any[])
 };
 
 // Función para confirmar eliminación de horario
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
 export const createEliminarHorarioHandler = (
   setLoadingEliminar: any,
   eliminarHorarioService: any,
@@ -140,6 +142,7 @@ export const createEliminarHorarioHandler = (
   groupHorariosByDay: any,
   setDisponibilidad: any,
   setNotificacionDisponibilidad: any,
+  translate: TranslateFn,
   setMostrarConfirmacion: any,
   setHorarioAEliminar: any
 ) => async (medicoData: any, horarioAEliminar: any) => {
@@ -154,12 +157,12 @@ export const createEliminarHorarioHandler = (
     setDisponibilidad(groupHorariosByDay(horariosData));
     setNotificacionDisponibilidad({ 
       tipo: 'delete', 
-      mensaje: `Horario eliminado correctamente.` 
+      mensaje: translate('medico.availability.delete_success') 
     });
   } catch (error: any) {
     setNotificacionDisponibilidad({ 
       tipo: 'error', 
-      mensaje: error?.message || 'Error al eliminar horario.' 
+      mensaje: error?.message || translate('medico.availability.delete_error') 
     });
   } finally {
     setLoadingEliminar(null);
@@ -174,6 +177,7 @@ export const createAgregarHorariosHandler = (
   setLoadingHorarios: any,
   agregarHorario: any,
   setNotificacionDisponibilidad: any,
+  translate: TranslateFn,
   setNuevoDia: any,
   setNuevasHoras: any,
   getHorarios: any,
@@ -205,7 +209,7 @@ export const createAgregarHorariosHandler = (
     
     setNotificacionDisponibilidad({ 
       tipo: 'success', 
-      mensaje: `${datosAgregar.horas.length} franja(s) horaria(s) agregada(s) correctamente.` 
+      mensaje: translate('medico.availability.add_success', { count: datosAgregar.horas.length }) 
     });
     setNuevoDia("");
     setNuevasHoras([]);
@@ -214,8 +218,8 @@ export const createAgregarHorariosHandler = (
     setHorarios(horariosData);
     setDisponibilidad(groupHorariosByDay(horariosData));
   } catch (error: any) {
-    const msg = (error && (error.message || String(error))) || 'Error al agregar horario.';
-    setNotificacionDisponibilidad({ tipo: 'error', mensaje: msg });
+  const msg = (error && (error.message || String(error))) || translate('medico.availability.add_error');
+  setNotificacionDisponibilidad({ tipo: 'error', mensaje: msg });
   } finally {
     setLoadingHorarios(false);
     setMostrarConfirmacionAgregar(false);
@@ -234,14 +238,15 @@ export const createPasswordChangeHandler = (
   setNuevoPassword: any,
   setConfirmarPassword: any,
   setCambiandoPassword: any,
-  cambiarContrasena: any
+  cambiarContrasena: any,
+  translate: TranslateFn
 ) => async (e: React.FormEvent, passwordActual: string, nuevoPassword: string, confirmarPassword: string) => {
   e.preventDefault();
   setMensajePassword("");
   setNotificacionPassword(null);
   
   if (nuevoPassword.length < 6) {
-    const msg = "La contraseña debe tener al menos 6 caracteres.";
+    const msg = translate('medico.password.min_length');
     setMensajePassword(msg);
     setNotificacionPassword({ tipo: 'error', mensaje: msg });
     setTimeout(() => setNotificacionPassword(null), 3500);
@@ -249,7 +254,7 @@ export const createPasswordChangeHandler = (
   }
   
   if (nuevoPassword !== confirmarPassword) {
-    const msg = "Las contraseñas no coinciden.";
+    const msg = translate('medico.password.mismatch');
     setMensajePassword(msg);
     setNotificacionPassword({ tipo: 'error', mensaje: msg });
     setTimeout(() => setNotificacionPassword(null), 3500);
@@ -257,7 +262,15 @@ export const createPasswordChangeHandler = (
   }
   
   if (!passwordActual) {
-    const msg = "Debe ingresar su contraseña actual.";
+    const msg = translate('medico.password.require_current');
+    setMensajePassword(msg);
+    setNotificacionPassword({ tipo: 'error', mensaje: msg });
+    setTimeout(() => setNotificacionPassword(null), 3500);
+    return;
+  }
+  
+  if (!medicoData) {
+    const msg = translate('medico.password.missing_user');
     setMensajePassword(msg);
     setNotificacionPassword({ tipo: 'error', mensaje: msg });
     setTimeout(() => setNotificacionPassword(null), 3500);
@@ -266,9 +279,8 @@ export const createPasswordChangeHandler = (
   
   setCambiandoPassword(true);
   try {
-    if (!medicoData) throw new Error("No hay datos de usuario");
     const resp = await cambiarContrasena(medicoData.email, passwordActual, nuevoPassword);
-    const msg = resp.message || "¡Contraseña actualizada correctamente!";
+    const msg = resp?.message || translate('medico.password.change_success');
     setMensajePassword(msg);
     setNotificacionPassword({ tipo: 'success', mensaje: msg });
     setMostrarCambioPassword(false);
@@ -276,7 +288,10 @@ export const createPasswordChangeHandler = (
     setNuevoPassword("");
     setConfirmarPassword("");
   } catch (error: any) {
-    const msg = error?.message || "Error al cambiar la contraseña";
+    const backendMsg = error?.message;
+    const msg = backendMsg && typeof backendMsg === 'string' && backendMsg.trim().length
+      ? backendMsg
+      : translate('medico.password.change_error');
     setMensajePassword(msg);
     setNotificacionPassword({ tipo: 'error', mensaje: msg });
   } finally {

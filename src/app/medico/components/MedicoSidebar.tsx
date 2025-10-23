@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface MedicoSidebarProps {
   isMobile: boolean;
@@ -17,13 +18,15 @@ export default function MedicoSidebar({
   activeTab,
   setActiveTab
 }: MedicoSidebarProps) {
+  const { t } = useTranslation();
+
   const menuItems = [
-    { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-    { id: 'citas', icon: '📅', label: 'Citas' },
-    { id: 'disponibilidad', icon: '🕒', label: 'Disponibilidad' },
-    { id: 'pacientes', icon: '👤', label: 'Pacientes' },
-    { id: 'billing', icon: '�', label: 'Billetera' },
-    { id: 'perfil', icon: '⚙️', label: 'Perfil' }
+    { id: 'dashboard', icon: '🏠', labelKey: 'medico.sidebar.menu.dashboard' },
+    { id: 'citas', icon: '📅', labelKey: 'medico.sidebar.menu.appointments' },
+    { id: 'disponibilidad', icon: '🕒', labelKey: 'medico.sidebar.menu.availability' },
+    { id: 'pacientes', icon: '👤', labelKey: 'medico.sidebar.menu.patients' },
+    { id: 'billing', icon: '💳', labelKey: 'medico.sidebar.menu.billing' },
+    { id: 'perfil', icon: '⚙️', labelKey: 'medico.sidebar.menu.profile' }
   ];
 
   const handleMenuClick = (tabId: string) => {
@@ -64,16 +67,16 @@ export default function MedicoSidebar({
             </div>
             <div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-white via-cyan-200 to-blue-200 bg-clip-text text-transparent">
-                Panel Médico
+                {t('medico.sidebar.header.title')}
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <p className="text-xs text-slate-300 font-medium">Sistema activo</p>
+                <p className="text-xs text-slate-300 font-medium">{t('medico.sidebar.header.status')}</p>
               </div>
             </div>
           </div>
           <div className="text-xs text-slate-400 bg-slate-800/40 px-3 py-1.5 rounded-lg border border-slate-700/50">
-            💡 Gestiona tu práctica médica de forma integral
+            💡 {t('medico.sidebar.header.tip')}
           </div>
         </div>
         
@@ -90,7 +93,7 @@ export default function MedicoSidebar({
                 }`} 
                 onClick={() => handleMenuClick(item.id)}
               >
-                <span>{item.icon}</span> {item.label}
+                <span>{item.icon}</span> {t(item.labelKey)}
               </li>
             ))}
           </ul>

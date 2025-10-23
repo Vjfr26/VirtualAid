@@ -162,6 +162,27 @@ export function calcularIngresosPorPeriodo(
  */
 export async function getSaldoMedico(medicoEmail: string): Promise<SaldoMedicoResponse> {
   try {
+    // Temporalmente devolvemos datos de prueba hasta que el backend esté funcionando
+    // El backend debe implementar: GET /api/medico/{email}/saldo
+    
+    // Simular una pequeña demora de red
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Calcular el saldo basándonos en los pagos mock
+    const mockPagos = await getPagosMedico(medicoEmail);
+    const saldo = mockPagos.total_ingresos;
+    
+    return {
+      saldo: saldo,
+      total_citas_pagadas: mockPagos.cantidad_pagos,
+      ultimo_pago: mockPagos.pagos.length > 0 ? {
+        fecha: mockPagos.pagos[mockPagos.pagos.length - 1].fecha_pago,
+        monto: mockPagos.pagos[mockPagos.pagos.length - 1].monto
+      } : undefined
+    };
+
+    // Código real para cuando el backend funcione:
+    /*
     const response = await fetch(`/api/medico/saldo?medico_email=${encodeURIComponent(medicoEmail)}`, {
       method: 'GET',
       headers: {
@@ -179,6 +200,7 @@ export async function getSaldoMedico(medicoEmail: string): Promise<SaldoMedicoRe
 
     const data = await response.json();
     return data;
+    */
   } catch (error) {
     console.error('Error al obtener saldo del médico:', error);
     // Si falla, devolver saldo en 0

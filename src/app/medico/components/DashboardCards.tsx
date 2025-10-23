@@ -1,9 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { resumenGradients } from '../utils';
 import { formatearMonto, calcularIngresosPorPeriodo, type Pago } from '../services';
 
 interface DashboardCardsProps {
   resumen: Array<{
+    key: string;
     titulo: string;
     valor: string | number;
     icono: string;
@@ -25,6 +27,8 @@ export default function DashboardCards({
   loadingPagos,
   totalIngresos
 }: DashboardCardsProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
@@ -32,7 +36,7 @@ export default function DashboardCards({
           // Seleccionar un gradiente diferente para cada tarjeta
           const grad = resumenGradients[idx % resumenGradients.length];
           // Determinar si es el card de ingresos para agregar funcionalidad especial
-          const esCardIngresos = item.titulo === "Ingresos";
+          const esCardIngresos = item.key === 'revenue';
           return (
             <div
               key={idx}
@@ -78,7 +82,7 @@ export default function DashboardCards({
       {mostrarDetalleIngresos && (
         <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg border border-emerald-200 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-emerald-800">📊 Detalle de Ingresos</h3>
+            <h3 className="text-xl font-bold text-emerald-800">📊 {t('medico.dashboard.summary.revenue_detail_title')}</h3>
             <button 
               onClick={() => setMostrarDetalleIngresos(false)}
               className="text-emerald-600 hover:text-emerald-800 text-xl font-bold"
@@ -88,32 +92,32 @@ export default function DashboardCards({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
-              <div className="text-sm text-emerald-600 font-semibold">Total del Mes</div>
+              <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.month_total')}</div>
               <div className="text-2xl font-bold text-emerald-800">
                 {loadingPagos ? "..." : formatearMonto(calcularIngresosPorPeriodo(pagos, 'mes'))}
               </div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
-              <div className="text-sm text-emerald-600 font-semibold">Total General</div>
+              <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.total')}</div>
               <div className="text-2xl font-bold text-emerald-800">
                 {loadingPagos ? "..." : formatearMonto(totalIngresos)}
               </div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
-              <div className="text-sm text-emerald-600 font-semibold">Pagos Completados</div>
+              <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.completed_payments')}</div>
               <div className="text-2xl font-bold text-emerald-800">{pagos.length}</div>
             </div>
           </div>
           
           {/* Lista de pagos recientes */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
-            <h4 className="font-semibold text-emerald-800 mb-3">Pagos Recientes</h4>
+            <h4 className="font-semibold text-emerald-800 mb-3">{t('medico.dashboard.summary.revenue_detail.recent_payments')}</h4>
             {loadingPagos ? (
               <div className="text-center py-4">
                 <div className="inline-block animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 h-8 w-8"></div>
               </div>
             ) : pagos.length === 0 ? (
-              <div className="text-gray-500 text-center py-4">No hay pagos registrados</div>
+              <div className="text-gray-500 text-center py-4">{t('medico.dashboard.summary.revenue_detail.no_payments')}</div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {pagos.slice(0, 5).map((pago) => (

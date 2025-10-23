@@ -1,12 +1,25 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DisponibilidadSectionProps {
   ctx: any;
 }
 
 export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProps) {
+  const { t, i18n } = useTranslation();
+  const dayFormatter = React.useMemo(() => new Intl.DateTimeFormat(i18n.language || 'es', { weekday: 'long' }), [i18n.language]);
+  const dayOrder = React.useMemo(() => ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'], []);
+
+  const getLocalizedDayName = React.useCallback((value: string) => {
+    const index = dayOrder.indexOf(value);
+    if (index === -1) return value;
+    const date = new Date(2024, 0, 7 + index);
+    const localized = dayFormatter.format(date);
+    return localized.charAt(0).toUpperCase() + localized.slice(1);
+  }, [dayOrder, dayFormatter]);
+
   const {
     disponibilidad,
     nuevoDia,
@@ -37,8 +50,8 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
             <span className="text-2xl">🕒</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-white text-lg sm:text-xl tracking-wide">Mi Disponibilidad</h2>
-            <p className="text-purple-100 text-xs sm:text-sm">Configura tus horarios de atención</p>
+            <h2 className="font-bold text-white text-lg sm:text-xl tracking-wide">{t('medico.availability.header.title')}</h2>
+            <p className="text-purple-100 text-xs sm:text-sm">{t('medico.availability.header.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -49,25 +62,25 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">📊</span>
-              <h3 className="text-lg font-bold text-gray-800">Resumen de Disponibilidad</h3>
+              <h3 className="text-lg font-bold text-gray-800">{t('medico.availability.summary.title')}</h3>
               <div className="flex-1 h-px bg-gradient-to-r from-purple-200 to-transparent"></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-center">
               <div className="bg-white/60 rounded-xl p-4 shadow-sm">
                 <div className="text-3xl font-bold text-purple-700">{disponibilidad.length}</div>
-                <div className="text-sm text-purple-600 font-medium">Días configurados</div>
+                <div className="text-sm text-purple-600 font-medium">{t('medico.availability.summary.days')}</div>
               </div>
               <div className="bg-white/60 rounded-xl p-4 shadow-sm">
                 <div className="text-3xl font-bold text-indigo-700">
                   {disponibilidad.reduce((acc: number, d: any) => acc + d.horas.split(',').length, 0)}
                 </div>
-                <div className="text-sm text-indigo-600 font-medium">Horarios totales</div>
+                <div className="text-sm text-indigo-600 font-medium">{t('medico.availability.summary.slots')}</div>
               </div>
               <div className="bg-white/60 rounded-xl p-4 shadow-sm">
                 <div className="text-3xl font-bold text-cyan-700">
-                  {disponibilidad.length > 0 ? 'Activo' : 'Inactivo'}
+                  {disponibilidad.length > 0 ? t('medico.availability.status.active') : t('medico.availability.status.inactive')}
                 </div>
-                <div className="text-sm text-cyan-600 font-medium">Estado del perfil</div>
+                <div className="text-sm text-cyan-600 font-medium">{t('medico.availability.summary.status')}</div>
               </div>
             </div>
           </div>
@@ -77,7 +90,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-purple-100 mb-6 sm:mb-8 w-full max-w-none">
           <div className="flex items-center gap-2 mb-6 w-full">
             <span className="text-xl flex-shrink-0">➕</span>
-            <h3 className="text-lg font-semibold text-gray-800 flex-1 min-w-0">Agregar Nuevo Horario</h3>
+            <h3 className="text-lg font-semibold text-gray-800 flex-1 min-w-0">{t('medico.availability.form.title')}</h3>
           </div>
           
           <form onSubmit={agregarDisponibilidad} className="space-y-6 w-full">
@@ -85,7 +98,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <span className="text-base">📅</span>
-                Día de la semana
+                {t('medico.availability.form.day_label')}
               </label>
               <select
                 value={nuevoDia}
@@ -93,14 +106,14 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                 className="w-full rounded-xl border-2 border-purple-200 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm font-medium transition-all duration-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none hover:border-purple-300"
                 required
               >
-                <option value="">✨ Selecciona un día</option>
-                <option value="Lunes">🌅 Lunes</option>
-                <option value="Martes">🌄 Martes</option>
-                <option value="Miércoles">⛅ Miércoles</option>
-                <option value="Jueves">🌤️ Jueves</option>
-                <option value="Viernes">🌅 Viernes</option>
-                <option value="Sábado">🎉 Sábado</option>
-                <option value="Domingo">☀️ Domingo</option>
+                <option value="">{t('medico.availability.form.day_placeholder')}</option>
+                <option value="Lunes">🌅 {getLocalizedDayName('Lunes')}</option>
+                <option value="Martes">🌄 {getLocalizedDayName('Martes')}</option>
+                <option value="Miércoles">⛅ {getLocalizedDayName('Miércoles')}</option>
+                <option value="Jueves">🌤️ {getLocalizedDayName('Jueves')}</option>
+                <option value="Viernes">🌅 {getLocalizedDayName('Viernes')}</option>
+                <option value="Sábado">🎉 {getLocalizedDayName('Sábado')}</option>
+                <option value="Domingo">☀️ {getLocalizedDayName('Domingo')}</option>
               </select>
             </div>
 
@@ -108,12 +121,12 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
             <div className="space-y-3 w-full">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <span className="text-base">⏰</span>
-                Horarios disponibles
+                {t('medico.availability.form.slots_label')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 w-full overflow-x-hidden">
                   {nuevoDia === '' ? (
                     <div className="col-span-full text-center text-sm text-gray-500 py-6">
-                      Selecciona un día para ver las franjas disponibles.
+                      {t('medico.availability.form.slots_select_day')}
                     </div>
                   ) : (
                     (() => {
@@ -121,7 +134,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                       if (disponibles.length === 0) {
                         return (
                           <div className="col-span-full text-center text-sm text-gray-500 py-6">
-                            No hay franjas disponibles para {nuevoDia}.
+                            {t('medico.availability.form.slots_none', { day: getLocalizedDayName(nuevoDia) })}
                           </div>
                         );
                       }
@@ -157,7 +170,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
               {nuevasHoras.length > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
                   <p className="text-sm text-purple-700">
-                    <span className="font-semibold">Seleccionados:</span> {nuevasHoras.join(', ')}
+                    <span className="font-semibold">{t('medico.availability.form.selected_prefix')}</span> {nuevasHoras.join(', ')}
                   </p>
                 </div>
               )}
@@ -172,12 +185,12 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
               {loadingHorarios ? (
                 <>
                   <div className="animate-spin rounded-full border-2 border-white/30 border-t-white h-4 w-4"></div>
-                  Guardando...
+                  {t('medico.availability.form.submit_saving')}
                 </>
               ) : (
                 <>
                   <span className="text-xl">💾</span>
-                  Guardar Horario
+                  {t('medico.availability.form.submit_label')}
                 </>
               )}
             </button>
@@ -200,8 +213,8 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/20 to-indigo-400/20 animate-pulse"></div>
             </div>
             <div className="text-center">
-              <p className="text-purple-700 font-semibold text-lg">Cargando horarios</p>
-              <p className="text-purple-500 text-sm">Obteniendo tu disponibilidad...</p>
+              <p className="text-purple-700 font-semibold text-lg">{t('medico.availability.loading.title')}</p>
+              <p className="text-purple-500 text-sm">{t('medico.availability.loading.subtitle')}</p>
             </div>
           </div>
         ) : errorHorarios ? (
@@ -209,7 +222,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
             <div className="mb-4">
               <span className="text-4xl">❌</span>
             </div>
-            <p className="font-bold text-red-800 text-lg mb-2">Error al cargar disponibilidad</p>
+            <p className="font-bold text-red-800 text-lg mb-2">{t('medico.availability.errors.load_title')}</p>
             <p className="text-red-600">{errorHorarios}</p>
           </div>
         ) : disponibilidad.length === 0 ? (
@@ -217,16 +230,16 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
             <div className="mb-6">
               <span className="text-6xl">📅</span>
             </div>
-            <p className="font-bold text-gray-800 text-xl mb-2">¡Configura tu primera disponibilidad!</p>
+            <p className="font-bold text-gray-800 text-xl mb-2">{t('medico.availability.empty.title')}</p>
             <p className="text-gray-600 max-w-md mx-auto">
-              No tienes horarios configurados aún. Utiliza el formulario de arriba para agregar tus horarios de atención y comenzar a recibir pacientes.
+              {t('medico.availability.empty.description')}
             </p>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">📋</span>
-              <h3 className="text-xl font-bold text-gray-800">Tus Horarios Configurados</h3>
+              <h3 className="text-xl font-bold text-gray-800">{t('medico.availability.list.title')}</h3>
               <div className="flex-1 h-px bg-gradient-to-r from-purple-200 to-transparent"></div>
             </div>
             
@@ -245,12 +258,12 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="p-1.5 sm:p-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl text-white shadow-lg">
                           <span className="text-sm sm:text-lg font-bold">
-                            {d.dia.slice(0, 3).toUpperCase()}
+                            {getLocalizedDayName(d.dia).slice(0, 3).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <h4 className="font-bold text-gray-800 text-base sm:text-lg">{d.dia}</h4>
-                          <p className="text-purple-600 text-xs sm:text-sm">Día laboral</p>
+                          <h4 className="font-bold text-gray-800 text-base sm:text-lg">{getLocalizedDayName(d.dia)}</h4>
+                          <p className="text-purple-600 text-xs sm:text-sm">{t('medico.availability.list.workday')}</p>
                         </div>
                       </div>
                     </div>
@@ -259,7 +272,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                     <div className="mb-4">
                       <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span>⏰</span>
-                        Horarios disponibles:
+                        {t('medico.availability.list.slots_title')}
                       </p>
                       <div className="bg-white/80 border border-purple-100 rounded-xl p-3">
                         <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -296,7 +309,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                                     if (citasAsociadas.length > 0) {
                                       setNotificacionDisponibilidad({ 
                                         tipo: 'warning', 
-                                        mensaje: `No se puede eliminar: hay ${citasAsociadas.length} cita(s) programada(s) en esta franja horaria.` 
+                                        mensaje: t('medico.availability.warnings.slot_with_appointments', { count: citasAsociadas.length }) 
                                       });
                                       setTimeout(() => setNotificacionDisponibilidad(null), 5000);
                                       return;
@@ -307,7 +320,7 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                                     setMostrarConfirmacion(true);
                                   } else {
                                     console.error('No se encontró el horario para eliminar');
-                                    setNotificacionDisponibilidad({ tipo: 'error', mensaje: 'No se pudo encontrar el horario para eliminar.' });
+                                    setNotificacionDisponibilidad({ tipo: 'error', mensaje: t('medico.availability.errors.find_slot') });
                                     setTimeout(() => setNotificacionDisponibilidad(null), 4000);
                                   }
                                 }}
