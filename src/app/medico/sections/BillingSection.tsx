@@ -47,6 +47,8 @@ interface BillingSectionProps {
     setBillingProfileEditing: (editing: boolean) => void;
     billingProfileForm: Partial<BillingProfile>;
     setBillingProfileForm: (form: Partial<BillingProfile>) => void;
+    saldoMedico: number;
+    loadingSaldo: boolean;
   };
 }
 
@@ -87,14 +89,13 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
     billingProfileEditing,
     setBillingProfileEditing,
     billingProfileForm,
-    setBillingProfileForm
+    setBillingProfileForm,
+    saldoMedico,
+    loadingSaldo
   } = ctx;
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'metodos' | 'facturas'>('perfil');
   const [mounted, setMounted] = useState(false);
-
-  // TODO: Esta variable vendrá del backend cuando esté implementada
-  const saldoActual = 0; // Por ahora en 0, se actualizará con datos reales del backend
 
   useEffect(() => {
     setMounted(true);
@@ -127,8 +128,18 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-white/80 text-sm font-medium mb-1">Saldo Actual</span>
-            <span className="text-white text-3xl font-bold">
-              ${saldoActual.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {loadingSaldo ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full border-2 border-white/30 border-t-white h-6 w-6"></div>
+                <span className="text-white text-lg">Cargando...</span>
+              </div>
+            ) : (
+              <span className="text-white text-3xl font-bold">
+                ${saldoMedico.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            )}
+            <span className="text-white/60 text-xs mt-1">
+              Suma de todas las citas pagadas
             </span>
           </div>
           <button className="bg-white text-teal-700 font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg hover:bg-emerald-50 transition-all duration-300">

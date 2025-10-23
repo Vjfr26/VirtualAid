@@ -63,6 +63,58 @@ export const groupHorariosByDay = (horariosList: any[]) => {
   }));
 };
 
+// ---------------------- Helpers de fecha (zona local del navegador) ----------------------
+/**
+ * Parsear una fecha ISO (posible con zona o sin ella) y una hora opcional
+ * y devolver un objeto con la Date en la zona local del navegador y una cadena ISO-local
+ * isoLocal: 'YYYY-MM-DD HH:mm' (sin zona)
+ */
+export function combinarFechaHoraLocal(fechaStr: string | undefined | null, horaStr?: string | null) {
+  // Si no hay fecha, devolver ahora (local)
+  if (!fechaStr) {
+    const now = new Date();
+    const isoLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    return { date: now, isoLocal };
+  }
+
+  // Extraer la parte de fecha (YYYY-MM-DD) siempre que exista
+  const fechaMatch = fechaStr.match(/(\d{4}-\d{2}-\d{2})/);
+  const ymd = fechaMatch ? fechaMatch[1] : null;
+
+  // Si el backend ya incluye hora en la fechaStr, intentar extraerla
+  const horaMatch = fechaStr.match(/T(\d{2}:\d{2}:?\d{0,2})/);
+
+  // Determinar la hora a usar (priorizar horaStr si está presente)
+  let horaFinal = '00:00:00';
+  if (horaStr && /^\d{2}:\d{2}(:\d{2})?$/.test(horaStr)) {
+    horaFinal = horaStr.length === 5 ? `${horaStr}:00` : horaStr;
+  } else if (horaMatch) {
+    const hm = horaMatch[1];
+    horaFinal = hm.length === 5 ? `${hm}:00` : (hm.length === 8 ? hm : `${hm}:00`);
+  }
+
+  // Si no pudimos extraer la fecha YYYY-MM-DD, intentar usar Date fallback y luego convertir a local
+  if (!ymd) {
+    // Fallback: crear Date con el string y convertir a local
+    const dtFallback = new Date(fechaStr);
+    const isoLocalFb = `${dtFallback.getFullYear()}-${String(dtFallback.getMonth() + 1).padStart(2, '0')}-${String(dtFallback.getDate()).padStart(2, '0')} ${String(dtFallback.getHours()).padStart(2, '0')}:${String(dtFallback.getMinutes()).padStart(2, '0')}`;
+    return { date: dtFallback, isoLocal: isoLocalFb };
+  }
+
+  // Construir Date en zona local usando componentes (evita interpretar como UTC)
+  const [yyyy, mm, dd] = ymd.split('-').map(s => parseInt(s, 10));
+  const [hh, mi, ss] = horaFinal.split(':').map(s => parseInt(s, 10));
+  const localDate = new Date(yyyy, mm - 1, dd, hh || 0, mi || 0, ss || 0, 0);
+  const isoLocal = `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')} ${String(hh).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
+  return { date: localDate, isoLocal };
+}
+
+/** Devuelve YYYY-MM-DD para una Date en zona local */
+export function formatLocalYYYYMMDD(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+
 // Verificar si un horario tiene citas
 export const verificarCitasEnHorario = (dia: string, hora: string, citas: any[]) => {
   const diasIdx: any = { 'Domingo':0,'Lunes':1,'Martes':2,'Miércoles':3,'Jueves':4,'Viernes':5,'Sábado':6 };
@@ -71,7 +123,7 @@ export const verificarCitasEnHorario = (dia: string, hora: string, citas: any[])
   
   return citas.filter(cita => {
     if (!cita.fecha || !cita.hora) return false;
-    const fechaCita = new Date(cita.fecha);
+    const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
     const diaCita = fechaCita.getDay();
     if (diaCita !== diaIdx) return false;
     const horaCita = cita.hora.split(':').slice(0, 2).join(':');

@@ -22,7 +22,7 @@ export default function CitasSection({ ctx }: { ctx: any }) {
         </div>
         
         <div className="flex-1 p-3 md:p-6 flex flex-col justify-center overflow-hidden">
-          <div className="w-full overflow-hidden">
+            <div className="w-full overflow-hidden">
             <div className={`${styles.calendarContainer} w-full h-90 sm:h-56 md:h-64 lg:h-80 xl:h-105`} style={{ margin: '0 auto' }}>
               <Calendar
                 className={`${styles.calendarBox} h-full`}

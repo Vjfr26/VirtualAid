@@ -24,6 +24,15 @@ export interface PagosResponse {
   cantidad_pagos: number;
 }
 
+export interface SaldoMedicoResponse {
+  saldo: number;
+  total_citas_pagadas: number;
+  ultimo_pago?: {
+    fecha: string;
+    monto: number;
+  };
+}
+
 /**
  * Obtiene los pagos completados de un médico
  */
@@ -145,4 +154,37 @@ export function calcularIngresosPorPeriodo(
       return fechaPago >= fechaInicio && fechaPago <= ahora;
     })
     .reduce((total, pago) => total + pago.monto, 0);
+}
+
+/**
+ * Obtiene el saldo actual del médico desde el backend
+ * El saldo es la suma de los montos de todas las citas pagadas
+ */
+export async function getSaldoMedico(medicoEmail: string): Promise<SaldoMedicoResponse> {
+  try {
+    const response = await fetch(`/api/medico/saldo?medico_email=${encodeURIComponent(medicoEmail)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      credentials: 'include',
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Error ${response.status} al obtener el saldo`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error al obtener saldo del médico:', error);
+    // Si falla, devolver saldo en 0
+    return {
+      saldo: 0,
+      total_citas_pagadas: 0,
+    };
+  }
 }

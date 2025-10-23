@@ -114,7 +114,7 @@ export default function Register() {
     const endpoint =
       type === "patient"
         ? "/api/usuario/registrar"
-        : "/api/medico/registrar";
+        : "/api/medico/registrar-proxy";
 
     let requestInit: RequestInit;
 
@@ -135,19 +135,26 @@ export default function Register() {
         body: JSON.stringify(payload),
       };
     } else {
-      const payload = {
-        nombre: form.firstName,
-        apellido: form.lastName,
-        email: form.email,
-        password: form.password,
-        especializacion: form.specialty,
-        id: form.licenseNumber,
-        tlf: form.phone,
-        estado: "pendiente",
-        experiencia: form.experiencia,
-        educacion: form.educacion,
-        biografia: form.biografia,
-      };
+      if (!doctorDocuments || doctorDocuments.length === 0) {
+        setSubmissionError("Por favor adjunta al menos un documento.");
+        setIsSubmitting(false);
+        return false;
+      }
+
+      const documentsArray = Array.from(doctorDocuments);
+      const formData = new FormData();
+      formData.append("nombre", form.firstName);
+      formData.append("apellido", form.lastName);
+      formData.append("email", form.email);
+      formData.append("password", form.password);
+      formData.append("especializacion", form.specialty);
+      formData.append("id", form.licenseNumber);
+      formData.append("tlf", form.phone);
+      formData.append("estado", "pendiente");
+      formData.append("experiencia", form.experiencia);
+      formData.append("educacion", form.educacion);
+      formData.append("biografia", form.biografia);
+      documentsArray.forEach((file) => formData.append("documentos", file));
 
       console.log("Submitting doctor registration:", {
         nombre: form.firstName,
@@ -155,14 +162,12 @@ export default function Register() {
         email: form.email,
         especializacion: form.specialty,
         id: form.licenseNumber,
+        archivosAdjuntos: documentsArray.length,
       });
 
       requestInit = {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       };
     }
 
@@ -203,8 +208,25 @@ export default function Register() {
 
   const handleDoctorConfirm = async () => {
     if (!form.experiencia.trim() || !form.educacion.trim() || !form.biografia.trim()) {
-      setSubmissionError("Por favor completa todos los campos solicitados.");
+      setSubmissionError("Por favor completa todos los campos de texto.");
       return;
+    }
+
+    if (!doctorDocuments || doctorDocuments.length === 0) {
+      setSubmissionError("Por favor adjunta al menos un documento de validación.");
+      return;
+    }
+
+    if (doctorDocuments.length > 3) {
+      setSubmissionError("Solo puedes adjuntar hasta 3 documentos.");
+      return;
+    }
+
+    for (const file of Array.from(doctorDocuments)) {
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmissionError(`El archivo "${file.name}" supera los 5MB permitidos.`);
+        return;
+      }
     }
 
     const success = await submitRegistration("doctor");
@@ -336,6 +358,39 @@ export default function Register() {
                     rows={3}
                     required
                   />
+                </div>
+                
+                <div className="registro-inputGroup">
+                  <label htmlFor="doctor-documents" className="registro-modalLabel">
+                    {t('validation_documents', 'Documentos de validación')}
+                  </label>
+                  <p className="registro-modalHelper">
+                    {t('validation_documents_helper', 'Adjunta DNI, título profesional y/o carnet de salud (máx. 3 archivos, 5MB c/u)')}
+                  </p>
+                  <label className="registro-modalFilePicker" htmlFor="doctor-documents-input">
+                    <input
+                      id="doctor-documents-input"
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setDoctorDocuments(e.target.files)}
+                    />
+                    <span className="registro-modalFilePickerLabel">
+                      📎 {t('select_files', 'Seleccionar archivos')}
+                    </span>
+                  </label>
+                  {doctorDocuments && doctorDocuments.length > 0 && (
+                    <div className="registro-modalFileList">
+                      {Array.from(doctorDocuments).map((file, idx) => (
+                        <div key={idx} className="registro-modalFileItem">
+                          <span>✓ {file.name}</span>
+                          <span className="registro-modalFileSize">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               {submissionError && (

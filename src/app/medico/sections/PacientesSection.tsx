@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import Image from "next/image";
+import { combinarFechaHoraLocal } from '../utils';
 import { getRecetasPaciente, crearReceta, getInfoMedicoActual, type NuevaRecetaData } from '../services/recetas';
 
 interface PacientesSectionProps {
@@ -1222,7 +1223,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                     if (filtroCitas === 'todas') return citas;
                     
                     return citas.filter((cita: any) => {
-                      const fechaCita = new Date(cita.fecha);
+                      const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
                       const esProxima = fechaCita > new Date();
                       const estado = cita.estado || (esProxima ? 'programada' : 'completada');
                       
@@ -1293,7 +1294,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
                   }
 
                   return citasFiltradas.map((cita: any, index: number) => {
-                    const fechaCita = new Date(cita.fecha);
+                    const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
                     const esProxima = fechaCita > new Date();
                     const estado = cita.estado || (esProxima ? 'programada' : 'completada');
                     

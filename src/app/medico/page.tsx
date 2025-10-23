@@ -15,8 +15,9 @@ import HeaderLogo from "../components/HeaderLogo";
 import {
   getMedicoPerfil, getHorarios, agregarHorario, eliminarHorario as eliminarHorarioService,
   getCitas, logout, getPagosMedico, formatearMonto, calcularIngresosPorPeriodo,
-  cambiarContrasena, updateMedicoAvatar,
-  type Medico, type Horario, type Cita, type Paciente, type Pago
+  cambiarContrasena, updateMedicoAvatar, getSaldoMedico, getCitasCanceladasStats,
+  type Medico, type Horario, type Cita, type Paciente, type Pago, type SaldoMedicoResponse,
+  type CitasCanceladasStats
 } from './services';
 import { resolveMedicoAvatarUrls } from '../usuario/services/perfil';
 import { getSession as getSessionFromApi } from './services/api';
@@ -40,14 +41,16 @@ import DashboardHeader from './components/DashboardHeader';
 import DashboardCards from './components/DashboardCards';
 
 // Utilidades
-import { 
-  resumenGradients, 
-  fusionarHorariosPorDia, 
-  createPasswordChangeHandler, 
-  groupHorariosByDay, 
+import {
+  resumenGradients,
+  fusionarHorariosPorDia,
+  createPasswordChangeHandler,
+  groupHorariosByDay,
   verificarCitasEnHorario,
   createEliminarHorarioHandler,
-  createAgregarHorariosHandler
+  createAgregarHorariosHandler,
+  combinarFechaHoraLocal,
+  formatLocalYYYYMMDD
 } from './utils';
 
 // Constantes
@@ -81,31 +84,7 @@ export default function MedicoDashboard() {
     return ahora;
   };
 
-  // 🛠️ HELPERS PARA NORMALIZACIÓN DE FECHAS (Fix para bug de Próxima Cita)
-  // Función más robusta del dashboard de usuario para consistencia
-  type FechaHoraParse = { date: Date; isoLocal: string };
-  function combinarFechaHoraLocal(fechaStr: string, horaStr?: string | null): FechaHoraParse {
-    // fechaStr esperado: YYYY-MM-DDTHH:mm:ss(.SSS)Z ; horaStr: HH:mm(:ss) opcional
-    if (!fechaStr) {
-      const now = new Date();
-      return { date: now, isoLocal: now.toISOString().slice(0,16).replace('T',' ') };
-    }
-    let fechaIso = fechaStr;
-    // Si la hora viene aparte y es válida, reemplazar la hora en el string ISO
-    if (horaStr && /^\d{2}:\d{2}(:\d{2})?$/.test(horaStr)) {
-      // Extraer solo la parte de fecha y la zona (Z o +...)
-      const match = fechaStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/);
-      if (match) {
-        const [ , ymd, , , zone ] = match;
-        // Si horaStr no tiene segundos, añadir :00
-        const horaFull = horaStr.length === 5 ? horaStr + ':00' : horaStr;
-        fechaIso = `${ymd}T${horaFull}${zone || 'Z'}`;
-      }
-    }
-    const dt = new Date(fechaIso);
-    const isoLocal = fechaIso.replace('T', ' ');
-    return { date: dt, isoLocal };
-  }
+  // Usar helpers centralizados de fecha (zona local del navegador)
 
   // Estados principales
   const [medicoData, setMedicoData] = useState<Medico | null>(null);
@@ -131,6 +110,18 @@ export default function MedicoDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usuariosMap, setUsuariosMap] = useState<Map<string, string>>(new Map());
+  
+  // Estados para el saldo del médico
+  const [saldoMedico, setSaldoMedico] = useState(0);
+  const [loadingSaldo, setLoadingSaldo] = useState(true);
+  
+  // Estados para citas canceladas
+  const [citasCanceladasStats, setCitasCanceladasStats] = useState<CitasCanceladasStats>({
+    total_canceladas_7d: 0,
+    total_canceladas_periodo_anterior: 0,
+    citas_canceladas: [],
+  });
+  const [loadingCanceladasStats, setLoadingCanceladasStats] = useState(true);
   
   // Estados de carga por sección
   const [loadingCitas, setLoadingCitas] = useState(true);
@@ -254,10 +245,10 @@ export default function MedicoDashboard() {
   // Debug del rango de semana
   if (process.env.NODE_ENV === 'development' && filtroCitas === 'semana') {
     console.log('📅 Rango de semana calculado:');
-    console.log('- Hoy:', hoy.toISOString().split('T')[0]);
-    console.log('- Primer día (Lunes):', primerDiaSemana.toISOString().split('T')[0]);
-    console.log('- Último día (Domingo):', ultimoDiaSemana.toISOString().split('T')[0]);
-    console.log('- Fechas disponibles en citas:', [...new Set(citas.map(c => c.fecha))].sort());
+    console.log('- Hoy:', formatLocalYYYYMMDD(hoy));
+    console.log('- Primer día (Lunes):', formatLocalYYYYMMDD(primerDiaSemana));
+    console.log('- Último día (Domingo):', formatLocalYYYYMMDD(ultimoDiaSemana));
+    console.log('- Fechas disponibles en citas (raw):', [...new Set(citas.map(c => c.fecha))].sort());
   }
 
   // Memoizar el filtrado de citas para optimizar rendimiento
@@ -266,9 +257,9 @@ export default function MedicoDashboard() {
     
     if (filtroCitas === 'hoy') {
       // Mostrar todas las citas del día (sin importar la hora), excepto canceladas
-      const hoyString = hoy.toISOString().split('T')[0];
+      const hoyString = formatLocalYYYYMMDD(hoy);
       resultado = citas.filter(cita => {
-        const fechaCitaString = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+        const fechaCitaString = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
         return fechaCitaString === hoyString && (cita.estado || '').toLowerCase() !== 'cancelada';
       }).sort((a, b) => {
         const fa = combinarFechaHoraLocal(a.fecha, a.hora).date;
@@ -429,7 +420,7 @@ export default function MedicoDashboard() {
         // Ejecutar llamadas en paralelo para obtener todos los datos necesarios
         console.log('Debug - Cargando datos para médico:', email);
         
-        const [medicoData, horariosData, citasData, pagosData] = await Promise.all([
+        const [medicoData, horariosData, citasData, pagosData, saldoData, canceladasStatsData] = await Promise.all([
           getMedicoPerfil(email).catch(err => {
             console.error('Error cargando perfil médico:', err);
             throw err;
@@ -447,6 +438,14 @@ export default function MedicoDashboard() {
           getPagosMedico(email).catch(err => {
             console.error('Error cargando pagos:', err);
             return { pagos: [], total_ingresos: 0, cantidad_pagos: 0 };
+          }),
+          getSaldoMedico(email).catch(err => {
+            console.error('Error cargando saldo:', err);
+            return { saldo: 0, total_citas_pagadas: 0 };
+          }),
+          getCitasCanceladasStats(email).catch(err => {
+            console.error('Error cargando estadísticas de canceladas:', err);
+            return { total_canceladas_7d: 0, total_canceladas_periodo_anterior: 0, citas_canceladas: [] };
           })
         ]);
 
@@ -454,7 +453,9 @@ export default function MedicoDashboard() {
           medico: medicoData,
           citas: citasData,
           horarios: horariosData,
-          pagos: pagosData
+          pagos: pagosData,
+          saldo: saldoData,
+          canceladasStats: canceladasStatsData
         });
 
         setMedicoData(medicoData);
@@ -482,6 +483,14 @@ export default function MedicoDashboard() {
         setPagos(pagosData.pagos);
         setTotalIngresos(pagosData.total_ingresos);
         setLoadingPagos(false);
+
+        // Procesar datos de saldo
+        setSaldoMedico(saldoData.saldo);
+        setLoadingSaldo(false);
+
+        // Procesar estadísticas de citas canceladas
+        setCitasCanceladasStats(canceladasStatsData);
+        setLoadingCanceladasStats(false);
 
         // Obtener nombres de usuarios para las citas sin saturar el backend
         const usuariosIds = Array.from(new Set(citasData.map(cita => cita.usuario_id)));
@@ -521,6 +530,8 @@ export default function MedicoDashboard() {
         setLoadingCitas(false);
         setLoadingHorarios(false);
         setLoadingPagos(false);
+        setLoadingSaldo(false);
+        setLoadingCanceladasStats(false);
       }
     };
     fetchDashboardData();
@@ -570,19 +581,18 @@ export default function MedicoDashboard() {
   
   // Función helper para verificar si una fecha tiene citas
   const tieneCitasEnFecha = (fecha: Date): boolean => {
-    const fechaString = fecha.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const fechaString = formatLocalYYYYMMDD(fecha); // Formato YYYY-MM-DD local
     return citas.some(cita => {
-      // Convertir la fecha de la cita al mismo formato
-      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+      const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
       return fechaCita === fechaString;
     });
   };
 
   // Función para contar citas en una fecha específica
   const contarCitasEnFecha = (fecha: Date): number => {
-    const fechaString = fecha.toISOString().split('T')[0];
+    const fechaString = formatLocalYYYYMMDD(fecha);
     const citasEncontradas = citas.filter(cita => {
-      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+      const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
       return fechaCita === fechaString;
     });
     
@@ -601,9 +611,9 @@ export default function MedicoDashboard() {
   // Función para obtener las citas del día seleccionado
   const getCitasDelDia = (fecha: Date | null): Cita[] => {
     if (!fecha) return [];
-    const fechaString = fecha.toISOString().split('T')[0];
+    const fechaString = formatLocalYYYYMMDD(fecha);
     return citas.filter(cita => {
-      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+      const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
       return fechaCita === fechaString;
     });
   };
@@ -844,9 +854,11 @@ export default function MedicoDashboard() {
     };
 
     let completadasActuales = 0;
-    let canceladasActuales = 0;
     let completadasPrevias = 0;
-    let canceladasPrevias = 0;
+
+    // ✅ USAR DATOS REALES DEL BACKEND PARA CITAS CANCELADAS
+    const canceladasActuales = citasCanceladasStats.total_canceladas_7d;
+    const canceladasPrevias = citasCanceladasStats.total_canceladas_periodo_anterior;
 
     citas.forEach(cita => {
       const fecha = parseFechaCita(cita);
@@ -854,11 +866,9 @@ export default function MedicoDashboard() {
       if (fecha >= start && fecha <= end) {
         // ✅ CAMBIO: Contar citas donde asistio === true
         if (cita.asistio === true) completadasActuales += 1;
-        else if (esCancelada(estado)) canceladasActuales += 1;
       } else if (fecha >= prevStart && fecha <= prevEnd) {
         // ✅ CAMBIO: Contar citas donde asistio === true
         if (cita.asistio === true) completadasPrevias += 1;
-        else if (esCancelada(estado)) canceladasPrevias += 1;
       }
     });
 
@@ -954,7 +964,7 @@ export default function MedicoDashboard() {
       ingresosComparativa,
       retencionLabel,
     };
-  }, [citas, pagos, currentTime]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [citas, pagos, currentTime, citasCanceladasStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resumen para el grid superior (datos generales)
   const resumen = [
@@ -1098,6 +1108,10 @@ export default function MedicoDashboard() {
     listPaymentMethodsByProfile,
     updatePaymentMethod,
     deletePaymentMethod,
+    
+    // Estados de saldo
+    saldoMedico,
+    loadingSaldo,
     
     // Estados de perfil
     notificacionPassword,
@@ -1343,9 +1357,9 @@ export default function MedicoDashboard() {
                 <div className="p-5 md:p-6">
                   <div className="w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-500 rounded mb-4" />
                   {(() => {
-                    const hoy = new Date().toISOString().split('T')[0];
+                    const hoy = formatLocalYYYYMMDD(new Date());
                     const citasHoy = citas.filter(cita => {
-                      const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+                      const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
                       return fechaCita === hoy;
                     });
                     const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
@@ -1384,12 +1398,12 @@ export default function MedicoDashboard() {
                     {(() => {
                       // ✅ USAR FUNCIÓN CONSISTENTE DEL DASHBOARD USUARIO
                       const ahoraServidor = currentTime;
-                      const hoy = combinarFechaHoraLocal(ahoraServidor.toISOString()).date.toISOString().split('T')[0];
+                      const hoy = formatLocalYYYYMMDD(combinarFechaHoraLocal(ahoraServidor.toISOString()).date);
 
                       // 📋 PASO 1: Filtrar citas de HOY que aún no han pasado
                       const citasHoyFuturas = citas
                         .filter(cita => {
-                          const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+                          const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
                           if (fechaCita !== hoy) return false; // ✅ Compara strings correctamente
 
                           const fechaCitaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
@@ -1410,7 +1424,7 @@ export default function MedicoDashboard() {
                       // 📅 PASO 2: Filtrar citas de DÍAS FUTUROS
                       const citasDiasFuturos = citas
                         .filter(cita => {
-                          const fechaCita = combinarFechaHoraLocal(cita.fecha).date.toISOString().split('T')[0];
+                          const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
                           if (fechaCita <= hoy) return false; // ✅ Compara strings correctamente
 
                           const fechaCitaCompleta = combinarFechaHoraLocal(cita.fecha, cita.hora).date;
@@ -1441,8 +1455,8 @@ export default function MedicoDashboard() {
                         
                         const mañana = new Date(ahoraServidor);
                         mañana.setDate(mañana.getDate() + 1);
-                        const mañanaStr = combinarFechaHoraLocal(mañana.toISOString()).date.toISOString().split('T')[0];
-                        esMañana = combinarFechaHoraLocal(proximaCita.fecha).date.toISOString().split('T')[0] === mañanaStr;
+                        const mañanaStr = formatLocalYYYYMMDD(combinarFechaHoraLocal(mañana.toISOString()).date);
+                        esMañana = formatLocalYYYYMMDD(combinarFechaHoraLocal(proximaCita.fecha).date) === mañanaStr;
                       }
 
                       // 🐛 DEBUG en desarrollo
@@ -1496,7 +1510,7 @@ export default function MedicoDashboard() {
                                   : proximaCita.usuario_id || 'Usuario sin nombre')}
                               </div>
                               <div className="text-xs text-indigo-600">
-                                📅 {esHoy ? 'Hoy' : esMañana ? 'Mañana' : new Date(proximaCita.fecha).toLocaleDateString('es-ES', {
+                                📅 {esHoy ? 'Hoy' : esMañana ? 'Mañana' : combinarFechaHoraLocal(proximaCita.fecha).date.toLocaleDateString('es-ES', {
                                   weekday: 'short',
                                   day: 'numeric', 
                                   month: 'short'
@@ -1558,7 +1572,7 @@ export default function MedicoDashboard() {
                               {/* Info simplificada */}
                               {citas.length > 0 && (
                                 <div className="mt-2 text-xs text-gray-400">
-                                  📊 {citas.length} citas totales | 🗓️ Hoy: {citas.filter(c => combinarFechaHoraLocal(c.fecha).date.toISOString().split('T')[0] === hoy).length}
+                                  📊 {citas.length} citas totales | 🗓️ Hoy: {citas.filter(c => formatLocalYYYYMMDD(combinarFechaHoraLocal(c.fecha).date) === hoy).length}
                                 </div>
                               )}
                             </div>
