@@ -71,7 +71,7 @@ export default function PacientesSection({ ctx }: PacientesSectionProps) {
     setFiltroCitas('confirmadas');
   };
 
-  const modalTitles = React.useMemo(() => ({
+  const modalTitles: { [key: string]: string } = React.useMemo(() => ({
     historial: t('medico.patients.modals.history.title'),
     cita: t('medico.patients.modals.appointment.title'),
     recetas: t('medico.patients.modals.prescriptions.title'),
