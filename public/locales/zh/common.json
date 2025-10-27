@@ -520,5 +520,769 @@
     "password_changed": "密码已更改",
     "password_change_error": "更改密码时出错"
   },
-  "profile_password_change_success": "密码已成功更改"
+  "profile_password_change_success": "密码已成功更改",
+  "medico": {
+    "appointments": {
+      "calendar": {
+        "title": "预约日历",
+        "subtitle": "一目了然地查看您的日程",
+        "no_appointments": "此日没有安排的预约",
+        "more": "+{{count}}更多",
+        "select_day_prompt": "选择一天查看预约"
+      },
+      "panel": {
+        "title": "已安排预约",
+        "count": "{{count}}个已注册预约"
+      },
+      "filters": {
+        "label": "筛选预约",
+        "today": "今天",
+        "all": "全部",
+        "cancelled": "已取消",
+        "completed": "已完成",
+        "upcoming": "即将到来"
+      },
+      "list": {
+        "loading_title": "加载预约中",
+        "loading_subtitle": "获取您最近的会议...",
+        "error_title": "无法加载预约",
+        "retry": "重试",
+        "empty_title": "没有已注册的预约",
+        "empty_description": "当您安排预约时，它们将出现在此处以便快速访问。",
+        "empty_filters": {
+          "hoy": {
+            "title": "今天没有预约",
+            "description": "今天没有安排的预约。尝试查看所有预约。"
+          },
+          "canceladas": {
+            "title": "没有已取消的预约",
+            "description": "您没有已注册的已取消预约。"
+          },
+          "finalizadas": {
+            "title": "没有已完成的预约",
+            "description": "您还没有已完成的预约。"
+          },
+          "proximas": {
+            "title": "没有即将到来的预约",
+            "description": "未来日期没有安排的预约。"
+          },
+          "default": {
+            "title": "未找到预约",
+            "description": "没有与所选筛选器匹配的预约。"
+          }
+        },
+        "toggle": {
+          "show_more": "显示更多预约(+{{count}})",
+          "show_less": "显示更少预约"
+        }
+      },
+      "status": {
+        "confirmada": "已确认",
+        "pendiente": "待处理",
+        "cancelada": "已取消",
+        "finalizada": "已完成",
+        "unknown": "无状态"
+      },
+      "fields": {
+        "patient_unknown": "未知患者",
+        "user_placeholder": "用户{{id}}",
+        "date_unavailable": "日期不可用",
+        "time_unavailable": "时间不可用"
+      },
+      "actions": {
+        "room_not_ready_minutes": "房间将在大约{{minutes}}分钟内启用。",
+        "room_not_ready_generic": "房间尚未可用。请在预约时间附近再试。",
+        "join_disabled_title": "此预约已结束",
+        "join_enabled_title": "与此患者开始会议",
+        "meeting_finished": "预约已完成",
+        "meeting_finished_short": "已完成",
+        "join_meeting": "开始会议",
+        "join_meeting_short": "会议"
+      },
+      "advice": {
+        "title": "提示：",
+        "description": "您可以直接从每个预约启动视频通话。"
+      }
+    },
+    "billing": {
+      "title": "我的钱包",
+      "subtitle": "管理您的财务和付款方式",
+      "balance": {
+        "label": "当前余额",
+        "loading": "加载中...",
+        "description": "所有已付款预约的总和",
+        "withdraw": "请求提款"
+      },
+      "loading": "加载钱包中...",
+      "notImplemented": {
+        "title": "钱包系统正在开发中",
+        "description": "钱包系统目前正在开发中，后端尚未提供。",
+        "statusTitle": "开发状态：",
+        "items": {
+          "ui": "• 用户界面：已完成 ✅",
+          "payments": "• 付款方式管理：已完成 ✅",
+          "profiles": "• 账单资料：已完成 ✅",
+          "api": "• 后端API：进行中 🚧",
+          "database": "• 数据库：进行中 🚧"
+        },
+        "note": "一旦实施，您将能够从此处管理整个钱包。"
+      },
+      "setup": {
+        "title": "设置您的钱包",
+        "description": "要开始管理您的财务，您需要创建一个账单资料。",
+        "button": "创建账单资料"
+      },
+      "tabs": {
+        "profile": "资料",
+        "methods": "付款方式",
+        "invoices": "发票"
+      },
+      "profileSection": {
+        "title": "账单资料",
+        "edit": "编辑",
+        "cancel": "取消",
+        "save": "保存更改",
+        "legalName": {
+          "label": "法定名称 *",
+          "placeholder": "全名或法人实体"
+        },
+        "taxId": {
+          "label": "税号 *",
+          "placeholder": "12345678A"
+        },
+        "fields": {
+          "legalName": "法定名称",
+          "taxId": "税号",
+          "email": "电子邮件",
+          "profileId": "资料ID",
+          "notSpecified": "未指定",
+          "notAvailable": "不可用"
+        }
+      },
+      "addressSection": {
+        "title": "账单地址",
+        "add": "添加地址",
+        "edit": "编辑",
+        "cancel": "取消",
+        "save": "保存地址",
+        "empty": "未配置地址",
+        "fields": {
+          "address": "地址 *",
+          "city": "城市 *",
+          "postalCode": "邮政编码 *",
+          "region": "省/州",
+          "country": "国家 *"
+        },
+        "placeholders": {
+          "address": "街道、号码、公寓...",
+          "country": "西班牙"
+        }
+      },
+      "paymentMethods": {
+        "title": "付款方式",
+        "add": "添加方式",
+        "emptyTitle": "无付款方式",
+        "emptyDescription": "添加您的第一张卡或付款方式以开始接收付款。",
+        "addButton": "添加付款方式",
+        "default": "主要",
+        "secondary": "次要",
+        "deleteConfirm": "您确定要删除此付款方式吗？"
+      },
+      "invoices": {
+        "title": "发票历史",
+        "count": "{{count}}张发票",
+        "count_plural": "{{count}}张发票",
+        "emptyTitle": "无发票",
+        "emptyDescription": "当您收到付款时，发票将自动显示在此处。",
+        "columns": {
+          "id": "ID",
+          "amount": "金额",
+          "status": "状态",
+          "date": "日期",
+          "actions": "操作"
+        },
+        "status": {
+          "paid": "已支付",
+          "pending": "待处理"
+        },
+        "viewDetails": "查看详情"
+      },
+      "modal": {
+        "addTitle": "添加付款方式",
+        "editTitle": "编辑付款方式",
+        "provider": "提供商",
+        "providers": {
+          "stripe": "Stripe（卡）",
+          "paypal": "PayPal",
+          "manual": "银行转账"
+        },
+        "cardNumber": "卡号",
+        "expMonth": "到期月份",
+        "expYear": "到期年份",
+        "cvc": "CVC",
+        "default": "设置为主要方式",
+        "addAction": "添加",
+        "updateAction": "更新",
+        "saving": "保存中...",
+        "cancel": "取消"
+      }
+    },
+    "sidebar": {
+      "header": {
+        "title": "医生面板",
+        "status": "系统活跃",
+        "tip": "全面管理您的医疗实践"
+      },
+      "menu": {
+        "dashboard": "仪表板",
+        "appointments": "预约",
+        "availability": "可用性",
+        "patients": "患者",
+        "billing": "钱包",
+        "profile": "资料"
+      }
+    },
+    "header": {
+      "title": "医生面板",
+      "welcome": "欢迎，",
+      "doctor_fallback": "医生",
+      "session_active": "会话活跃",
+      "online": "在线"
+    },
+    "loading": {
+      "overlay": "加载面板中...",
+      "dashboard_data": "加载医生数据中..."
+    },
+    "errors": {
+      "fetch_profile": "无法加载医生资料数据。",
+      "fetch_appointments": "无法加载预约。",
+      "fetch_schedule": "无法加载日程。",
+      "refresh_appointments": "刷新错误：{{error}}",
+      "no_active_session": "没有活跃会话"
+    },
+    "availability": {
+      "header": {
+        "title": "我的可用性",
+        "subtitle": "配置您的就诊时间"
+      },
+      "summary": {
+        "title": "可用性摘要",
+        "days": "已配置天数",
+        "slots": "总时间段",
+        "status": "资料状态"
+      },
+      "status": {
+        "active": "活跃",
+        "inactive": "不活跃"
+      },
+      "form": {
+        "title": "添加新时间段",
+        "day_label": "星期几",
+        "day_placeholder": "✨ 选择一天",
+        "slots_label": "可用时间段",
+        "slots_select_day": "选择一天以查看可用时间段。",
+        "slots_none": "{{day}}没有可用时间段。",
+        "selected_prefix": "已选择：{{day}} -",
+        "submit_saving": "保存中...",
+        "submit_label": "保存时间表"
+      },
+      "loading": {
+        "title": "加载时间表",
+        "subtitle": "正在获取您的可用性..."
+      },
+      "list": {
+        "title": "您配置的时间表",
+        "workday": "工作日",
+        "slots_title": "可用时间："
+      },
+      "empty": {
+        "title": "配置您的第一个可用时间！",
+        "description": "您还没有配置时间表。使用上面的表单添加就诊时间并开始接待患者。"
+      },
+      "warnings": {
+        "slot_with_appointments": "无法删除：此时间段有{{count}}个预约。"
+      },
+      "errors": {
+        "load_title": "加载可用性时出错",
+        "find_slot": "找不到要删除的时间段。"
+      },
+      "invalid_day": "选择的日期无效。",
+      "duplicate_slots": "{{day}}已存在时间段{{slots}}",
+      "delete_success": "时间表删除成功。",
+      "delete_error": "删除时间表时出错。",
+      "add_success": "成功添加{{count}}个时间段。",
+      "add_error": "添加时间表时出错。"
+    },
+    "password": {
+      "min_length": "密码必须至少6个字符。",
+      "mismatch": "密码不匹配。",
+      "require_current": "必须输入当前密码。",
+      "missing_user": "用户数据不可用。",
+      "change_success": "密码更新成功！",
+      "change_error": "更改密码时出错。"
+    },
+    "modals": {
+      "delete_title": "确认删除时间表",
+      "delete_description": "您即将永久删除以下就诊时间表：",
+      "delete_day_label": "日期：",
+      "delete_slot_label": "时间表：",
+      "delete_warning": "⚠️ 此操作无法撤消",
+      "delete_confirm": "删除",
+      "deleting": "删除中...",
+      "add_title": "确认添加时间表",
+      "add_description": "您确定要为{{day}}添加以下时间段吗？",
+      "add_confirm": "添加时间表",
+      "adding": "添加中..."
+    },
+    "dashboard": {
+      "summary": {
+        "total_appointments": "总预约数",
+        "total_patients": "总患者数",
+        "availability": "可用性",
+        "revenue": "收入",
+        "revenue_detail_title": "收入详情",
+        "revenue_detail": {
+          "month_total": "本月总计",
+          "total": "总计",
+          "completed_payments": "已完成付款",
+          "recent_payments": "最近付款",
+          "no_payments": "没有已记录的付款"
+        }
+      },
+      "today": {
+        "title": "今日统计",
+        "card_appointments": "今日预约",
+        "card_completed": "已完成",
+        "card_pending": "待处理",
+        "card_cancelled": "已取消"
+      },
+      "next": {
+        "title": "下一个预约",
+        "refresh_title": "刷新预约数据",
+        "loading": "加载下一个预约...",
+        "error": "加载预约时出错：{{error}}",
+        "no_name": "用户无名称",
+        "pending_status": "待处理",
+        "no_appointments": "📋 没有已记录的预约",
+        "no_upcoming": "📅 没有已安排的下一个预约",
+        "summary": "📊 总共{{total}}个预约 | 🗓️ 今天：{{today}}",
+        "time": {
+          "calculating": "⏱️ 计算中...",
+          "starts_in_minutes_alert": "⚠️ {{minutes}}分钟后！",
+          "starts_in_minutes": "⏱️ {{minutes}}分钟后",
+          "starts_in_hours_minutes": "⏱️ {{hours}}小时{{minutes}}分钟后",
+          "starts_in_hours": "⏱️ {{hours}}小时后",
+          "tomorrow_period": "🌅 明天{{period}}",
+          "tomorrow": "📅 明天",
+          "starts_in_days": "⏱️ {{days}}天后",
+          "coming_soon": "⏱️ 即将到来",
+          "period": {
+            "morning": "早上",
+            "afternoon": "下午",
+            "evening": "晚上"
+          }
+        }
+      },
+      "monthly": {
+        "title": "本月指标",
+        "total_appointments": "总预约数",
+        "completed_appointments": "已完成",
+        "unique_patients": "患者",
+        "success_rate": "成功率",
+        "active_days": "📅 最活跃的日子：",
+        "active_day_count": "{{count}}次预约"
+      },
+      "trends": {
+        "title": "趋势",
+        "subtitle": "最近7天分析",
+        "evolution_title": "出勤率演变（7天）",
+        "attended_label": "已出席",
+        "cancelled_label": "已取消",
+        "total_label": "最近7天{{count}}次预约",
+        "revenue_title": "每周收入",
+        "revenue_subtitle": "已付费预约（7天）",
+        "revenue_previous": "前7天：",
+        "retention_title": "留存率",
+        "retention_subtitle": "回头患者",
+        "retention_note": "超过一次预约",
+        "total_percentage": "占总数的{{percent}}%",
+        "revenue_comparison": "（{{arrow}}{{sign}}{{percent}}% vs. 前7天）",
+        "revenue_new": "（新）",
+        "retention_ratio": "{{percent}}%（{{recurrent}}/{{total}}）",
+        "retention_no_data": "无数据"
+      }
+    },
+    "patients": {
+      "header": {
+        "title": "患者管理",
+        "subtitle": "已注册患者：{{count}}人"
+      },
+      "search": {
+        "placeholder": "按姓名、邮箱、原因搜索...",
+        "clear": "清除搜索",
+        "results": "{{count}}个结果"
+      },
+      "states": {
+        "loadingTitle": "正在加载患者",
+        "loadingSubtitle": "正在获取患者信息...",
+        "errorTitle": "加载患者错误",
+        "retry": "重试",
+        "emptyTitle": "没有注册的患者",
+        "emptyDescription": "当预约后，患者将显示在这里。",
+        "noResultsTitle": "未找到结果",
+        "noResultsDescription": "请尝试使用其他关键词。"
+      },
+      "card": {
+        "nameUnknown": "未命名患者",
+        "age": "{{count}}岁",
+        "age_plural": "{{count}}岁",
+        "ageUnknown": "年龄未指定",
+        "reasonLabel": "原因",
+        "reasonFallback": "未指定",
+        "actions": {
+          "history": "历史",
+          "historyTooltip": "查看病历",
+          "schedule": "预约",
+          "scheduleTooltip": "预约新就诊",
+          "prescriptions": "处方",
+          "prescriptionsTooltip": "查看处方",
+          "report": "报告",
+          "reportTooltip": "报告患者"
+        }
+      },
+      "stats": {
+        "total": "总计",
+        "active": "活跃",
+        "results": "结果",
+        "pending": "待处理"
+      },
+      "tip": {
+        "title": "提示：",
+        "description": "使用搜索功能按姓名或邮箱快速找到患者。"
+      },
+      "common": {
+        "fields": {
+          "name": "姓名",
+          "age": "年龄",
+          "weight": "体重",
+          "height": "身高",
+          "bloodType": "血型",
+          "status": "状态",
+          "reason": "原因",
+          "email": "邮箱",
+          "emergencyContact": "紧急联系人",
+          "emergencyRelation": "关系",
+          "emergencyPhone": "紧急电话"
+        },
+        "unspecified": "未指定",
+        "notAvailable": "不可用",
+        "ageValue": "{{count}}岁",
+        "ageValue_plural": "{{count}}岁",
+        "doctorPrefix": "{{name}}医生",
+        "doctorFallback": "医生",
+        "locale": "zh-CN",
+        "actions": {
+          "cancel": "取消",
+          "close": "关闭"
+        }
+      },
+      "modals": {
+        "common": {
+          "patient": "患者：{{name}}"
+        },
+        "history": {
+          "title": "病历",
+          "patientInfo": {
+            "title": "患者信息",
+            "currentReason": "当前原因"
+          },
+          "visits": {
+            "title": "最近就诊",
+            "sampleGeneral": {
+              "title": "常规检查",
+              "date": "2024年11月15日",
+              "description": "例行检查，患者健康状况良好。"
+            },
+            "sampleFollowup": {
+              "title": "复诊",
+              "date": "2024年10月10日",
+              "description": "治疗后观察，反应良好。"
+            }
+          },
+          "details": {
+            "personalInfo": "个人信息",
+            "emergencyContact": "紧急联系人",
+            "sampleRelation": "家属"
+          },
+          "timeline": {
+            "labels": {
+              "symptoms": "症状",
+              "diagnosis": "诊断",
+              "treatment": "治疗",
+              "notes": "备注",
+              "type": "类型",
+              "results": "结果"
+            },
+            "entry1": {
+              "title": "就诊 - 2024年11月15日",
+              "symptoms": "头痛、头晕",
+              "diagnosis": "紧张性偏头痛",
+              "treatment": "布洛芬400mg，每8小时一次",
+              "notes": "建议减轻压力并改善睡眠习惯"
+            },
+            "entry2": {
+              "title": "就诊 - 2024年11月2日",
+              "symptoms": "持续咳嗽、鼻塞",
+              "diagnosis": "急性支气管炎",
+              "treatment": "抗生素、化痰糖浆",
+              "notes": "反应良好，继续治疗"
+            },
+            "entry3": {
+              "title": "检查 - 2024年10月20日",
+              "type": "全血细胞计数",
+              "results": "所有指标正常",
+              "notes": "整体健康状况优秀"
+            }
+          },
+          "actions": {
+            "print": "打印病历"
+          }
+        },
+        "appointment": {
+          "title": "预约就诊",
+          "sectionTitle": "预约新就诊",
+          "fields": {
+            "date": "日期",
+            "time": "时间",
+            "type": "就诊类型",
+            "reason": "原因"
+          },
+          "types": {
+            "general": "常规检查",
+            "followup": "复诊",
+            "specialized": "专科",
+            "emergency": "急诊"
+          },
+          "placeholders": {
+            "reason": "描述就诊原因..."
+          },
+          "actions": {
+            "schedule": "预约就诊"
+          },
+          "success": "预约成功",
+          "status": {
+            "confirmed": "已确认",
+            "scheduled": "已预约",
+            "completed": "已完成",
+            "cancelled": "已取消",
+            "default": "待处理"
+          },
+          "stats": {
+            "total": "总计",
+            "upcoming": "即将到来",
+            "completed": "已完成",
+            "cancelled": "已取消"
+          },
+          "filters": {
+            "label": "筛选",
+            "all": "全部",
+            "upcoming": "即将到来",
+            "completed": "已完成",
+            "cancelled": "已取消",
+            "confirmed": "已确认"
+          },
+          "list": {
+            "title": "预约历史",
+            "empty": "没有注册的预约",
+            "emptyHint": "预约后将显示在这里。",
+            "note": "备注：{{note}}",
+            "timeLabel": "时间"
+          },
+          "info": {
+            "title": "信息",
+            "description": "您可以在这里查看和管理该患者的所有预约。"
+          }
+        },
+        "prescriptions": {
+          "title": "处方",
+          "sectionTitle": "患者处方",
+          "fields": {
+            "medicine": "药物",
+            "instructions": "用法",
+            "dose": "剂量",
+            "duration": "疗程",
+            "quantity": "数量",
+            "withMeals": "随餐服用",
+            "id": "ID"
+          },
+          "sampleTitle": "处方 #{{number}}",
+          "sampleDate": "日期：{{date}}",
+          "samples": {
+            "medicine1": "对乙酰氨基酚500mg",
+            "instructions1": "每8小时服用1片",
+            "medicine2": "阿莫西林500mg",
+            "instructions2": "每12小时服用1粒"
+          },
+          "actions": {
+            "new": "新处方",
+            "newPlaceholder": "创建新处方功能（即将推出）",
+            "print": "打印处方"
+          },
+          "loading": "正在加载处方...",
+          "empty": {
+            "title": "无处方",
+            "description": "该患者尚未注册处方。"
+          },
+          "status": {
+            "active": "有效",
+            "inactive": "无效"
+          },
+          "prescribedBy": "开方医生：{{doctor}}",
+          "prescribedOn": "日期：{{date}}"
+        },
+        "message": {
+          "title": "发送消息",
+          "sectionTitle": "给患者的消息",
+          "to": "收件人：{{name}}",
+          "fields": {
+            "subject": "主题",
+            "body": "消息",
+            "type": "消息类型",
+            "markImportant": "标记为重要",
+            "markUrgent": "标记为紧急"
+          },
+          "placeholders": {
+            "subject": "例如：检查结果",
+            "body": "在此输入您的消息..."
+          },
+          "types": {
+            "reminder": "提醒",
+            "instructions": "用法说明",
+            "results": "结果",
+            "followup": "随访",
+            "general": "常规"
+          },
+          "actions": {
+            "send": "发送消息"
+          },
+          "success": "消息已成功发送"
+        },
+        "report": {
+          "title": "报告患者"
+        },
+        "newPrescription": {
+          "title": "新处方",
+          "sections": {
+            "medicine": "药物信息",
+            "timing": "剂量和疗程",
+            "additional": "附加说明"
+          },
+          "fields": {
+            "medicine": "药物",
+            "dose": "剂量",
+            "frequency": "频率",
+            "duration": "疗程",
+            "quantity": "总数量",
+            "withMeals": "随餐服用",
+            "notes": "用法说明和备注"
+          },
+          "placeholders": {
+            "select": "选择",
+            "medicine": "例如：布洛芬400mg",
+            "dose": "例如：每8小时服用1片",
+            "duration": "例如：7天",
+            "quantity": "例如：21片",
+            "notes": "为患者编写具体说明..."
+          },
+          "frequency": {
+            "every4h": "每4小时",
+            "every6h": "每6小时",
+            "every8h": "每8小时",
+            "every12h": "每12小时",
+            "daily": "每天一次",
+            "custom": "自定义"
+          },
+          "withMeals": {
+            "yes": "是 - 随餐服用",
+            "no": "不需要",
+            "before": "餐前",
+            "after": "餐后",
+            "water": "与大量水一起服用"
+          },
+          "actions": {
+            "save": "保存处方"
+          }
+        }
+      },
+      "alerts": {
+        "printInlineFailed": "打印错误。请重试。",
+        "printPreparationFailed": "打印准备错误。请重试。",
+        "noPrescriptionsToPrint": "没有可打印的处方。",
+        "printPrescriptionsFailed": "处方打印错误。请重试。",
+        "printPrescriptionsPreparationFailed": "处方打印准备错误。",
+        "missingPrescriptionFields": "请填写所有必填字段（药物、剂量、疗程）",
+        "noSelectedPatient": "未选择患者",
+        "prescriptionSaved": "✅ 处方保存成功",
+        "prescriptionSaveError": "❌ 处方保存错误：{{error}}",
+        "unknownError": "未知错误",
+        "prescriptionCreationError": "❌ 处方创建错误"
+      }
+    },
+    "profile": {
+      "header": {
+        "title": "{{name}}医生",
+        "titleFallback": "医生姓名",
+        "specialtyUnknown": "专科未指定",
+        "panel": "医生面板",
+        "changePassword": "更改密码"
+      },
+      "avatar": {
+        "upload": "上传照片",
+        "uploading": "上传中...",
+        "success": "头像更新成功！",
+        "error": "头像更新错误",
+        "selectImage": "选择图像",
+        "noUserData": "无用户数据"
+      },
+      "stats": {
+        "title": "统计",
+        "todayAppointments": "今日预约",
+        "totalPatients": "患者"
+      },
+      "fields": {
+        "firstName": "名字",
+        "lastName": "姓氏",
+        "specialty": "专科",
+        "email": "电子邮箱地址",
+        "emailShort": "邮箱"
+      },
+      "actions": {
+        "edit": "编辑资料",
+        "save": "保存更改",
+        "cancel": "取消"
+      },
+      "password": {
+        "title": "更改密码",
+        "currentPassword": "当前密码",
+        "newPassword": "新密码",
+        "confirmPassword": "确认新密码",
+        "save": "保存密码",
+        "cancel": "取消",
+        "success": "密码更新成功",
+        "error": "密码更改错误"
+      },
+      "messages": {
+        "profileUpdated": "资料已更新！",
+        "errorSaving": "资料保存错误",
+        "imageSavedNoUrl": "图像已保存但未收到URL。请刷新页面以查看。"
+      },
+      "status": {
+        "active": "活跃",
+        "inactive": "非活跃"
+      },
+      "placeholders": {
+        "noData": "-"
+      }
+    }
+  }
 }

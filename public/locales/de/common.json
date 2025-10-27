@@ -462,5 +462,769 @@
     "password_changed": "Passwort geändert",
     "password_change_error": "Fehler beim Ändern des Passworts"
   },
-  "profile_password_change_success": "Passwort erfolgreich geändert"
+  "profile_password_change_success": "Passwort erfolgreich geändert",
+  "medico": {
+    "appointments": {
+      "calendar": {
+        "title": "Terminkalender",
+        "subtitle": "Sehen Sie Ihre Agenda auf einen Blick",
+        "no_appointments": "Keine Termine für diesen Tag geplant",
+        "more": "+{{count}} mehr",
+        "select_day_prompt": "Wählen Sie einen Tag, um Termine anzuzeigen"
+      },
+      "panel": {
+        "title": "Geplante Termine",
+        "count": "{{count}} Termin(e) registriert"
+      },
+      "filters": {
+        "label": "Termine filtern",
+        "today": "Heute",
+        "all": "Alle",
+        "cancelled": "Storniert",
+        "completed": "Abgeschlossen",
+        "upcoming": "Bevorstehend"
+      },
+      "list": {
+        "loading_title": "Termine werden geladen",
+        "loading_subtitle": "Ihre neuesten Besprechungen werden abgerufen...",
+        "error_title": "Termine konnten nicht geladen werden",
+        "retry": "Erneut versuchen",
+        "empty_title": "Keine Termine registriert",
+        "empty_description": "Wenn Sie Ihre Termine planen, erscheinen sie hier für schnellen Zugriff.",
+        "empty_filters": {
+          "hoy": {
+            "title": "Keine Termine heute",
+            "description": "Keine Termine für heute geplant. Versuchen Sie, alle Termine anzuzeigen."
+          },
+          "canceladas": {
+            "title": "Keine stornierten Termine",
+            "description": "Sie haben keine stornierten Termine registriert."
+          },
+          "finalizadas": {
+            "title": "Keine abgeschlossenen Termine",
+            "description": "Sie haben noch keine abgeschlossenen Termine."
+          },
+          "proximas": {
+            "title": "Keine bevorstehenden Termine",
+            "description": "Keine Termine für zukünftige Daten geplant."
+          },
+          "default": {
+            "title": "Keine Termine gefunden",
+            "description": "Keine Termine, die den ausgewählten Filtern entsprechen."
+          }
+        },
+        "toggle": {
+          "show_more": "Mehr Termine anzeigen (+{{count}})",
+          "show_less": "Weniger Termine anzeigen"
+        }
+      },
+      "status": {
+        "confirmada": "Bestätigt",
+        "pendiente": "Ausstehend",
+        "cancelada": "Storniert",
+        "finalizada": "Abgeschlossen",
+        "unknown": "Ohne Status"
+      },
+      "fields": {
+        "patient_unknown": "Unbekannter Patient",
+        "user_placeholder": "Benutzer {{id}}",
+        "date_unavailable": "Datum nicht verfügbar",
+        "time_unavailable": "Uhrzeit nicht verfügbar"
+      },
+      "actions": {
+        "room_not_ready_minutes": "Der Raum wird in etwa {{minutes}} Minute(n) verfügbar sein.",
+        "room_not_ready_generic": "Der Raum ist noch nicht verfügbar. Versuchen Sie es näher an der Terminzeit erneut.",
+        "join_disabled_title": "Dieser Termin ist bereits beendet",
+        "join_enabled_title": "Besprechung mit diesem Patienten starten",
+        "meeting_finished": "Termin beendet",
+        "meeting_finished_short": "Beendet",
+        "join_meeting": "Besprechung starten",
+        "join_meeting_short": "Besprechung"
+      },
+      "advice": {
+        "title": "Tipp:",
+        "description": "Sie können direkt von jedem Termin aus einen Videoanruf starten."
+      }
+    },
+    "billing": {
+      "title": "Meine Brieftasche",
+      "subtitle": "Verwalten Sie Ihre Finanzen und Zahlungsmethoden",
+      "balance": {
+        "label": "Aktueller Saldo",
+        "loading": "Wird geladen...",
+        "description": "Summe aller bezahlten Termine",
+        "withdraw": "Auszahlung anfordern"
+      },
+      "loading": "Brieftasche wird geladen...",
+      "notImplemented": {
+        "title": "Brieftaschensystem in Entwicklung",
+        "description": "Das Brieftaschensystem befindet sich derzeit in der Entwicklung und ist im Backend noch nicht verfügbar.",
+        "statusTitle": "Entwicklungsstatus:",
+        "items": {
+          "ui": "• Benutzeroberfläche: Abgeschlossen ✅",
+          "payments": "• Verwaltung der Zahlungsmethoden: Abgeschlossen ✅",
+          "profiles": "• Abrechnungsprofile: Abgeschlossen ✅",
+          "api": "• Backend-API: In Bearbeitung 🚧",
+          "database": "• Datenbank: In Bearbeitung 🚧"
+        },
+        "note": "Sobald es implementiert ist, können Sie Ihre gesamte Brieftasche von hier aus verwalten."
+      },
+      "setup": {
+        "title": "Richten Sie Ihre Brieftasche ein",
+        "description": "Um Ihre Finanzen zu verwalten, müssen Sie ein Abrechnungsprofil erstellen.",
+        "button": "Abrechnungsprofil erstellen"
+      },
+      "tabs": {
+        "profile": "Profil",
+        "methods": "Zahlungsmethoden",
+        "invoices": "Rechnungen"
+      },
+      "profileSection": {
+        "title": "Abrechnungsprofil",
+        "edit": "Bearbeiten",
+        "cancel": "Abbrechen",
+        "save": "Änderungen speichern",
+        "legalName": {
+          "label": "Rechtsname *",
+          "placeholder": "Vollständiger Name oder juristische Person"
+        },
+        "taxId": {
+          "label": "Steuernummer *",
+          "placeholder": "12345678A"
+        },
+        "fields": {
+          "legalName": "Rechtsname",
+          "taxId": "Steuernummer",
+          "email": "E-Mail",
+          "profileId": "Profil-ID",
+          "notSpecified": "Nicht angegeben",
+          "notAvailable": "Nicht verfügbar"
+        }
+      },
+      "addressSection": {
+        "title": "Rechnungsadresse",
+        "add": "Adresse hinzufügen",
+        "edit": "Bearbeiten",
+        "cancel": "Abbrechen",
+        "save": "Adresse speichern",
+        "empty": "Keine Adresse konfiguriert",
+        "fields": {
+          "address": "Adresse *",
+          "city": "Stadt *",
+          "postalCode": "Postleitzahl *",
+          "region": "Bundesland",
+          "country": "Land *"
+        },
+        "placeholders": {
+          "address": "Straße, Nummer, Wohnung...",
+          "country": "Spanien"
+        }
+      },
+      "paymentMethods": {
+        "title": "Zahlungsmethoden",
+        "add": "Methode hinzufügen",
+        "emptyTitle": "Keine Zahlungsmethoden",
+        "emptyDescription": "Fügen Sie Ihre erste Karte oder Zahlungsmethode hinzu, um Zahlungen zu empfangen.",
+        "addButton": "Zahlungsmethode hinzufügen",
+        "default": "Standard",
+        "secondary": "Sekundär",
+        "deleteConfirm": "Sind Sie sicher, dass Sie diese Zahlungsmethode löschen möchten?"
+      },
+      "invoices": {
+        "title": "Rechnungsverlauf",
+        "count": "{{count}} Rechnung",
+        "count_plural": "{{count}} Rechnungen",
+        "emptyTitle": "Keine Rechnungen",
+        "emptyDescription": "Wenn Sie Zahlungen erhalten, werden die Rechnungen hier automatisch angezeigt.",
+        "columns": {
+          "id": "ID",
+          "amount": "Betrag",
+          "status": "Status",
+          "date": "Datum",
+          "actions": "Aktionen"
+        },
+        "status": {
+          "paid": "Bezahlt",
+          "pending": "Ausstehend"
+        },
+        "viewDetails": "Details anzeigen"
+      },
+      "modal": {
+        "addTitle": "Zahlungsmethode hinzufügen",
+        "editTitle": "Zahlungsmethode bearbeiten",
+        "provider": "Anbieter",
+        "providers": {
+          "stripe": "Stripe (Karte)",
+          "paypal": "PayPal",
+          "manual": "Banküberweisung"
+        },
+        "cardNumber": "Kartennummer",
+        "expMonth": "Ablaufmonat",
+        "expYear": "Ablaufjahr",
+        "cvc": "CVC",
+        "default": "Als Standardmethode festlegen",
+        "addAction": "Hinzufügen",
+        "updateAction": "Aktualisieren",
+        "saving": "Wird gespeichert...",
+        "cancel": "Abbrechen"
+      }
+    },
+    "sidebar": {
+      "header": {
+        "title": "Arzt-Panel",
+        "status": "System aktiv",
+        "tip": "Verwalten Sie Ihre medizinische Praxis umfassend"
+      },
+      "menu": {
+        "dashboard": "Dashboard",
+        "appointments": "Termine",
+        "availability": "Verfügbarkeit",
+        "patients": "Patienten",
+        "billing": "Brieftasche",
+        "profile": "Profil"
+      }
+    },
+    "header": {
+      "title": "Arzt-Panel",
+      "welcome": "Willkommen,",
+      "doctor_fallback": "Arzt",
+      "session_active": "Sitzung aktiv",
+      "online": "Online"
+    },
+    "loading": {
+      "overlay": "Panel wird geladen...",
+      "dashboard_data": "Arztdaten werden geladen..."
+    },
+    "errors": {
+      "fetch_profile": "Arztprofildaten konnten nicht geladen werden.",
+      "fetch_appointments": "Termine konnten nicht geladen werden.",
+      "fetch_schedule": "Zeitpläne konnten nicht geladen werden.",
+      "refresh_appointments": "Aktualisierungsfehler: {{error}}",
+      "no_active_session": "Keine aktive Sitzung"
+    },
+    "availability": {
+      "header": {
+        "title": "Meine Verfügbarkeit",
+        "subtitle": "Konfigurieren Sie Ihre Sprechzeiten"
+      },
+      "summary": {
+        "title": "Verfügbarkeitsübersicht",
+        "days": "Konfigurierte Tage",
+        "slots": "Gesamte Zeiten",
+        "status": "Profilstatus"
+      },
+      "status": {
+        "active": "Aktiv",
+        "inactive": "Inaktiv"
+      },
+      "form": {
+        "title": "Neuen Zeitplan hinzufügen",
+        "day_label": "Wochentag",
+        "day_placeholder": "✨ Wählen Sie einen Tag",
+        "slots_label": "Verfügbare Zeiten",
+        "slots_select_day": "Wählen Sie einen Tag, um verfügbare Zeitfenster anzuzeigen.",
+        "slots_none": "Keine verfügbaren Zeitfenster für {{day}}.",
+        "selected_prefix": "Ausgewählt:",
+        "submit_saving": "Speichern...",
+        "submit_label": "Zeitplan speichern"
+      },
+      "loading": {
+        "title": "Zeitpläne werden geladen",
+        "subtitle": "Ihre Verfügbarkeit wird abgerufen..."
+      },
+      "list": {
+        "title": "Ihre konfigurierten Zeitpläne",
+        "workday": "Arbeitstag",
+        "slots_title": "Verfügbare Zeiten:"
+      },
+      "empty": {
+        "title": "Konfigurieren Sie Ihre erste Verfügbarkeit!",
+        "description": "Sie haben noch keine konfigurierten Zeitpläne. Verwenden Sie das obige Formular, um Ihre Sprechzeiten hinzuzufügen und Patienten zu empfangen."
+      },
+      "warnings": {
+        "slot_with_appointments": "Kann nicht gelöscht werden: Es gibt {{count}} geplante(n) Termin(e) in diesem Zeitfenster."
+      },
+      "errors": {
+        "load_title": "Fehler beim Laden der Verfügbarkeit",
+        "find_slot": "Der Zeitplan zum Löschen konnte nicht gefunden werden."
+      },
+      "invalid_day": "Ungültiger Tag ausgewählt.",
+      "duplicate_slots": "Zeitfenster {{slots}} existieren bereits für {{day}}",
+      "delete_success": "Zeitplan erfolgreich gelöscht.",
+      "delete_error": "Fehler beim Löschen des Zeitplans.",
+      "add_success": "{{count}} Zeitfenster erfolgreich hinzugefügt.",
+      "add_error": "Fehler beim Hinzufügen des Zeitplans."
+    },
+    "password": {
+      "min_length": "Das Passwort muss mindestens 6 Zeichen lang sein.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "require_current": "Sie müssen Ihr aktuelles Passwort eingeben.",
+      "missing_user": "Keine Benutzerdaten verfügbar.",
+      "change_success": "Passwort erfolgreich aktualisiert!",
+      "change_error": "Fehler beim Ändern des Passworts."
+    },
+    "modals": {
+      "delete_title": "Löschen des Zeitplans bestätigen",
+      "delete_description": "Sie sind dabei, den folgenden Sprechzeitplan dauerhaft zu löschen:",
+      "delete_day_label": "Tag:",
+      "delete_slot_label": "Zeitplan:",
+      "delete_warning": "⚠️ Diese Aktion kann nicht rückgängig gemacht werden",
+      "delete_confirm": "Löschen",
+      "deleting": "Löschen...",
+      "add_title": "Zeitpläne hinzufügen bestätigen",
+      "add_description": "Sind Sie sicher, dass Sie die folgenden Zeitfenster für den Tag {{day}} hinzufügen möchten?",
+      "add_confirm": "Zeitpläne hinzufügen",
+      "adding": "Hinzufügen..."
+    },
+    "dashboard": {
+      "summary": {
+        "total_appointments": "Termine gesamt",
+        "total_patients": "Patienten gesamt",
+        "availability": "Verfügbarkeit",
+        "revenue": "Einnahmen",
+        "revenue_detail_title": "Einnahmendetails",
+        "revenue_detail": {
+          "month_total": "Monatssumme",
+          "total": "Gesamtsumme",
+          "completed_payments": "Abgeschlossene Zahlungen",
+          "recent_payments": "Letzte Zahlungen",
+          "no_payments": "Keine Zahlungen registriert"
+        }
+      },
+      "today": {
+        "title": "Heutige Statistiken",
+        "card_appointments": "Termine heute",
+        "card_completed": "Abgeschlossen",
+        "card_pending": "Ausstehend",
+        "card_cancelled": "Storniert"
+      },
+      "next": {
+        "title": "Nächster Termin",
+        "refresh_title": "Termindaten aktualisieren",
+        "loading": "Nächste Termine werden geladen...",
+        "error": "Fehler beim Laden der Termine: {{error}}",
+        "no_name": "Benutzer ohne Namen",
+        "pending_status": "Ausstehend",
+        "no_appointments": "📋 Keine Termine registriert",
+        "no_upcoming": "📅 Keine bevorstehenden Termine geplant",
+        "summary": "📊 {{total}} Termine gesamt | 🗓️ Heute: {{today}}",
+        "time": {
+          "calculating": "⏱️ Berechnung...",
+          "starts_in_minutes_alert": "⚠️ In {{minutes}} Minute(n)!",
+          "starts_in_minutes": "⏱️ In {{minutes}} Minute(n)",
+          "starts_in_hours_minutes": "⏱️ In {{hours}}Std {{minutes}}Min",
+          "starts_in_hours": "⏱️ In {{hours}} Stunde(n)",
+          "tomorrow_period": "🌅 Morgen {{period}}",
+          "tomorrow": "📅 Morgen",
+          "starts_in_days": "⏱️ In {{days}} Tag(en)",
+          "coming_soon": "⏱️ Bald",
+          "period": {
+            "morning": "morgens",
+            "afternoon": "nachmittags",
+            "evening": "abends"
+          }
+        }
+      },
+      "monthly": {
+        "title": "Monatsmetriken",
+        "total_appointments": "Termine gesamt",
+        "completed_appointments": "Abgeschlossen",
+        "unique_patients": "Patienten",
+        "success_rate": "Erfolgsquote",
+        "active_days": "📅 Aktivste Tage:",
+        "active_day_count": "{{count}} Termine"
+      },
+      "trends": {
+        "title": "Trends",
+        "subtitle": "Analyse der letzten 7 Tage",
+        "evolution_title": "Entwicklung der Teilnahme (7T)",
+        "attended_label": "Teilgenommen",
+        "cancelled_label": "Storniert",
+        "total_label": "{{count}} Termine in den letzten 7 Tagen",
+        "revenue_title": "Wöchentliche Einnahmen",
+        "revenue_subtitle": "Bezahlte Termine (7T)",
+        "revenue_previous": "Vorherige 7T:",
+        "retention_title": "Bindungsrate",
+        "retention_subtitle": "Wiederkehrende Patienten",
+        "retention_note": "Mit mehr als einem Termin",
+        "total_percentage": "{{percent}}% der Gesamtmenge",
+        "revenue_comparison": " ({{arrow}}{{sign}}{{percent}}% vs. vorherige 7T)",
+        "revenue_new": " (neu)",
+        "retention_ratio": "{{percent}}% ({{recurrent}}/{{total}})",
+        "retention_no_data": "Keine Daten"
+      }
+    },
+    "patients": {
+      "header": {
+        "title": "Patientenverwaltung",
+        "subtitle": "{{count}} registrierte(r) Patient(en)"
+      },
+      "search": {
+        "placeholder": "Nach Name, E-Mail oder Grund suchen...",
+        "clear": "Suche löschen",
+        "results": "{{count}} Ergebnis(se)"
+      },
+      "states": {
+        "loadingTitle": "Patienten werden geladen",
+        "loadingSubtitle": "Informationen über Ihre Patienten werden abgerufen...",
+        "errorTitle": "Fehler beim Laden der Patienten",
+        "retry": "Erneut versuchen",
+        "emptyTitle": "Keine Patienten registriert",
+        "emptyDescription": "Patienten werden hier angezeigt, wenn sie Termine mit Ihnen buchen.",
+        "noResultsTitle": "Keine Ergebnisse gefunden",
+        "noResultsDescription": "Versuchen Sie andere Suchbegriffe."
+      },
+      "card": {
+        "nameUnknown": "Patient ohne Namen",
+        "age": "{{count}} Jahr",
+        "age_plural": "{{count}} Jahre",
+        "ageUnknown": "Alter nicht angegeben",
+        "reasonLabel": "Grund",
+        "reasonFallback": "Nicht angegeben",
+        "actions": {
+          "history": "Verlauf",
+          "historyTooltip": "Krankengeschichte anzeigen",
+          "schedule": "Planen",
+          "scheduleTooltip": "Neuen Termin planen",
+          "prescriptions": "Rezepte",
+          "prescriptionsTooltip": "Rezepte anzeigen",
+          "report": "Melden",
+          "reportTooltip": "Patient melden"
+        }
+      },
+      "stats": {
+        "total": "Gesamt",
+        "active": "Aktiv",
+        "results": "Ergebnisse",
+        "pending": "Ausstehend"
+      },
+      "tip": {
+        "title": "Tipp:",
+        "description": "Verwenden Sie die Suche, um Patienten schnell nach Name oder E-Mail zu finden."
+      },
+      "common": {
+        "fields": {
+          "name": "Name",
+          "age": "Alter",
+          "weight": "Gewicht",
+          "height": "Größe",
+          "bloodType": "Blutgruppe",
+          "status": "Status",
+          "reason": "Grund",
+          "email": "E-Mail",
+          "emergencyContact": "Notfallkontakt",
+          "emergencyRelation": "Beziehung",
+          "emergencyPhone": "Notfalltelefon"
+        },
+        "unspecified": "Nicht angegeben",
+        "notAvailable": "Nicht verfügbar",
+        "ageValue": "{{count}} Jahr",
+        "ageValue_plural": "{{count}} Jahre",
+        "doctorPrefix": "Dr. {{name}}",
+        "doctorFallback": "Arzt",
+        "locale": "de-DE",
+        "actions": {
+          "cancel": "Abbrechen",
+          "close": "Schließen"
+        }
+      },
+      "modals": {
+        "common": {
+          "patient": "Patient: {{name}}"
+        },
+        "history": {
+          "title": "Krankengeschichte",
+          "patientInfo": {
+            "title": "Patienteninformationen",
+            "currentReason": "Aktueller Grund"
+          },
+          "visits": {
+            "title": "Letzte Besuche",
+            "sampleGeneral": {
+              "title": "Allgemeine Konsultation",
+              "date": "15. Nov. 2024",
+              "description": "Routineuntersuchung, Patient in gutem allgemeinem Gesundheitszustand."
+            },
+            "sampleFollowup": {
+              "title": "Nachuntersuchung",
+              "date": "10. Okt. 2024",
+              "description": "Kontrolle nach Behandlung, günstige Entwicklung."
+            }
+          },
+          "details": {
+            "personalInfo": "Persönliche Informationen",
+            "emergencyContact": "Notfallkontakt",
+            "sampleRelation": "Familienmitglied"
+          },
+          "timeline": {
+            "labels": {
+              "symptoms": "Symptome",
+              "diagnosis": "Diagnose",
+              "treatment": "Behandlung",
+              "notes": "Notizen",
+              "type": "Typ",
+              "results": "Ergebnisse"
+            },
+            "entry1": {
+              "title": "Konsultation - 15. Nov. 2024",
+              "symptoms": "Kopfschmerzen, Schwindel",
+              "diagnosis": "Spannungsmigräne",
+              "treatment": "Ibuprofen 400mg alle 8h",
+              "notes": "Stressreduktion und bessere Schlafgewohnheiten empfohlen"
+            },
+            "entry2": {
+              "title": "Konsultation - 02. Nov. 2024",
+              "symptoms": "Anhaltender Husten, Verstopfung",
+              "diagnosis": "Akute Bronchitis",
+              "treatment": "Antibiotika, schleimlösendes Hustenmittel",
+              "notes": "Günstige Entwicklung, Behandlung fortsetzen"
+            },
+            "entry3": {
+              "title": "Untersuchung - 20. Okt. 2024",
+              "type": "Vollständiges Blutbild",
+              "results": "Alle Werte im Normalbereich",
+              "notes": "Ausgezeichneter allgemeiner Gesundheitszustand"
+            }
+          },
+          "actions": {
+            "print": "Verlauf drucken"
+          }
+        },
+        "appointment": {
+          "title": "Termin planen",
+          "sectionTitle": "Neuen Termin planen",
+          "fields": {
+            "date": "Datum",
+            "time": "Uhrzeit",
+            "type": "Konsultationstyp",
+            "reason": "Grund"
+          },
+          "types": {
+            "general": "Allgemeine Konsultation",
+            "followup": "Nachuntersuchung",
+            "specialized": "Spezialisiert",
+            "emergency": "Notfall"
+          },
+          "placeholders": {
+            "reason": "Grund für die Konsultation beschreiben..."
+          },
+          "actions": {
+            "schedule": "Termin planen"
+          },
+          "success": "Termin erfolgreich geplant",
+          "status": {
+            "confirmed": "Bestätigt",
+            "scheduled": "Geplant",
+            "completed": "Abgeschlossen",
+            "cancelled": "Storniert",
+            "default": "Ausstehend"
+          },
+          "stats": {
+            "total": "Gesamt",
+            "upcoming": "Anstehend",
+            "completed": "Abgeschlossen",
+            "cancelled": "Storniert"
+          },
+          "filters": {
+            "label": "Filtern nach",
+            "all": "Alle",
+            "upcoming": "Anstehend",
+            "completed": "Abgeschlossen",
+            "cancelled": "Storniert",
+            "confirmed": "Bestätigt"
+          },
+          "list": {
+            "title": "Terminverlauf",
+            "empty": "Keine Termine registriert",
+            "emptyHint": "Termine werden hier angezeigt, wenn sie geplant werden.",
+            "note": "Notiz: {{note}}",
+            "timeLabel": "Uhrzeit"
+          },
+          "info": {
+            "title": "Information",
+            "description": "Hier können Sie alle Termine dieses Patienten anzeigen und verwalten."
+          }
+        },
+        "prescriptions": {
+          "title": "Ärztliche Rezepte",
+          "sectionTitle": "Patientenrezepte",
+          "fields": {
+            "medicine": "Medikament",
+            "instructions": "Anweisungen",
+            "dose": "Dosis",
+            "duration": "Dauer",
+            "quantity": "Menge",
+            "withMeals": "Mit Mahlzeiten",
+            "id": "ID"
+          },
+          "sampleTitle": "Rezept #{{number}}",
+          "sampleDate": "Datum: {{date}}",
+          "samples": {
+            "medicine1": "Paracetamol 500mg",
+            "instructions1": "1 Tablette alle 8 Stunden einnehmen",
+            "medicine2": "Amoxicillin 500mg",
+            "instructions2": "1 Kapsel alle 12 Stunden einnehmen"
+          },
+          "actions": {
+            "new": "Neues Rezept",
+            "newPlaceholder": "Funktion zum Erstellen eines neuen Rezepts (demnächst)",
+            "print": "Rezepte drucken"
+          },
+          "loading": "Rezepte werden geladen...",
+          "empty": {
+            "title": "Keine Rezepte",
+            "description": "Dieser Patient hat noch keine Rezepte registriert."
+          },
+          "status": {
+            "active": "Aktiv",
+            "inactive": "Inaktiv"
+          },
+          "prescribedBy": "Verschrieben von: {{doctor}}",
+          "prescribedOn": "Datum: {{date}}"
+        },
+        "message": {
+          "title": "Nachricht senden",
+          "sectionTitle": "Nachricht an Patient",
+          "to": "An: {{name}}",
+          "fields": {
+            "subject": "Betreff",
+            "body": "Nachricht",
+            "type": "Nachrichtentyp",
+            "markImportant": "Als wichtig markieren",
+            "markUrgent": "Als dringend markieren"
+          },
+          "placeholders": {
+            "subject": "Z.B.: Testergebnisse",
+            "body": "Schreiben Sie hier Ihre Nachricht..."
+          },
+          "types": {
+            "reminder": "Erinnerung",
+            "instructions": "Anweisungen",
+            "results": "Ergebnisse",
+            "followup": "Nachuntersuchung",
+            "general": "Allgemein"
+          },
+          "actions": {
+            "send": "Nachricht senden"
+          },
+          "success": "Nachricht erfolgreich gesendet"
+        },
+        "report": {
+          "title": "Patient melden"
+        },
+        "newPrescription": {
+          "title": "Neues ärztliches Rezept",
+          "sections": {
+            "medicine": "Medikamenteninformationen",
+            "timing": "Verabreichung und Dauer",
+            "additional": "Zusätzliche Anweisungen"
+          },
+          "fields": {
+            "medicine": "Medikament",
+            "dose": "Dosis",
+            "frequency": "Häufigkeit",
+            "duration": "Dauer",
+            "quantity": "Gesamtmenge",
+            "withMeals": "Mit Mahlzeiten verabreichen",
+            "notes": "Anweisungen und Notizen"
+          },
+          "placeholders": {
+            "select": "Auswählen",
+            "medicine": "Z.B.: Ibuprofen 400mg",
+            "dose": "Z.B.: 1 Tablette alle 8 Stunden",
+            "duration": "Z.B.: 7 Tage",
+            "quantity": "Z.B.: 21 Tabletten",
+            "notes": "Spezifische Anweisungen für den Patienten schreiben..."
+          },
+          "frequency": {
+            "every4h": "Alle 4 Stunden",
+            "every6h": "Alle 6 Stunden",
+            "every8h": "Alle 8 Stunden",
+            "every12h": "Alle 12 Stunden",
+            "daily": "Einmal täglich",
+            "custom": "Benutzerdefiniert"
+          },
+          "withMeals": {
+            "yes": "Ja - Mit Mahlzeiten",
+            "no": "Nicht erforderlich",
+            "before": "Vor den Mahlzeiten",
+            "after": "Nach den Mahlzeiten",
+            "water": "Mit viel Wasser"
+          },
+          "actions": {
+            "save": "Rezept speichern"
+          }
+        }
+      },
+      "alerts": {
+        "printInlineFailed": "Druckfehler. Bitte versuchen Sie es erneut.",
+        "printPreparationFailed": "Fehler bei der Druckvorbereitung. Bitte versuchen Sie es erneut.",
+        "noPrescriptionsToPrint": "Keine Rezepte zum Drucken.",
+        "printPrescriptionsFailed": "Fehler beim Drucken der Rezepte. Bitte versuchen Sie es erneut.",
+        "printPrescriptionsPreparationFailed": "Fehler bei der Vorbereitung des Rezeptdrucks.",
+        "missingPrescriptionFields": "Bitte füllen Sie alle erforderlichen Felder aus (Medikament, Dosis und Dauer)",
+        "noSelectedPatient": "Kein Patient ausgewählt",
+        "prescriptionSaved": "✅ Rezept erfolgreich gespeichert",
+        "prescriptionSaveError": "❌ Fehler beim Speichern des Rezepts: {{error}}",
+        "unknownError": "Unbekannter Fehler",
+        "prescriptionCreationError": "❌ Fehler beim Erstellen des Rezepts"
+      }
+    },
+    "profile": {
+      "header": {
+        "title": "Dr. {{name}}",
+        "titleFallback": "Dr. Vor- und Nachname",
+        "specialtyUnknown": "Fachgebiet nicht angegeben",
+        "panel": "Arzt-Panel",
+        "changePassword": "Passwort ändern"
+      },
+      "avatar": {
+        "upload": "Foto hochladen",
+        "uploading": "Wird hochgeladen...",
+        "success": "Avatar erfolgreich aktualisiert!",
+        "error": "Fehler beim Aktualisieren des Avatars",
+        "selectImage": "Bild auswählen",
+        "noUserData": "Keine Benutzerdaten"
+      },
+      "stats": {
+        "title": "Statistiken",
+        "todayAppointments": "Termine heute",
+        "totalPatients": "Patienten"
+      },
+      "fields": {
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "specialty": "Fachgebiet",
+        "email": "E-Mail-Adresse",
+        "emailShort": "E-Mail"
+      },
+      "actions": {
+        "edit": "Profil bearbeiten",
+        "save": "Änderungen speichern",
+        "cancel": "Abbrechen"
+      },
+      "password": {
+        "title": "Passwort ändern",
+        "currentPassword": "Aktuelles Passwort",
+        "newPassword": "Neues Passwort",
+        "confirmPassword": "Neues Passwort bestätigen",
+        "save": "Passwort speichern",
+        "cancel": "Abbrechen",
+        "success": "Passwort erfolgreich aktualisiert",
+        "error": "Fehler beim Ändern des Passworts"
+      },
+      "messages": {
+        "profileUpdated": "Profil aktualisiert!",
+        "errorSaving": "Fehler beim Speichern des Profils",
+        "imageSavedNoUrl": "Das Bild wurde gespeichert, aber wir haben die URL nicht erhalten. Aktualisieren Sie die Seite, um es zu sehen."
+      },
+      "status": {
+        "active": "Aktiv",
+        "inactive": "Inaktiv"
+      },
+      "placeholders": {
+        "noData": "-"
+      }
+    }
+  }
 }

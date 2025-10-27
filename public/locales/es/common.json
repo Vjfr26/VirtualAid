@@ -415,6 +415,86 @@
   "medico": {
     "appointments": {
       "calendar": {
+        "title": "Calendario de citas",
+        "subtitle": "Visualiza tu agenda de un vistazo",
+        "no_appointments": "No hay citas programadas para este día",
+        "more": "+{{count}} más",
+        "select_day_prompt": "Selecciona un día para ver las citas"
+      },
+      "panel": {
+        "title": "Citas programadas",
+        "count": "{{count}} cita(s) registradas"
+      },
+      "filters": {
+        "label": "Filtrar citas",
+        "today": "Hoy",
+        "all": "Todas",
+        "cancelled": "Canceladas",
+        "completed": "Finalizadas",
+        "upcoming": "Próximas"
+      },
+      "list": {
+        "loading_title": "Cargando citas",
+        "loading_subtitle": "Obteniendo tus reuniones más recientes...",
+        "error_title": "No se pudieron cargar las citas",
+        "retry": "Reintentar",
+        "empty_title": "No hay citas registradas",
+        "empty_description": "Cuando programes tus citas, aparecerán aquí para un acceso rápido.",
+        "empty_filters": {
+          "hoy": {
+            "title": "No hay citas hoy",
+            "description": "No hay citas programadas para hoy. Prueba viendo todas las citas."
+          },
+          "canceladas": {
+            "title": "No hay citas canceladas",
+            "description": "No tienes citas canceladas registradas."
+          },
+          "finalizadas": {
+            "title": "No hay citas finalizadas",
+            "description": "Aún no tienes citas finalizadas."
+          },
+          "proximas": {
+            "title": "No hay citas próximas",
+            "description": "No hay citas programadas para fechas futuras."
+          },
+          "default": {
+            "title": "No se encontraron citas",
+            "description": "No hay citas que coincidan con los filtros seleccionados."
+          }
+        },
+        "toggle": {
+          "show_more": "Ver más citas (+{{count}})",
+          "show_less": "Ver menos citas"
+        }
+      },
+      "status": {
+        "confirmada": "Confirmada",
+        "pendiente": "Pendiente",
+        "cancelada": "Cancelada",
+        "finalizada": "Finalizada",
+        "unknown": "Sin estado"
+      },
+      "fields": {
+        "patient_unknown": "Paciente desconocido",
+        "user_placeholder": "Usuario {{id}}",
+        "date_unavailable": "Fecha no disponible",
+        "time_unavailable": "Hora no disponible"
+      },
+      "actions": {
+        "room_not_ready_minutes": "La sala se habilitará en aproximadamente {{minutes}} minuto(s).",
+        "room_not_ready_generic": "La sala aún no está disponible. Intenta más cerca de la hora de la cita.",
+        "join_disabled_title": "Esta cita ya ha finalizado",
+        "join_enabled_title": "Iniciar reunión con este paciente",
+        "meeting_finished": "Cita finalizada",
+        "meeting_finished_short": "Finalizada",
+        "join_meeting": "Iniciar reunión",
+        "join_meeting_short": "Reunión"
+      },
+      "advice": {
+        "title": "Consejo:",
+        "description": "Puedes iniciar una videollamada directamente desde cada cita."
+      }
+    },
     "billing": {
       "title": "Mi billetera",
       "subtitle": "Gestiona tus finanzas y métodos de pago",
@@ -536,86 +616,6 @@
         "updateAction": "Actualizar",
         "saving": "Guardando...",
         "cancel": "Cancelar"
-      }
-    },
-        "title": "Calendario de citas",
-        "subtitle": "Visualiza tu agenda de un vistazo",
-        "no_appointments": "No hay citas programadas para este día",
-        "more": "+{{count}} más",
-        "select_day_prompt": "Selecciona un día para ver las citas"
-      },
-      "panel": {
-        "title": "Citas programadas",
-        "count": "{{count}} cita(s) registradas"
-      },
-      "filters": {
-        "label": "Filtrar citas",
-        "today": "Hoy",
-        "all": "Todas",
-        "cancelled": "Canceladas",
-        "completed": "Finalizadas",
-        "upcoming": "Próximas"
-      },
-      "list": {
-        "loading_title": "Cargando citas",
-        "loading_subtitle": "Obteniendo tus reuniones más recientes...",
-        "error_title": "No se pudieron cargar las citas",
-        "retry": "Reintentar",
-        "empty_title": "No hay citas registradas",
-        "empty_description": "Cuando programes tus citas, aparecerán aquí para un acceso rápido.",
-        "empty_filters": {
-          "hoy": {
-            "title": "No hay citas hoy",
-            "description": "No hay citas programadas para hoy. Prueba viendo todas las citas."
-          },
-          "canceladas": {
-            "title": "No hay citas canceladas",
-            "description": "No tienes citas canceladas registradas."
-          },
-          "finalizadas": {
-            "title": "No hay citas finalizadas",
-            "description": "Aún no tienes citas finalizadas."
-          },
-          "proximas": {
-            "title": "No hay citas próximas",
-            "description": "No hay citas programadas para fechas futuras."
-          },
-          "default": {
-            "title": "No se encontraron citas",
-            "description": "No hay citas que coincidan con los filtros seleccionados."
-          }
-        },
-        "toggle": {
-          "show_more": "Ver más citas (+{{count}})",
-          "show_less": "Ver menos citas"
-        }
-      },
-      "status": {
-        "confirmada": "Confirmada",
-        "pendiente": "Pendiente",
-        "cancelada": "Cancelada",
-        "finalizada": "Finalizada",
-        "unknown": "Sin estado"
-      },
-      "fields": {
-        "patient_unknown": "Paciente desconocido",
-        "user_placeholder": "Usuario {{id}}",
-        "date_unavailable": "Fecha no disponible",
-        "time_unavailable": "Hora no disponible"
-      },
-      "actions": {
-        "room_not_ready_minutes": "La sala se habilitará en aproximadamente {{minutes}} minuto(s).",
-        "room_not_ready_generic": "La sala aún no está disponible. Intenta más cerca de la hora de la cita.",
-        "join_disabled_title": "Esta cita ya ha finalizado",
-        "join_enabled_title": "Iniciar reunión con este paciente",
-        "meeting_finished": "Cita finalizada",
-        "meeting_finished_short": "Finalizada",
-        "join_meeting": "Iniciar reunión",
-        "join_meeting_short": "Reunión"
-      },
-      "advice": {
-        "title": "Consejo:",
-        "description": "Puedes iniciar una videollamada directamente desde cada cita."
       }
     },
     "sidebar": {

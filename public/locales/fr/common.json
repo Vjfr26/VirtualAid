@@ -515,5 +515,892 @@
     "password_changed": "Mot de passe modifié",
     "password_change_error": "Erreur lors du changement de mot de passe"
   },
-  "profile_password_change_success": "Mot de passe modifié avec succès"
+  "profile_password_change_success": "Mot de passe modifié avec succès",
+  "medico": {
+    "appointments": {
+      "calendar": {
+        "billing": {
+          "title": "Mon portefeuille",
+          "subtitle": "Gérez vos finances et méthodes de paiement",
+          "balance": {
+            "label": "Solde actuel",
+            "loading": "Chargement...",
+            "description": "Somme de tous les rendez-vous payés",
+            "withdraw": "Demander un retrait"
+          },
+          "loading": "Chargement du portefeuille...",
+          "notImplemented": {
+            "title": "Système de portefeuille en développement",
+            "description": "Le système de portefeuille est actuellement en développement et n'est pas encore disponible dans le backend.",
+            "statusTitle": "État du développement:",
+            "items": {
+              "ui": "• Interface utilisateur: Terminée ✅",
+              "payments": "• Gestion des méthodes de paiement: Terminée ✅",
+              "profiles": "• Profils de facturation: Terminés ✅",
+              "api": "• API backend: En cours 🚧",
+              "database": "• Base de données: En cours 🚧"
+            },
+            "note": "Une fois implémenté, vous pourrez gérer l'intégralité de votre portefeuille depuis ici."
+          },
+          "setup": {
+            "title": "Configurez votre portefeuille",
+            "description": "Pour commencer à gérer vos finances, vous devez créer un profil de facturation.",
+            "button": "Créer un profil de facturation"
+          },
+          "tabs": {
+            "profile": "Profil",
+            "methods": "Méthodes de paiement",
+            "invoices": "Factures"
+          },
+          "profileSection": {
+            "title": "Profil de facturation",
+            "edit": "Modifier",
+            "cancel": "Annuler",
+            "save": "Enregistrer les modifications",
+            "legalName": {
+              "label": "Nom légal *",
+              "placeholder": "Nom complet ou raison sociale"
+            },
+            "taxId": {
+              "label": "Numéro fiscal *",
+              "placeholder": "12345678A"
+            },
+            "fields": {
+              "legalName": "Nom légal",
+              "taxId": "Numéro fiscal",
+              "email": "E-mail",
+              "profileId": "ID du profil",
+              "notSpecified": "Non spécifié",
+              "notAvailable": "Non disponible"
+            }
+          },
+          "addressSection": {
+            "title": "Adresse de facturation",
+            "add": "Ajouter une adresse",
+            "edit": "Modifier",
+            "cancel": "Annuler",
+            "save": "Enregistrer l'adresse",
+            "empty": "Aucune adresse configurée",
+            "fields": {
+              "address": "Adresse *",
+              "city": "Ville *",
+              "postalCode": "Code postal *",
+              "region": "Province/État",
+              "country": "Pays *"
+            },
+            "placeholders": {
+              "address": "Rue, numéro, appartement...",
+              "country": "France"
+            }
+          },
+          "paymentMethods": {
+            "title": "Méthodes de paiement",
+            "add": "Ajouter une méthode",
+            "emptyTitle": "Aucune méthode de paiement",
+            "emptyDescription": "Ajoutez votre première carte ou méthode de paiement pour commencer à recevoir des paiements.",
+            "addButton": "Ajouter une méthode de paiement",
+            "default": "Principale",
+            "secondary": "Secondaire",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette méthode de paiement?"
+          },
+          "invoices": {
+            "title": "Historique des factures",
+            "count": "{{count}} facture",
+            "count_plural": "{{count}} factures",
+            "emptyTitle": "Aucune facture",
+            "emptyDescription": "Lorsque vous recevrez des paiements, les factures apparaîtront automatiquement ici.",
+            "columns": {
+              "id": "ID",
+              "amount": "Montant",
+              "status": "Statut",
+              "date": "Date",
+              "actions": "Actions"
+            },
+            "status": {
+              "paid": "Payée",
+              "pending": "En attente"
+            },
+            "viewDetails": "Voir les détails"
+          },
+          "modal": {
+            "addTitle": "Ajouter une méthode de paiement",
+            "editTitle": "Modifier la méthode de paiement",
+            "provider": "Fournisseur",
+            "providers": {
+              "stripe": "Stripe (Carte)",
+              "paypal": "PayPal",
+              "manual": "Virement bancaire"
+            },
+            "cardNumber": "Numéro de carte",
+            "expMonth": "Mois d'expiration",
+            "expYear": "Année d'expiration",
+            "cvc": "CVC",
+            "default": "Définir comme méthode principale",
+            "addAction": "Ajouter",
+            "updateAction": "Mettre à jour",
+            "saving": "Enregistrement...",
+            "cancel": "Annuler"
+          }
+        },
+        "title": "Calendrier des rendez-vous",
+        "subtitle": "Visualisez votre agenda d'un coup d'œil",
+        "no_appointments": "Aucun rendez-vous prévu pour ce jour",
+        "more": "+{{count}} de plus",
+        "select_day_prompt": "Sélectionnez un jour pour voir les rendez-vous"
+      },
+      "panel": {
+        "title": "Rendez-vous programmés",
+        "count": "{{count}} rendez-vous enregistré(s)"
+      },
+      "filters": {
+        "label": "Filtrer les rendez-vous",
+        "today": "Aujourd'hui",
+        "all": "Tous",
+        "cancelled": "Annulés",
+        "completed": "Terminés",
+        "upcoming": "À venir"
+      },
+      "list": {
+        "loading_title": "Chargement des rendez-vous",
+        "loading_subtitle": "Récupération de vos dernières réunions...",
+        "error_title": "Impossible de charger les rendez-vous",
+        "retry": "Réessayer",
+        "empty_title": "Aucun rendez-vous enregistré",
+        "empty_description": "Lorsque vous planifierez vos rendez-vous, ils apparaîtront ici pour un accès rapide.",
+        "empty_filters": {
+          "hoy": {
+            "title": "Aucun rendez-vous aujourd'hui",
+            "description": "Aucun rendez-vous prévu pour aujourd'hui. Essayez de voir tous les rendez-vous."
+          },
+          "canceladas": {
+            "title": "Aucun rendez-vous annulé",
+            "description": "Vous n'avez aucun rendez-vous annulé enregistré."
+          },
+          "finalizadas": {
+            "title": "Aucun rendez-vous terminé",
+            "description": "Vous n'avez pas encore de rendez-vous terminés."
+          },
+          "proximas": {
+            "title": "Aucun rendez-vous à venir",
+            "description": "Aucun rendez-vous prévu pour les dates futures."
+          },
+          "default": {
+            "title": "Aucun rendez-vous trouvé",
+            "description": "Aucun rendez-vous ne correspond aux filtres sélectionnés."
+          }
+        },
+        "toggle": {
+          "show_more": "Voir plus de rendez-vous (+{{count}})",
+          "show_less": "Voir moins de rendez-vous"
+        }
+      },
+      "status": {
+        "confirmada": "Confirmé",
+        "pendiente": "En attente",
+        "cancelada": "Annulé",
+        "finalizada": "Terminé",
+        "unknown": "Sans statut"
+      },
+      "fields": {
+        "patient_unknown": "Patient inconnu",
+        "user_placeholder": "Utilisateur {{id}}",
+        "date_unavailable": "Date non disponible",
+        "time_unavailable": "Heure non disponible"
+      },
+      "actions": {
+        "room_not_ready_minutes": "La salle sera disponible dans environ {{minutes}} minute(s).",
+        "room_not_ready_generic": "La salle n'est pas encore disponible. Réessayez plus près de l'heure du rendez-vous.",
+        "join_disabled_title": "Ce rendez-vous est déjà terminé",
+        "join_enabled_title": "Démarrer la réunion avec ce patient",
+        "meeting_finished": "Rendez-vous terminé",
+        "meeting_finished_short": "Terminé",
+        "join_meeting": "Démarrer la réunion",
+        "join_meeting_short": "Réunion"
+      },
+      "advice": {
+        "title": "Conseil:",
+        "description": "Vous pouvez démarrer un appel vidéo directement depuis chaque rendez-vous."
+      }
+    },
+    "billing": {
+      "title": "Mon portefeuille",
+      "subtitle": "Gérez vos finances et méthodes de paiement",
+      "balance": {
+        "label": "Solde actuel",
+        "loading": "Chargement...",
+        "description": "Somme de tous les rendez-vous payés",
+        "withdraw": "Demander un retrait"
+      },
+      "loading": "Chargement du portefeuille...",
+      "notImplemented": {
+        "title": "Système de portefeuille en développement",
+        "description": "Le système de portefeuille est actuellement en développement et n'est pas encore disponible dans le backend.",
+        "statusTitle": "État du développement:",
+        "items": {
+          "ui": "• Interface utilisateur: Terminée ✅",
+          "payments": "• Gestion des méthodes de paiement: Terminée ✅",
+          "profiles": "• Profils de facturation: Terminés ✅",
+          "api": "• API backend: En cours 🚧",
+          "database": "• Base de données: En cours 🚧"
+        },
+        "note": "Une fois mis en œuvre, vous pourrez gérer l'intégralité de votre portefeuille ici."
+      },
+      "setup": {
+        "title": "Configurez votre portefeuille",
+        "description": "Pour commencer à gérer vos finances, vous devez créer un profil de facturation.",
+        "button": "Créer un profil de facturation"
+      },
+      "tabs": {
+        "profile": "Profil",
+        "methods": "Méthodes de paiement",
+        "invoices": "Factures"
+      },
+      "profileSection": {
+        "title": "Profil de facturation",
+        "edit": "Modifier",
+        "cancel": "Annuler",
+        "save": "Enregistrer les modifications",
+        "legalName": {
+          "label": "Nom légal *",
+          "placeholder": "Nom complet ou entité juridique"
+        },
+        "taxId": {
+          "label": "Numéro fiscal *",
+          "placeholder": "12345678A"
+        },
+        "fields": {
+          "legalName": "Nom légal",
+          "taxId": "Numéro fiscal",
+          "email": "Email",
+          "profileId": "ID du profil",
+          "notSpecified": "Non spécifié",
+          "notAvailable": "Non disponible"
+        }
+      },
+      "addressSection": {
+        "title": "Adresse de facturation",
+        "add": "Ajouter une adresse",
+        "edit": "Modifier",
+        "cancel": "Annuler",
+        "save": "Enregistrer l'adresse",
+        "empty": "Aucune adresse configurée",
+        "fields": {
+          "address": "Adresse *",
+          "city": "Ville *",
+          "postalCode": "Code postal *",
+          "region": "Province/État",
+          "country": "Pays *"
+        },
+        "placeholders": {
+          "address": "Rue, numéro, appartement...",
+          "country": "Espagne"
+        }
+      },
+      "paymentMethods": {
+        "title": "Méthodes de paiement",
+        "add": "Ajouter une méthode",
+        "emptyTitle": "Aucune méthode de paiement",
+        "emptyDescription": "Ajoutez votre première carte ou méthode de paiement pour commencer à recevoir des paiements.",
+        "addButton": "Ajouter une méthode de paiement",
+        "default": "Principale",
+        "secondary": "Secondaire",
+        "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette méthode de paiement?"
+      },
+      "invoices": {
+        "title": "Historique des factures",
+        "count": "{{count}} facture",
+        "count_plural": "{{count}} factures",
+        "emptyTitle": "Aucune facture",
+        "emptyDescription": "Lorsque vous recevrez des paiements, les factures apparaîtront ici automatiquement.",
+        "columns": {
+          "id": "ID",
+          "amount": "Montant",
+          "status": "Statut",
+          "date": "Date",
+          "actions": "Actions"
+        },
+        "status": {
+          "paid": "Payée",
+          "pending": "En attente"
+        },
+        "viewDetails": "Voir les détails"
+      },
+      "modal": {
+        "addTitle": "Ajouter une méthode de paiement",
+        "editTitle": "Modifier une méthode de paiement",
+        "provider": "Fournisseur",
+        "providers": {
+          "stripe": "Stripe (Carte)",
+          "paypal": "PayPal",
+          "manual": "Virement bancaire"
+        },
+        "cardNumber": "Numéro de carte",
+        "expMonth": "Mois d'expiration",
+        "expYear": "Année d'expiration",
+        "cvc": "CVC",
+        "default": "Définir comme méthode principale",
+        "addAction": "Ajouter",
+        "updateAction": "Mettre à jour",
+        "saving": "Enregistrement...",
+        "cancel": "Annuler"
+      }
+    },
+    "sidebar": {
+      "header": {
+        "title": "Panneau Médical",
+        "status": "Système actif",
+        "tip": "Gérez votre pratique médicale de manière complète"
+      },
+      "menu": {
+        "dashboard": "Tableau de bord",
+        "appointments": "Rendez-vous",
+        "availability": "Disponibilité",
+        "patients": "Patients",
+        "billing": "Portefeuille",
+        "profile": "Profil"
+      }
+    },
+    "header": {
+      "title": "Panneau du Médecin",
+      "welcome": "Bienvenue,",
+      "doctor_fallback": "Médecin",
+      "session_active": "Session active",
+      "online": "En ligne"
+    },
+    "loading": {
+      "overlay": "Chargement du panneau...",
+      "dashboard_data": "Chargement des données du médecin..."
+    },
+    "errors": {
+      "fetch_profile": "Impossible de charger les données du profil du médecin.",
+      "fetch_appointments": "Impossible de charger les rendez-vous.",
+      "fetch_schedule": "Impossible de charger les horaires.",
+      "refresh_appointments": "Erreur de rafraîchissement: {{error}}",
+      "no_active_session": "Aucune session active"
+    },
+    "availability": {
+      "header": {
+        "title": "Ma Disponibilité",
+        "subtitle": "Configurez vos horaires de consultation"
+      },
+      "summary": {
+        "title": "Résumé de disponibilité",
+        "days": "Jours configurés",
+        "slots": "Horaires totaux",
+        "status": "Statut du profil"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "form": {
+        "title": "Ajouter un nouvel horaire",
+        "day_label": "Jour de la semaine",
+        "day_placeholder": "✨ Sélectionnez un jour",
+        "slots_label": "Horaires disponibles",
+        "slots_select_day": "Sélectionnez un jour pour voir les créneaux disponibles.",
+        "slots_none": "Aucun créneau disponible pour {{day}}.",
+        "selected_prefix": "Sélectionnés:",
+        "submit_saving": "Enregistrement...",
+        "submit_label": "Enregistrer l'horaire"
+      },
+      "loading": {
+        "title": "Chargement des horaires",
+        "subtitle": "Récupération de votre disponibilité..."
+      },
+      "list": {
+        "title": "Vos horaires configurés",
+        "workday": "Jour ouvrable",
+        "slots_title": "Horaires disponibles:"
+      },
+      "empty": {
+        "title": "Configurez votre première disponibilité!",
+        "description": "Vous n'avez pas encore d'horaires configurés. Utilisez le formulaire ci-dessus pour ajouter vos horaires de consultation et commencer à recevoir des patients."
+      },
+      "warnings": {
+        "slot_with_appointments": "Impossible de supprimer: il y a {{count}} rendez-vous programmé(s) dans ce créneau horaire."
+      },
+      "errors": {
+        "load_title": "Erreur de chargement de la disponibilité",
+        "find_slot": "Impossible de trouver l'horaire à supprimer."
+      },
+      "invalid_day": "Jour sélectionné invalide.",
+      "duplicate_slots": "Les créneaux {{slots}} existent déjà pour {{day}}",
+      "delete_success": "Horaire supprimé avec succès.",
+      "delete_error": "Erreur lors de la suppression de l'horaire.",
+      "add_success": "{{count}} créneau(x) horaire(s) ajouté(s) avec succès.",
+      "add_error": "Erreur lors de l'ajout de l'horaire."
+    },
+    "password": {
+      "min_length": "Le mot de passe doit contenir au moins 6 caractères.",
+      "mismatch": "Les mots de passe ne correspondent pas.",
+      "require_current": "Vous devez saisir votre mot de passe actuel.",
+      "missing_user": "Aucune donnée utilisateur disponible.",
+      "change_success": "Mot de passe mis à jour avec succès!",
+      "change_error": "Erreur lors du changement de mot de passe."
+    },
+    "modals": {
+      "delete_title": "Confirmer la suppression de l'horaire",
+      "delete_description": "Vous êtes sur le point de supprimer définitivement l'horaire de consultation suivant:",
+      "delete_day_label": "Jour:",
+      "delete_slot_label": "Horaire:",
+      "delete_warning": "⚠️ Cette action ne peut pas être annulée",
+      "delete_confirm": "Supprimer",
+      "deleting": "Suppression...",
+      "add_title": "Confirmer l'ajout d'horaires",
+      "add_description": "Êtes-vous sûr de vouloir ajouter les créneaux horaires suivants pour le jour {{day}}?",
+      "add_confirm": "Ajouter des horaires",
+      "adding": "Ajout..."
+    },
+    "dashboard": {
+      "summary": {
+        "total_appointments": "Total Rendez-vous",
+        "total_patients": "Total Patients",
+        "availability": "Disponibilité",
+        "revenue": "Revenus",
+        "revenue_detail_title": "Détail des revenus",
+        "revenue_detail": {
+          "month_total": "Total du mois",
+          "total": "Total général",
+          "completed_payments": "Paiements complétés",
+          "recent_payments": "Paiements récents",
+          "no_payments": "Aucun paiement enregistré"
+        }
+      },
+      "today": {
+        "title": "Statistiques d'aujourd'hui",
+        "card_appointments": "Rendez-vous aujourd'hui",
+        "card_completed": "Terminés",
+        "card_pending": "En attente",
+        "card_cancelled": "Annulés"
+      },
+      "next": {
+        "title": "Prochain rendez-vous",
+        "refresh_title": "Actualiser les données des rendez-vous",
+        "loading": "Chargement des prochains rendez-vous...",
+        "error": "Erreur lors du chargement des rendez-vous: {{error}}",
+        "no_name": "Utilisateur sans nom",
+        "pending_status": "En attente",
+        "no_appointments": "📋 Aucun rendez-vous enregistré",
+        "no_upcoming": "📅 Aucun prochain rendez-vous programmé",
+        "summary": "📊 {{total}} rendez-vous totaux | 🗓️ Aujourd'hui: {{today}}",
+        "time": {
+          "calculating": "⏱️ Calcul...",
+          "starts_in_minutes_alert": "⚠️ Dans {{minutes}} minute(s)!",
+          "starts_in_minutes": "⏱️ Dans {{minutes}} minute(s)",
+          "starts_in_hours_minutes": "⏱️ Dans {{hours}}h {{minutes}}min",
+          "starts_in_hours": "⏱️ Dans {{hours}} heure(s)",
+          "tomorrow_period": "🌅 Demain {{period}}",
+          "tomorrow": "📅 Demain",
+          "starts_in_days": "⏱️ Dans {{days}} jour(s)",
+          "coming_soon": "⏱️ Bientôt",
+          "period": {
+            "morning": "matin",
+            "afternoon": "après-midi",
+            "evening": "soir"
+          }
+        }
+      },
+      "monthly": {
+        "title": "Métriques du mois",
+        "total_appointments": "Rendez-vous totaux",
+        "completed_appointments": "Terminés",
+        "unique_patients": "Patients",
+        "success_rate": "Taux de réussite",
+        "active_days": "📅 Jours les plus actifs:",
+        "active_day_count": "{{count}} rendez-vous"
+      },
+      "trends": {
+        "title": "Tendances",
+        "subtitle": "Analyse des 7 derniers jours",
+        "evolution_title": "Évolution de la fréquentation (7j)",
+        "attended_label": "Présents",
+        "cancelled_label": "Annulés",
+        "total_label": "{{count}} rendez-vous ces 7 derniers jours",
+        "revenue_title": "Revenus hebdomadaires",
+        "revenue_subtitle": "Rendez-vous payés (7j)",
+        "revenue_previous": "7j précédents:",
+        "retention_title": "Taux de rétention",
+        "retention_subtitle": "Patients récurrents",
+        "retention_note": "Avec plus d'un rendez-vous",
+        "total_percentage": "{{percent}}% du total",
+        "revenue_comparison": " ({{arrow}}{{sign}}{{percent}}% vs. 7j préc)",
+        "revenue_new": " (nouveau)",
+        "retention_ratio": "{{percent}}% ({{recurrent}}/{{total}})",
+        "retention_no_data": "Aucune donnée"
+      }
+    },
+    "patients": {
+      "header": {
+        "title": "Gestion des Patients",
+        "subtitle": "{{count}} patient(s) enregistré(s)"
+      },
+      "search": {
+        "placeholder": "Rechercher par nom, email ou motif...",
+        "clear": "Effacer la recherche",
+        "results": "{{count}} résultat(s)"
+      },
+      "states": {
+        "loadingTitle": "Chargement des patients",
+        "loadingSubtitle": "Récupération des informations de vos patients...",
+        "errorTitle": "Erreur lors du chargement des patients",
+        "retry": "Réessayer",
+        "emptyTitle": "Aucun patient enregistré",
+        "emptyDescription": "Les patients apparaîtront ici lorsqu'ils prendront rendez-vous avec vous.",
+        "noResultsTitle": "Aucun résultat trouvé",
+        "noResultsDescription": "Essayez d'autres termes de recherche."
+      },
+      "card": {
+        "nameUnknown": "Patient sans nom",
+        "age": "{{count}} an",
+        "age_plural": "{{count}} ans",
+        "ageUnknown": "Âge non spécifié",
+        "reasonLabel": "Motif",
+        "reasonFallback": "Non spécifié",
+        "actions": {
+          "history": "Historique",
+          "historyTooltip": "Voir l'historique médical",
+          "schedule": "Planifier",
+          "scheduleTooltip": "Planifier un nouveau rendez-vous",
+          "prescriptions": "Ordonnances",
+          "prescriptionsTooltip": "Voir les ordonnances",
+          "report": "Signaler",
+          "reportTooltip": "Signaler le patient"
+        }
+      },
+      "stats": {
+        "total": "Total",
+        "active": "Actifs",
+        "results": "Résultats",
+        "pending": "En attente"
+      },
+      "tip": {
+        "title": "Conseil :",
+        "description": "Utilisez la recherche pour trouver rapidement des patients par nom ou email."
+      },
+      "common": {
+        "fields": {
+          "name": "Nom",
+          "age": "Âge",
+          "weight": "Poids",
+          "height": "Taille",
+          "bloodType": "Groupe sanguin",
+          "status": "Statut",
+          "reason": "Motif",
+          "email": "Email",
+          "emergencyContact": "Contact d'urgence",
+          "emergencyRelation": "Relation",
+          "emergencyPhone": "Téléphone d'urgence"
+        },
+        "unspecified": "Non spécifié",
+        "notAvailable": "Non disponible",
+        "ageValue": "{{count}} an",
+        "ageValue_plural": "{{count}} ans",
+        "doctorPrefix": "Dr {{name}}",
+        "doctorFallback": "Docteur",
+        "locale": "fr-FR",
+        "actions": {
+          "cancel": "Annuler",
+          "close": "Fermer"
+        }
+      },
+      "modals": {
+        "common": {
+          "patient": "Patient : {{name}}"
+        },
+        "history": {
+          "title": "Historique Médical",
+          "patientInfo": {
+            "title": "Informations du Patient",
+            "currentReason": "Motif actuel"
+          },
+          "visits": {
+            "title": "Visites Récentes",
+            "sampleGeneral": {
+              "title": "Consultation Générale",
+              "date": "15 nov. 2024",
+              "description": "Examen de routine, patient en bon état de santé général."
+            },
+            "sampleFollowup": {
+              "title": "Suivi",
+              "date": "10 oct. 2024",
+              "description": "Contrôle post-traitement, évolution favorable."
+            }
+          },
+          "details": {
+            "personalInfo": "Informations Personnelles",
+            "emergencyContact": "Contact d'Urgence",
+            "sampleRelation": "Membre de la famille"
+          },
+          "timeline": {
+            "labels": {
+              "symptoms": "Symptômes",
+              "diagnosis": "Diagnostic",
+              "treatment": "Traitement",
+              "notes": "Notes",
+              "type": "Type",
+              "results": "Résultats"
+            },
+            "entry1": {
+              "title": "Consultation - 15 nov. 2024",
+              "symptoms": "Maux de tête, vertiges",
+              "diagnosis": "Migraine de tension",
+              "treatment": "Ibuprofène 400mg toutes les 8h",
+              "notes": "Recommander la réduction du stress et l'amélioration des habitudes de sommeil"
+            },
+            "entry2": {
+              "title": "Consultation - 02 nov. 2024",
+              "symptoms": "Toux persistante, congestion",
+              "diagnosis": "Bronchite aiguë",
+              "treatment": "Antibiotiques, sirop expectorant",
+              "notes": "Évolution favorable, continuer le traitement"
+            },
+            "entry3": {
+              "title": "Examen - 20 oct. 2024",
+              "type": "Analyse de sang complète",
+              "results": "Toutes les valeurs dans la plage normale",
+              "notes": "État de santé général excellent"
+            }
+          },
+          "actions": {
+            "print": "Imprimer l'Historique"
+          }
+        },
+        "appointment": {
+          "title": "Planifier un Rendez-vous",
+          "sectionTitle": "Planifier un Nouveau Rendez-vous",
+          "fields": {
+            "date": "Date",
+            "time": "Heure",
+            "type": "Type de consultation",
+            "reason": "Motif"
+          },
+          "types": {
+            "general": "Consultation Générale",
+            "followup": "Suivi",
+            "specialized": "Spécialisée",
+            "emergency": "Urgence"
+          },
+          "placeholders": {
+            "reason": "Décrire le motif de la consultation..."
+          },
+          "actions": {
+            "schedule": "Planifier le Rendez-vous"
+          },
+          "success": "Rendez-vous planifié avec succès",
+          "status": {
+            "confirmed": "Confirmé",
+            "scheduled": "Planifié",
+            "completed": "Terminé",
+            "cancelled": "Annulé",
+            "default": "En attente"
+          },
+          "stats": {
+            "total": "Total",
+            "upcoming": "À venir",
+            "completed": "Terminés",
+            "cancelled": "Annulés"
+          },
+          "filters": {
+            "label": "Filtrer par",
+            "all": "Tous",
+            "upcoming": "À venir",
+            "completed": "Terminés",
+            "cancelled": "Annulés",
+            "confirmed": "Confirmés"
+          },
+          "list": {
+            "title": "Historique des Rendez-vous",
+            "empty": "Aucun rendez-vous enregistré",
+            "emptyHint": "Les rendez-vous apparaîtront ici lorsqu'ils seront planifiés.",
+            "note": "Note : {{note}}",
+            "timeLabel": "Heure"
+          },
+          "info": {
+            "title": "Information",
+            "description": "Ici, vous pouvez voir et gérer tous les rendez-vous de ce patient."
+          }
+        },
+        "prescriptions": {
+          "title": "Ordonnances Médicales",
+          "sectionTitle": "Ordonnances du Patient",
+          "fields": {
+            "medicine": "Médicament",
+            "instructions": "Instructions",
+            "dose": "Dose",
+            "duration": "Durée",
+            "quantity": "Quantité",
+            "withMeals": "Avec les repas",
+            "id": "ID"
+          },
+          "sampleTitle": "Ordonnance #{{number}}",
+          "sampleDate": "Date : {{date}}",
+          "samples": {
+            "medicine1": "Paracétamol 500mg",
+            "instructions1": "Prendre 1 comprimé toutes les 8 heures",
+            "medicine2": "Amoxicilline 500mg",
+            "instructions2": "Prendre 1 gélule toutes les 12 heures"
+          },
+          "actions": {
+            "new": "Nouvelle Ordonnance",
+            "newPlaceholder": "Fonction pour créer une nouvelle ordonnance (prochainement)",
+            "print": "Imprimer les Ordonnances"
+          },
+          "loading": "Chargement des ordonnances...",
+          "empty": {
+            "title": "Aucune ordonnance",
+            "description": "Ce patient n'a pas encore d'ordonnances enregistrées."
+          },
+          "status": {
+            "active": "Active",
+            "inactive": "Inactive"
+          },
+          "prescribedBy": "Prescrit par : {{doctor}}",
+          "prescribedOn": "Date : {{date}}"
+        },
+        "message": {
+          "title": "Envoyer un Message",
+          "sectionTitle": "Message au Patient",
+          "to": "À : {{name}}",
+          "fields": {
+            "subject": "Sujet",
+            "body": "Message",
+            "type": "Type de message",
+            "markImportant": "Marquer comme important",
+            "markUrgent": "Marquer comme urgent"
+          },
+          "placeholders": {
+            "subject": "Ex : Résultats d'analyses",
+            "body": "Écrivez votre message ici..."
+          },
+          "types": {
+            "reminder": "Rappel",
+            "instructions": "Instructions",
+            "results": "Résultats",
+            "followup": "Suivi",
+            "general": "Général"
+          },
+          "actions": {
+            "send": "Envoyer le Message"
+          },
+          "success": "Message envoyé avec succès"
+        },
+        "report": {
+          "title": "Signaler le Patient"
+        },
+        "newPrescription": {
+          "title": "Nouvelle Ordonnance Médicale",
+          "sections": {
+            "medicine": "Informations sur le Médicament",
+            "timing": "Administration et Durée",
+            "additional": "Instructions Supplémentaires"
+          },
+          "fields": {
+            "medicine": "Médicament",
+            "dose": "Dose",
+            "frequency": "Fréquence",
+            "duration": "Durée",
+            "quantity": "Quantité Totale",
+            "withMeals": "Administrer avec les repas",
+            "notes": "Instructions et notes"
+          },
+          "placeholders": {
+            "select": "Sélectionner",
+            "medicine": "Ex : Ibuprofène 400mg",
+            "dose": "Ex : 1 comprimé toutes les 8 heures",
+            "duration": "Ex : 7 jours",
+            "quantity": "Ex : 21 comprimés",
+            "notes": "Écrire les instructions spécifiques pour le patient..."
+          },
+          "frequency": {
+            "every4h": "Toutes les 4 heures",
+            "every6h": "Toutes les 6 heures",
+            "every8h": "Toutes les 8 heures",
+            "every12h": "Toutes les 12 heures",
+            "daily": "Une fois par jour",
+            "custom": "Personnalisée"
+          },
+          "withMeals": {
+            "yes": "Oui - Avec les repas",
+            "no": "Non nécessaire",
+            "before": "Avant les repas",
+            "after": "Après les repas",
+            "water": "Avec beaucoup d'eau"
+          },
+          "actions": {
+            "save": "Enregistrer l'Ordonnance"
+          }
+        }
+      },
+      "alerts": {
+        "printInlineFailed": "Erreur d'impression. Veuillez réessayer.",
+        "printPreparationFailed": "Erreur de préparation de l'impression. Veuillez réessayer.",
+        "noPrescriptionsToPrint": "Aucune ordonnance à imprimer.",
+        "printPrescriptionsFailed": "Erreur d'impression des ordonnances. Veuillez réessayer.",
+        "printPrescriptionsPreparationFailed": "Erreur de préparation de l'impression des ordonnances.",
+        "missingPrescriptionFields": "Veuillez remplir tous les champs obligatoires (médicament, dose et durée)",
+        "noSelectedPatient": "Aucun patient sélectionné",
+        "prescriptionSaved": "✅ Ordonnance enregistrée avec succès",
+        "prescriptionSaveError": "❌ Erreur lors de l'enregistrement de l'ordonnance : {{error}}",
+        "unknownError": "Erreur inconnue",
+        "prescriptionCreationError": "❌ Erreur lors de la création de l'ordonnance"
+      }
+    },
+    "profile": {
+      "header": {
+        "title": "Dr {{name}}",
+        "titleFallback": "Dr Prénom Nom",
+        "specialtyUnknown": "Spécialité non spécifiée",
+        "panel": "Panneau Médical",
+        "changePassword": "Changer le mot de passe"
+      },
+      "avatar": {
+        "upload": "Télécharger une photo",
+        "uploading": "Téléchargement en cours...",
+        "success": "Avatar mis à jour avec succès !",
+        "error": "Erreur lors de la mise à jour de l'avatar",
+        "selectImage": "Sélectionner une image",
+        "noUserData": "Aucune donnée utilisateur"
+      },
+      "stats": {
+        "title": "Statistiques",
+        "todayAppointments": "Rendez-vous aujourd'hui",
+        "totalPatients": "Patients"
+      },
+      "fields": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "specialty": "Spécialité",
+        "email": "Adresse e-mail",
+        "emailShort": "E-mail"
+      },
+      "actions": {
+        "edit": "Modifier le profil",
+        "save": "Enregistrer les modifications",
+        "cancel": "Annuler"
+      },
+      "password": {
+        "title": "Changer le Mot de Passe",
+        "currentPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "confirmPassword": "Confirmer le nouveau mot de passe",
+        "save": "Enregistrer le mot de passe",
+        "cancel": "Annuler",
+        "success": "Mot de passe mis à jour avec succès",
+        "error": "Erreur lors du changement de mot de passe"
+      },
+      "messages": {
+        "profileUpdated": "Profil mis à jour !",
+        "errorSaving": "Erreur lors de l'enregistrement du profil",
+        "imageSavedNoUrl": "L'image a été enregistrée, mais nous n'avons pas reçu l'URL. Actualisez la page pour la voir."
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "placeholders": {
+        "noData": "-"
+      }
+    }
+  }
 }

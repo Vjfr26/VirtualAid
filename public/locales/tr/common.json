@@ -520,5 +520,769 @@
     "password_changed": "Şifre değiştirildi",
     "password_change_error": "Şifre değiştirilirken hata oluştu"
   },
-  "profile_password_change_success": "Şifre başarıyla değiştirildi"
+  "profile_password_change_success": "Şifre başarıyla değiştirildi",
+  "medico": {
+    "appointments": {
+      "calendar": {
+        "title": "Randevu takvimi",
+        "subtitle": "Programınızı bir bakışta görüntüleyin",
+        "no_appointments": "Bu gün için planlanmış randevu yok",
+        "more": "+{{count}} daha",
+        "select_day_prompt": "Randevuları görmek için bir gün seçin"
+      },
+      "panel": {
+        "title": "Planlanmış randevular",
+        "count": "{{count}} kayıtlı randevu"
+      },
+      "filters": {
+        "label": "Randevuları filtrele",
+        "today": "Bugün",
+        "all": "Tümü",
+        "cancelled": "İptal edilenler",
+        "completed": "Tamamlananlar",
+        "upcoming": "Yaklaşanlar"
+      },
+      "list": {
+        "loading_title": "Randevular yükleniyor",
+        "loading_subtitle": "En son toplantılarınız alınıyor...",
+        "error_title": "Randevular yüklenemedi",
+        "retry": "Tekrar dene",
+        "empty_title": "Kayıtlı randevu yok",
+        "empty_description": "Randevularınızı planladığınızda, hızlı erişim için burada görünecekler.",
+        "empty_filters": {
+          "hoy": {
+            "title": "Bugün randevu yok",
+            "description": "Bugün için planlanmış randevu yok. Tüm randevuları görmeyi deneyin."
+          },
+          "canceladas": {
+            "title": "İptal edilen randevu yok",
+            "description": "Kayıtlı iptal edilmiş randevunuz yok."
+          },
+          "finalizadas": {
+            "title": "Tamamlanan randevu yok",
+            "description": "Henüz tamamlanmış randevunuz yok."
+          },
+          "proximas": {
+            "title": "Yaklaşan randevu yok",
+            "description": "Gelecek tarihler için planlanmış randevu yok."
+          },
+          "default": {
+            "title": "Randevu bulunamadı",
+            "description": "Seçilen filtrelere uyan randevu yok."
+          }
+        },
+        "toggle": {
+          "show_more": "Daha fazla randevu göster (+{{count}})",
+          "show_less": "Daha az randevu göster"
+        }
+      },
+      "status": {
+        "confirmada": "Onaylandı",
+        "pendiente": "Beklemede",
+        "cancelada": "İptal edildi",
+        "finalizada": "Tamamlandı",
+        "unknown": "Durumu yok"
+      },
+      "fields": {
+        "patient_unknown": "Bilinmeyen hasta",
+        "user_placeholder": "Kullanıcı {{id}}",
+        "date_unavailable": "Tarih mevcut değil",
+        "time_unavailable": "Saat mevcut değil"
+      },
+      "actions": {
+        "room_not_ready_minutes": "Oda yaklaşık {{minutes}} dakika içinde kullanıma açılacak.",
+        "room_not_ready_generic": "Oda henüz mevcut değil. Randevu saatine yakın tekrar deneyin.",
+        "join_disabled_title": "Bu randevu zaten sona erdi",
+        "join_enabled_title": "Bu hasta ile toplantıyı başlat",
+        "meeting_finished": "Randevu tamamlandı",
+        "meeting_finished_short": "Tamamlandı",
+        "join_meeting": "Toplantıyı başlat",
+        "join_meeting_short": "Toplantı"
+      },
+      "advice": {
+        "title": "İpucu:",
+        "description": "Her randevudan doğrudan görüntülü arama başlatabilirsiniz."
+      }
+    },
+    "billing": {
+      "title": "Cüzdanım",
+      "subtitle": "Finanslarınızı ve ödeme yöntemlerinizi yönetin",
+      "balance": {
+        "label": "Mevcut bakiye",
+        "loading": "Yükleniyor...",
+        "description": "Tüm ödenen randevuların toplamı",
+        "withdraw": "Çekim talebi"
+      },
+      "loading": "Cüzdan yükleniyor...",
+      "notImplemented": {
+        "title": "Cüzdan sistemi geliştiriliyor",
+        "description": "Cüzdan sistemi şu anda geliştirme aşamasındadır ve backend'de henüz mevcut değildir.",
+        "statusTitle": "Geliştirme durumu:",
+        "items": {
+          "ui": "• Kullanıcı arayüzü: Tamamlandı ✅",
+          "payments": "• Ödeme yöntemleri yönetimi: Tamamlandı ✅",
+          "profiles": "• Fatura profilleri: Tamamlandı ✅",
+          "api": "• Backend API: Devam ediyor 🚧",
+          "database": "• Veritabanı: Devam ediyor 🚧"
+        },
+        "note": "Uygulandığında, tüm cüzdanınızı buradan yönetebileceksiniz."
+      },
+      "setup": {
+        "title": "Cüzdanınızı kurun",
+        "description": "Finanslarınızı yönetmeye başlamak için bir fatura profili oluşturmanız gerekir.",
+        "button": "Fatura profili oluştur"
+      },
+      "tabs": {
+        "profile": "Profil",
+        "methods": "Ödeme yöntemleri",
+        "invoices": "Faturalar"
+      },
+      "profileSection": {
+        "title": "Fatura profili",
+        "edit": "Düzenle",
+        "cancel": "İptal",
+        "save": "Değişiklikleri kaydet",
+        "legalName": {
+          "label": "Yasal isim *",
+          "placeholder": "Tam ad veya tüzel kişilik"
+        },
+        "taxId": {
+          "label": "Vergi kimlik numarası *",
+          "placeholder": "12345678A"
+        },
+        "fields": {
+          "legalName": "Yasal isim",
+          "taxId": "Vergi kimlik numarası",
+          "email": "E-posta",
+          "profileId": "Profil kimliği",
+          "notSpecified": "Belirtilmemiş",
+          "notAvailable": "Mevcut değil"
+        }
+      },
+      "addressSection": {
+        "title": "Fatura adresi",
+        "add": "Adres ekle",
+        "edit": "Düzenle",
+        "cancel": "İptal",
+        "save": "Adresi kaydet",
+        "empty": "Yapılandırılmış adres yok",
+        "fields": {
+          "address": "Adres *",
+          "city": "Şehir *",
+          "postalCode": "Posta kodu *",
+          "region": "İl/Eyalet",
+          "country": "Ülke *"
+        },
+        "placeholders": {
+          "address": "Sokak, numara, daire...",
+          "country": "İspanya"
+        }
+      },
+      "paymentMethods": {
+        "title": "Ödeme yöntemleri",
+        "add": "Yöntem ekle",
+        "emptyTitle": "Ödeme yöntemi yok",
+        "emptyDescription": "Ödeme almaya başlamak için ilk kartınızı veya ödeme yönteminizi ekleyin.",
+        "addButton": "Ödeme yöntemi ekle",
+        "default": "Ana",
+        "secondary": "İkincil",
+        "deleteConfirm": "Bu ödeme yöntemini silmek istediğinizden emin misiniz?"
+      },
+      "invoices": {
+        "title": "Fatura geçmişi",
+        "count": "{{count}} fatura",
+        "count_plural": "{{count}} fatura",
+        "emptyTitle": "Fatura yok",
+        "emptyDescription": "Ödeme aldığınızda, faturalar otomatik olarak burada görünecektir.",
+        "columns": {
+          "id": "Kimlik",
+          "amount": "Tutar",
+          "status": "Durum",
+          "date": "Tarih",
+          "actions": "İşlemler"
+        },
+        "status": {
+          "paid": "Ödendi",
+          "pending": "Beklemede"
+        },
+        "viewDetails": "Detayları görüntüle"
+      },
+      "modal": {
+        "addTitle": "Ödeme yöntemi ekle",
+        "editTitle": "Ödeme yöntemini düzenle",
+        "provider": "Sağlayıcı",
+        "providers": {
+          "stripe": "Stripe (Kart)",
+          "paypal": "PayPal",
+          "manual": "Banka havalesi"
+        },
+        "cardNumber": "Kart numarası",
+        "expMonth": "Son kullanma ayı",
+        "expYear": "Son kullanma yılı",
+        "cvc": "CVC",
+        "default": "Ana yöntem olarak ayarla",
+        "addAction": "Ekle",
+        "updateAction": "Güncelle",
+        "saving": "Kaydediliyor...",
+        "cancel": "İptal"
+      }
+    },
+    "sidebar": {
+      "header": {
+        "title": "Doktor Paneli",
+        "status": "Sistem aktif",
+        "tip": "Tıbbi pratiğinizi kapsamlı şekilde yönetin"
+      },
+      "menu": {
+        "dashboard": "Kontrol paneli",
+        "appointments": "Randevular",
+        "availability": "Müsaitlik",
+        "patients": "Hastalar",
+        "billing": "Cüzdan",
+        "profile": "Profil"
+      }
+    },
+    "header": {
+      "title": "Doktor Paneli",
+      "welcome": "Hoş geldiniz,",
+      "doctor_fallback": "Doktor",
+      "session_active": "Oturum aktif",
+      "online": "Çevrimiçi"
+    },
+    "loading": {
+      "overlay": "Panel yükleniyor...",
+      "dashboard_data": "Doktor verileri yükleniyor..."
+    },
+    "errors": {
+      "fetch_profile": "Doktor profil verileri yüklenemedi.",
+      "fetch_appointments": "Randevular yüklenemedi.",
+      "fetch_schedule": "Programlar yüklenemedi.",
+      "refresh_appointments": "Yenileme hatası: {{error}}",
+      "no_active_session": "Aktif oturum yok"
+    },
+    "availability": {
+      "header": {
+        "title": "Müsaitliğim",
+        "subtitle": "Muayene saatlerinizi ayarlayın"
+      },
+      "summary": {
+        "title": "Müsaitlik özeti",
+        "days": "Yapılandırılmış günler",
+        "slots": "Toplam zaman aralıkları",
+        "status": "Profil durumu"
+      },
+      "status": {
+        "active": "Aktif",
+        "inactive": "Pasif"
+      },
+      "form": {
+        "title": "Yeni zaman aralığı ekle",
+        "day_label": "Haftanın günü",
+        "day_placeholder": "✨ Bir gün seçin",
+        "slots_label": "Mevcut zaman aralıkları",
+        "slots_select_day": "Mevcut aralıkları görmek için bir gün seçin.",
+        "slots_none": "{{day}} için mevcut aralık yok.",
+        "selected_prefix": "Seçildi: {{day}} -",
+        "submit_saving": "Kaydediliyor...",
+        "submit_label": "Zaman çizelgesini kaydet"
+      },
+      "loading": {
+        "title": "Zaman çizelgeleri yükleniyor",
+        "subtitle": "Müsaitliğiniz alınıyor..."
+      },
+      "list": {
+        "title": "Yapılandırılmış zaman çizelgeleriniz",
+        "workday": "Çalışma günü",
+        "slots_title": "Mevcut saatler:"
+      },
+      "empty": {
+        "title": "İlk müsaitliğinizi ayarlayın!",
+        "description": "Henüz zaman çizelgesi ayarlamadınız. Yukarıdaki formu kullanarak muayene saatlerinizi ekleyin ve hasta kabul etmeye başlayın."
+      },
+      "warnings": {
+        "slot_with_appointments": "Silinemiyor: Bu zaman aralığında {{count}} randevu var."
+      },
+      "errors": {
+        "load_title": "Müsaitlik yüklenirken hata oluştu",
+        "find_slot": "Silinecek zaman aralığı bulunamadı."
+      },
+      "invalid_day": "Geçersiz gün seçildi.",
+      "duplicate_slots": "{{day}} için zaten şu aralıklar var: {{slots}}",
+      "delete_success": "Zaman çizelgesi başarıyla silindi.",
+      "delete_error": "Zaman çizelgesi silinirken hata oluştu.",
+      "add_success": "{{count}} zaman aralığı başarıyla eklendi.",
+      "add_error": "Zaman çizelgesi eklenirken hata oluştu."
+    },
+    "password": {
+      "min_length": "Şifre en az 6 karakter olmalıdır.",
+      "mismatch": "Şifreler eşleşmiyor.",
+      "require_current": "Mevcut şifrenizi girmelisiniz.",
+      "missing_user": "Kullanıcı verisi yok.",
+      "change_success": "Şifre başarıyla güncellendi!",
+      "change_error": "Şifre değiştirilirken hata oluştu."
+    },
+    "modals": {
+      "delete_title": "Zaman çizelgesini silmeyi onayla",
+      "delete_description": "Aşağıdaki zaman çizelgesini kalıcı olarak silmek üzeresiniz:",
+      "delete_day_label": "Gün:",
+      "delete_slot_label": "Zaman çizelgesi:",
+      "delete_warning": "⚠️ Bu işlem geri alınamaz",
+      "delete_confirm": "Sil",
+      "deleting": "Siliniyor...",
+      "add_title": "Zaman çizelgesi eklemeyi onayla",
+      "add_description": "{{day}} günü için aşağıdaki zaman aralıklarını eklemek istediğinizden emin misiniz?",
+      "add_confirm": "Zaman çizelgesi ekle",
+      "adding": "Ekleniyor..."
+    },
+    "dashboard": {
+      "summary": {
+        "total_appointments": "Toplam randevu",
+        "total_patients": "Toplam hasta",
+        "availability": "Müsaitlik",
+        "revenue": "Gelir",
+        "revenue_detail_title": "Gelir Detayı",
+        "revenue_detail": {
+          "month_total": "Aylık toplam",
+          "total": "Genel toplam",
+          "completed_payments": "Tamamlanan ödemeler",
+          "recent_payments": "Son ödemeler",
+          "no_payments": "Kayıtlı ödeme yok"
+        }
+      },
+      "today": {
+        "title": "Bugünün İstatistikleri",
+        "card_appointments": "Bugünkü randevular",
+        "card_completed": "Tamamlandı",
+        "card_pending": "Beklemede",
+        "card_cancelled": "İptal edildi"
+      },
+      "next": {
+        "title": "Sonraki Randevu",
+        "refresh_title": "Randevu verilerini yenile",
+        "loading": "Sonraki randevular yükleniyor...",
+        "error": "Randevular yüklenirken hata oluştu: {{error}}",
+        "no_name": "İsimsiz kullanıcı",
+        "pending_status": "Beklemede",
+        "no_appointments": "📋 Kayıtlı randevu yok",
+        "no_upcoming": "📅 Yaklaşan randevu yok",
+        "summary": "📊 Toplam {{total}} randevu | 🗓️ Bugün: {{today}}",
+        "time": {
+          "calculating": "⏱️ Hesaplanıyor...",
+          "starts_in_minutes_alert": "⚠️ {{minutes}} dakika sonra!",
+          "starts_in_minutes": "⏱️ {{minutes}} dakika sonra",
+          "starts_in_hours_minutes": "⏱️ {{hours}}s {{minutes}}d sonra",
+          "starts_in_hours": "⏱️ {{hours}} saat sonra",
+          "tomorrow_period": "🌅 Yarın {{period}}",
+          "tomorrow": "📅 Yarın",
+          "starts_in_days": "⏱️ {{days}} gün sonra",
+          "coming_soon": "⏱️ Yakında",
+          "period": {
+            "morning": "sabah",
+            "afternoon": "öğleden sonra",
+            "evening": "akşam"
+          }
+        }
+      },
+      "monthly": {
+        "title": "Aylık Metrikler",
+        "total_appointments": "Toplam randevu",
+        "completed_appointments": "Tamamlandı",
+        "unique_patients": "Hasta",
+        "success_rate": "Başarı Oranı",
+        "active_days": "📅 En yoğun günler:",
+        "active_day_count": "{{count}} randevu"
+      },
+      "trends": {
+        "title": "Trendler",
+        "subtitle": "Son 7 günün analizi",
+        "evolution_title": "Katılım Eğilimi (7g)",
+        "attended_label": "Katıldı",
+        "cancelled_label": "İptal edildi",
+        "total_label": "Son 7 günde {{count}} randevu",
+        "revenue_title": "Haftalık Gelir",
+        "revenue_subtitle": "Ödenen randevular (7g)",
+        "revenue_previous": "Önceki 7g:",
+        "retention_title": "Tutma Oranı",
+        "retention_subtitle": "Tekrar gelen hastalar",
+        "retention_note": "Birden fazla randevusu olanlar",
+        "total_percentage": "Toplamın %{{percent}}'i",
+        "revenue_comparison": " ({{arrow}}{{sign}}{{percent}}% vs. önceki 7g)",
+        "revenue_new": " (yeni)",
+        "retention_ratio": "%{{percent}} ({{recurrent}}/{{total}})",
+        "retention_no_data": "Veri yok"
+      }
+    },
+    "patients": {
+      "header": {
+        "title": "Hasta Yönetimi",
+        "subtitle": "Kayıtlı hasta sayısı: {{count}}"
+      },
+      "search": {
+        "placeholder": "İsim, e-posta, neden ile ara...",
+        "clear": "Aramayı temizle",
+        "results": "{{count}} sonuç"
+      },
+      "states": {
+        "loadingTitle": "Hastalar yükleniyor",
+        "loadingSubtitle": "Hasta bilgileri alınıyor...",
+        "errorTitle": "Hasta yükleme hatası",
+        "retry": "Tekrar dene",
+        "emptyTitle": "Kayıtlı hasta yok",
+        "emptyDescription": "Randevular alındığında hastalar burada görünecektir.",
+        "noResultsTitle": "Sonuç bulunamadı",
+        "noResultsDescription": "Farklı anahtar kelimeler deneyiniz."
+      },
+      "card": {
+        "nameUnknown": "İsimsiz hasta",
+        "age": "{{count}} yaşında",
+        "age_plural": "{{count}} yaşında",
+        "ageUnknown": "Yaş belirtilmemiş",
+        "reasonLabel": "Neden",
+        "reasonFallback": "Belirtilmemiş",
+        "actions": {
+          "history": "Geçmiş",
+          "historyTooltip": "Tıbbi geçmişi görüntüle",
+          "schedule": "Randevu al",
+          "scheduleTooltip": "Yeni randevu oluştur",
+          "prescriptions": "Reçeteler",
+          "prescriptionsTooltip": "Reçeteleri görüntüle",
+          "report": "Bildir",
+          "reportTooltip": "Hastayı bildir"
+        }
+      },
+      "stats": {
+        "total": "Toplam",
+        "active": "Aktif",
+        "results": "Sonuçlar",
+        "pending": "Beklemede"
+      },
+      "tip": {
+        "title": "İpucu:",
+        "description": "Hastayı isim veya e-posta ile hızlıca bulmak için aramayı kullanın."
+      },
+      "common": {
+        "fields": {
+          "name": "İsim",
+          "age": "Yaş",
+          "weight": "Kilo",
+          "height": "Boy",
+          "bloodType": "Kan grubu",
+          "status": "Durum",
+          "reason": "Neden",
+          "email": "E-posta",
+          "emergencyContact": "Acil durum kişisi",
+          "emergencyRelation": "İlişki",
+          "emergencyPhone": "Acil telefon"
+        },
+        "unspecified": "Belirtilmemiş",
+        "notAvailable": "Mevcut değil",
+        "ageValue": "{{count}} yaşında",
+        "ageValue_plural": "{{count}} yaşında",
+        "doctorPrefix": "Dr. {{name}}",
+        "doctorFallback": "Doktor",
+        "locale": "tr-TR",
+        "actions": {
+          "cancel": "İptal",
+          "close": "Kapat"
+        }
+      },
+      "modals": {
+        "common": {
+          "patient": "Hasta: {{name}}"
+        },
+        "history": {
+          "title": "Tıbbi Geçmiş",
+          "patientInfo": {
+            "title": "Hasta bilgileri",
+            "currentReason": "Mevcut neden"
+          },
+          "visits": {
+            "title": "Son ziyaretler",
+            "sampleGeneral": {
+              "title": "Genel muayene",
+              "date": "15 Kasım 2024",
+              "description": "Rutin kontrol, hasta sağlıklı durumda."
+            },
+            "sampleFollowup": {
+              "title": "Takip muayenesi",
+              "date": "10 Ekim 2024",
+              "description": "Tedavi sonrası gözlem, iyi yanıt."
+            }
+          },
+          "details": {
+            "personalInfo": "Kişisel bilgiler",
+            "emergencyContact": "Acil durum kişisi",
+            "sampleRelation": "Aile"
+          },
+          "timeline": {
+            "labels": {
+              "symptoms": "Belirtiler",
+              "diagnosis": "Tanı",
+              "treatment": "Tedavi",
+              "notes": "Notlar",
+              "type": "Tip",
+              "results": "Sonuçlar"
+            },
+            "entry1": {
+              "title": "Konsültasyon - 15 Kasım 2024",
+              "symptoms": "Baş ağrısı, baş dönmesi",
+              "diagnosis": "Gerginlik migreni",
+              "treatment": "İbuprofen 400mg her 8 saatte bir",
+              "notes": "Stresi azaltma ve uyku hijyenini iyileştirme önerildi"
+            },
+            "entry2": {
+              "title": "Konsültasyon - 2 Kasım 2024",
+              "symptoms": "Kalıcı öksürük, tıkanıklık",
+              "diagnosis": "Akut bronşit",
+              "treatment": "Antibiyotikler, balgam söktürücü şurup",
+              "notes": "İyi yanıt, tedaviye devam"
+            },
+            "entry3": {
+              "title": "Test - 20 Ekim 2024",
+              "type": "Tam kan sayımı",
+              "results": "Tüm değerler normal aralıkta",
+              "notes": "Genel sağlık mükemmel"
+            }
+          },
+          "actions": {
+            "print": "Geçmişi yazdır"
+          }
+        },
+        "appointment": {
+          "title": "Randevu al",
+          "sectionTitle": "Yeni randevu oluştur",
+          "fields": {
+            "date": "Tarih",
+            "time": "Saat",
+            "type": "Konsültasyon tipi",
+            "reason": "Neden"
+          },
+          "types": {
+            "general": "Genel muayene",
+            "followup": "Takip",
+            "specialized": "Uzman",
+            "emergency": "Acil"
+          },
+          "placeholders": {
+            "reason": "Ziyaret nedenini açıklayın..."
+          },
+          "actions": {
+            "schedule": "Randevu al"
+          },
+          "success": "Randevu başarıyla oluşturuldu",
+          "status": {
+            "confirmed": "Onaylandı",
+            "scheduled": "Planlandı",
+            "completed": "Tamamlandı",
+            "cancelled": "İptal edildi",
+            "default": "Beklemede"
+          },
+          "stats": {
+            "total": "Toplam",
+            "upcoming": "Gelecek",
+            "completed": "Tamamlanan",
+            "cancelled": "İptal edilen"
+          },
+          "filters": {
+            "label": "Filtreler",
+            "all": "Tümü",
+            "upcoming": "Gelecek",
+            "completed": "Tamamlanan",
+            "cancelled": "İptal edilen",
+            "confirmed": "Onaylanan"
+          },
+          "list": {
+            "title": "Randevu geçmişi",
+            "empty": "Kayıtlı randevu yok",
+            "emptyHint": "Randevular oluşturulduğunda burada görünecektir.",
+            "note": "Not: {{note}}",
+            "timeLabel": "Saat"
+          },
+          "info": {
+            "title": "Bilgi",
+            "description": "Bu hastanın tüm randevularını burada görüntüleyebilir ve yönetebilirsiniz."
+          }
+        },
+        "prescriptions": {
+          "title": "Reçeteler",
+          "sectionTitle": "Hasta reçeteleri",
+          "fields": {
+            "medicine": "İlaç",
+            "instructions": "Talimatlar",
+            "dose": "Doz",
+            "duration": "Süre",
+            "quantity": "Miktar",
+            "withMeals": "Yemekle birlikte",
+            "id": "ID"
+          },
+          "sampleTitle": "Reçete #{{number}}",
+          "sampleDate": "Tarih: {{date}}",
+          "samples": {
+            "medicine1": "Parasetamol 500mg",
+            "instructions1": "Her 8 saatte bir 1 tablet",
+            "medicine2": "Amoksisilin 500mg",
+            "instructions2": "Her 12 saatte bir 1 kapsül"
+          },
+          "actions": {
+            "new": "Yeni reçete",
+            "newPlaceholder": "Yeni reçete oluşturma özelliği (yakında)",
+            "print": "Reçeteleri yazdır"
+          },
+          "loading": "Reçeteler yükleniyor...",
+          "empty": {
+            "title": "Reçete yok",
+            "description": "Bu hastanın henüz kayıtlı reçetesi bulunmamaktadır."
+          },
+          "status": {
+            "active": "Aktif",
+            "inactive": "İnaktif"
+          },
+          "prescribedBy": "Yazan: {{doctor}}",
+          "prescribedOn": "Tarih: {{date}}"
+        },
+        "message": {
+          "title": "Mesaj gönder",
+          "sectionTitle": "Hastaya mesaj",
+          "to": "Kime: {{name}}",
+          "fields": {
+            "subject": "Konu",
+            "body": "Mesaj",
+            "type": "Mesaj tipi",
+            "markImportant": "Önemli olarak işaretle",
+            "markUrgent": "Acil olarak işaretle"
+          },
+          "placeholders": {
+            "subject": "örn: Test sonuçları",
+            "body": "Mesajınızı buraya yazın..."
+          },
+          "types": {
+            "reminder": "Hatırlatma",
+            "instructions": "Talimatlar",
+            "results": "Sonuçlar",
+            "followup": "Takip",
+            "general": "Genel"
+          },
+          "actions": {
+            "send": "Mesaj gönder"
+          },
+          "success": "Mesaj başarıyla gönderildi"
+        },
+        "report": {
+          "title": "Hastayı bildir"
+        },
+        "newPrescription": {
+          "title": "Yeni reçete",
+          "sections": {
+            "medicine": "İlaç bilgisi",
+            "timing": "Dozaj ve süre",
+            "additional": "Ek talimatlar"
+          },
+          "fields": {
+            "medicine": "İlaç",
+            "dose": "Doz",
+            "frequency": "Sıklık",
+            "duration": "Süre",
+            "quantity": "Toplam miktar",
+            "withMeals": "Yemekle birlikte al",
+            "notes": "Talimatlar ve notlar"
+          },
+          "placeholders": {
+            "select": "Seçin",
+            "medicine": "örn: İbuprofen 400mg",
+            "dose": "örn: Her 8 saatte bir 1 tablet",
+            "duration": "örn: 7 gün",
+            "quantity": "örn: 21 tablet",
+            "notes": "Hasta için özel talimatlar yazın..."
+          },
+          "frequency": {
+            "every4h": "Her 4 saatte",
+            "every6h": "Her 6 saatte",
+            "every8h": "Her 8 saatte",
+            "every12h": "Her 12 saatte",
+            "daily": "Günde bir kez",
+            "custom": "Özel"
+          },
+          "withMeals": {
+            "yes": "Evet - yemekle birlikte",
+            "no": "Gerekli değil",
+            "before": "Yemekten önce",
+            "after": "Yemekten sonra",
+            "water": "Bol su ile"
+          },
+          "actions": {
+            "save": "Reçeteyi kaydet"
+          }
+        }
+      },
+      "alerts": {
+        "printInlineFailed": "Yazdırma hatası. Tekrar deneyin.",
+        "printPreparationFailed": "Yazdırma hazırlama hatası. Tekrar deneyin.",
+        "noPrescriptionsToPrint": "Yazdırılacak reçete yok.",
+        "printPrescriptionsFailed": "Reçete yazdırma hatası. Tekrar deneyin.",
+        "printPrescriptionsPreparationFailed": "Reçete yazdırma hazırlama hatası.",
+        "missingPrescriptionFields": "Tüm gerekli alanları doldurun (ilaç, doz, süre)",
+        "noSelectedPatient": "Seçili hasta yok",
+        "prescriptionSaved": "✅ Reçete başarıyla kaydedildi",
+        "prescriptionSaveError": "❌ Reçete kaydetme hatası: {{error}}",
+        "unknownError": "Bilinmeyen hata",
+        "prescriptionCreationError": "❌ Reçete oluşturma hatası"
+      }
+    },
+    "profile": {
+      "header": {
+        "title": "Dr. {{name}}",
+        "titleFallback": "Doktor İsim",
+        "specialtyUnknown": "Uzmanlık belirtilmemiş",
+        "panel": "Doktor paneli",
+        "changePassword": "Şifre değiştir"
+      },
+      "avatar": {
+        "upload": "Fotoğraf yükle",
+        "uploading": "Yükleniyor...",
+        "success": "Avatar başarıyla güncellendi!",
+        "error": "Avatar güncelleme hatası",
+        "selectImage": "Resim seç",
+        "noUserData": "Kullanıcı verisi yok"
+      },
+      "stats": {
+        "title": "İstatistikler",
+        "todayAppointments": "Bugünkü randevular",
+        "totalPatients": "Hastalar"
+      },
+      "fields": {
+        "firstName": "Ad",
+        "lastName": "Soyad",
+        "specialty": "Uzmanlık",
+        "email": "E-posta adresi",
+        "emailShort": "E-posta"
+      },
+      "actions": {
+        "edit": "Profili düzenle",
+        "save": "Değişiklikleri kaydet",
+        "cancel": "İptal"
+      },
+      "password": {
+        "title": "Şifre değiştir",
+        "currentPassword": "Mevcut şifre",
+        "newPassword": "Yeni şifre",
+        "confirmPassword": "Yeni şifreyi onayla",
+        "save": "Şifreyi kaydet",
+        "cancel": "İptal",
+        "success": "Şifre başarıyla güncellendi",
+        "error": "Şifre değiştirme hatası"
+      },
+      "messages": {
+        "profileUpdated": "Profil güncellendi!",
+        "errorSaving": "Profil kaydetme hatası",
+        "imageSavedNoUrl": "Resim kaydedildi ancak URL alınamadı. Görmek için sayfayı yenileyin."
+      },
+      "status": {
+        "active": "Aktif",
+        "inactive": "İnaktif"
+      },
+      "placeholders": {
+        "noData": "-"
+      }
+    }
+  }
 }
