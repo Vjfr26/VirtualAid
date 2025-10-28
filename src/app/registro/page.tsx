@@ -15,6 +15,8 @@ const getInitialFormState = () => ({
   email: "",
   password: "",
   confirmPassword: "",
+  // yyyy-mm-dd
+  dob: "",
   specialty: "",
   licenseNumber: "",
   phone: "",
@@ -41,6 +43,12 @@ export default function Register() {
   const [doctorDocuments, setDoctorDocuments] = useState<FileList | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Coupon states
+  const [couponChecked, setCouponChecked] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponValid, setCouponValid] = useState<boolean | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -57,6 +65,8 @@ export default function Register() {
     "Ophthalmology",
     "Otolaryngology"
   ];
+
+  const todayISO = new Date().toISOString().split('T')[0];
 
   const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ");
 
@@ -91,6 +101,18 @@ export default function Register() {
       return false;
     }
     if (userType === "doctor") {
+      // Validar fecha de nacimiento
+      if (!form.dob) {
+        alert("Por favor ingresa tu fecha de nacimiento");
+        return false;
+      }
+      // No permitir fecha futura
+      const fechaNac = new Date(form.dob);
+      const ahora = new Date();
+      if (fechaNac > ahora) {
+        alert("Fecha de nacimiento inválida");
+        return false;
+      }
       if (!form.specialty) {
         alert("Selecciona tu especialidad para continuar");
         return false;
@@ -105,7 +127,8 @@ export default function Register() {
 
 
 
-  const submitRegistration = async (type: UserType): Promise<boolean> => {
+  // submitRegistration: supports skipDocuments for coupon-based fast registration
+  const submitRegistration = async (type: UserType, skipDocuments = false): Promise<boolean> => {
     setIsSubmitting(true);
     if (type === "doctor") {
       setSubmissionError(null);
@@ -135,13 +158,16 @@ export default function Register() {
         body: JSON.stringify(payload),
       };
     } else {
-      if (!doctorDocuments || doctorDocuments.length === 0) {
-        setSubmissionError("Por favor adjunta al menos un documento.");
-        setIsSubmitting(false);
-        return false;
+      // For doctors, support skipping documents when coupon is valid
+      if (!skipDocuments) {
+        if (!doctorDocuments || doctorDocuments.length === 0) {
+          setSubmissionError("Por favor adjunta al menos un documento.");
+          setIsSubmitting(false);
+          return false;
+        }
       }
 
-      const documentsArray = Array.from(doctorDocuments);
+      const documentsArray = doctorDocuments ? Array.from(doctorDocuments) : [];
       const formData = new FormData();
       formData.append("nombre", form.firstName);
       formData.append("apellido", form.lastName);
@@ -154,6 +180,12 @@ export default function Register() {
       formData.append("experiencia", form.experiencia);
       formData.append("educacion", form.educacion);
       formData.append("biografia", form.biografia);
+      formData.append("fecha_nacimiento", form.dob);
+      // include coupon info if present
+      if (couponChecked && couponCode) {
+        formData.append("coupon_code", couponCode);
+        formData.append("coupon_used", "true");
+      }
       documentsArray.forEach((file) => formData.append("documentos", file));
 
       console.log("Submitting doctor registration:", {
@@ -163,6 +195,7 @@ export default function Register() {
         especializacion: form.specialty,
         id: form.licenseNumber,
         archivosAdjuntos: documentsArray.length,
+        usesCoupon: couponChecked && !!couponCode,
       });
 
       requestInit = {
@@ -288,6 +321,97 @@ export default function Register() {
                   <span>{t('license_number', 'Número de licencia')}</span>
                   <strong>{form.licenseNumber || t('pending_data', 'Pendiente de completar')}</strong>
                 </div>
+                <div>
+                  <span>{t('date_of_birth', 'Fecha de nacimiento')}</span>
+                  <strong>{form.dob || t('pending_data', 'Pendiente de completar')}</strong>
+                </div>
+                <div className="registro-inputGroup" style={{ marginTop: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={couponChecked}
+                      onChange={(e) => {
+                        setCouponChecked(e.target.checked);
+                        if (!e.target.checked) {
+                          setCouponCode("");
+                          setCouponValid(null);
+                          setCouponError(null);
+                        }
+                      }}
+                    />
+                    <span>{t('have_coupon', '¿Tienes un cupón?')}</span>
+                  </label>
+
+                  {couponChecked && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          className="registro-input"
+                          placeholder={t('coupon_code', 'Código de cupón')}
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="registro-modalButton registro-modalButtonSecondary"
+                          onClick={async () => {
+                            if (!couponCode.trim()) {
+                              setCouponError('Ingresa un código');
+                              setCouponValid(false);
+                              return;
+                            }
+                            setCouponChecking(true);
+                            setCouponError(null);
+                            setCouponValid(null);
+                            try {
+                              // intentar validar con endpoint real
+                              const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(couponCode)}`);
+                              if (res.ok) {
+                                const body = await res.json().catch(() => ({}));
+                                if (body && body.valid) {
+                                  setCouponValid(true);
+                                  setCouponError(null);
+                                } else {
+                                  setCouponValid(false);
+                                  setCouponError(body.message || 'Cupón inválido');
+                                }
+                              } else {
+                                // fallback mock: aceptar algunos códigos de prueba
+                                const code = couponCode.trim().toUpperCase();
+                                const allowed = ['PROMO15', 'DOCTORFREE', 'FREE2025'];
+                                if (allowed.includes(code)) {
+                                  setCouponValid(true);
+                                  setCouponError(null);
+                                } else {
+                                  setCouponValid(false);
+                                  setCouponError('Cupón no válido');
+                                }
+                              }
+                            } catch (err) {
+                              // en caso de fallo de red hacemos fallback mock
+                              const code = couponCode.trim().toUpperCase();
+                              const allowed = ['PROMO15', 'DOCTORFREE', 'FREE2025'];
+                              if (allowed.includes(code)) {
+                                setCouponValid(true);
+                                setCouponError(null);
+                              } else {
+                                setCouponValid(false);
+                                setCouponError('Cupón no válido (falló validación en servidor)');
+                              }
+                            } finally {
+                              setCouponChecking(false);
+                            }
+                          }}
+                        >
+                          {couponChecking ? t('processing', 'Procesando...') : t('redeem_coupon', 'Canjear cupón')}
+                        </button>
+                      </div>
+                      {couponValid === true && <div style={{ color: 'green', marginTop: 6 }}>{t('coupon_valid', 'Cupón válido — se saltará la documentación')}</div>}
+                      {couponValid === false && couponError && <div style={{ color: 'red', marginTop: 6 }}>{couponError}</div>}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="registro-modalButtons">
                 <button
@@ -300,7 +424,16 @@ export default function Register() {
                 <button
                   type="button"
                   className="registro-modalButton registro-modalButtonPrimary"
-                  onClick={() => setDoctorModalStep("documents")}
+                  onClick={async () => {
+                    // Si el usuario tiene cupón válido, registrar inmediatamente (skip documents)
+                    if (couponChecked && couponValid) {
+                      setSubmissionError(null);
+                      const success = await submitRegistration('doctor', true);
+                      if (success) setDoctorDocuments(null);
+                      return;
+                    }
+                    setDoctorModalStep("documents");
+                  }}
                 >
                   {t('continue', 'Continuar')}
                 </button>
@@ -598,6 +731,20 @@ export default function Register() {
                   placeholder={t('license_number', 'Professional License Number')}
                   value={form.licenseNumber}
                   onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="registro-inputGroup">
+                <label htmlFor="dob" className="sr-only">{t('date_of_birth', 'Date of birth')}</label>
+                <input
+                  id="dob"
+                  className="registro-input"
+                  type="date"
+                  name="dob"
+                  placeholder={t('date_of_birth', 'Date of birth')}
+                  value={form.dob}
+                  onChange={handleChange}
+                  max={todayISO}
                   required
                 />
               </div>

@@ -137,7 +137,9 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
               </div>
             ) : (
               <span className="text-white text-3xl font-bold">
-                ${saldoMedico.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {typeof saldoMedico === 'number'
+                  ? `$${saldoMedico.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `-`}
               </span>
             )}
             <span className="text-white/60 text-xs mt-1">

@@ -40,7 +40,7 @@ export default function DashboardCards({
           return (
             <div
               key={idx}
-              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/50 ${esCardIngresos ? 'cursor-pointer shadow-green-500/30 hover:shadow-green-500/50' : ''}`}
+              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/50 ${esCardIngresos ? 'cursor-pointer shadow-emerald-400/50 hover:shadow-emerald-500/90 border-6 border-emerald-400 ring-4 ring-emerald-300/60 ring-offset-2 ring-offset-white' : ''}`}
               onClick={esCardIngresos ? () => setMostrarDetalleIngresos(!mostrarDetalleIngresos) : undefined}
             >
               {/* Efecto de brillo */}

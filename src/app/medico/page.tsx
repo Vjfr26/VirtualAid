@@ -997,7 +997,7 @@ export default function MedicoDashboard() {
     {
       key: 'revenue',
       titulo: t('medico.dashboard.summary.revenue'),
-      valor: loadingPagos ? "..." : formatearMonto(totalIngresos),
+      valor: loadingSaldo ? "..." : saldoMedico,
       icono: "💰", 
       color: "#fff0d4ff", 
       bg: "bg-emerald-300/40", 

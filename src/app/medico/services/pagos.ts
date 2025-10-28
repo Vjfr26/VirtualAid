@@ -162,28 +162,10 @@ export function calcularIngresosPorPeriodo(
  */
 export async function getSaldoMedico(medicoEmail: string): Promise<SaldoMedicoResponse> {
   try {
-    // Temporalmente devolvemos datos de prueba hasta que el backend esté funcionando
-    // El backend debe implementar: GET /api/medico/{email}/saldo
-    
-    // Simular una pequeña demora de red
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Calcular el saldo basándonos en los pagos mock
-    const mockPagos = await getPagosMedico(medicoEmail);
-    const saldo = mockPagos.total_ingresos;
-    
-    return {
-      saldo: saldo,
-      total_citas_pagadas: mockPagos.cantidad_pagos,
-      ultimo_pago: mockPagos.pagos.length > 0 ? {
-        fecha: mockPagos.pagos[mockPagos.pagos.length - 1].fecha_pago,
-        monto: mockPagos.pagos[mockPagos.pagos.length - 1].monto
-      } : undefined
-    };
-
-    // Código real para cuando el backend funcione:
-    /*
-    const response = await fetch(`/api/medico/saldo?medico_email=${encodeURIComponent(medicoEmail)}`, {
+    // Usar el endpoint específico para saldo (backend expone /api/medico/saldo)
+  // El endpoint server-side espera 'medico_email' como query param
+  const url = `/api/medico/${encodeURIComponent(medicoEmail)}`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -198,9 +180,27 @@ export async function getSaldoMedico(medicoEmail: string): Promise<SaldoMedicoRe
       throw new Error(errorData.error || `Error ${response.status} al obtener el saldo`);
     }
 
-    const data = await response.json();
-    return data;
-    */
+    const responseData = await response.json().catch(() => ({}));
+
+    // Normalizar la respuesta y asegurar tipos
+    const saldoNum = typeof responseData.saldo === 'number'
+      ? responseData.saldo
+      : (responseData.saldo ? Number(responseData.saldo) : 0);
+    const totalCitas = typeof responseData.total_citas_pagadas === 'number'
+      ? responseData.total_citas_pagadas
+      : (responseData.total_citas_pagadas ? Number(responseData.total_citas_pagadas) : (responseData.total_citas ? Number(responseData.total_citas) : 0));
+
+    const ultimoPago = responseData.ultimo_pago ? {
+      fecha: responseData.ultimo_pago.fecha,
+      monto: typeof responseData.ultimo_pago.monto === 'number' ? responseData.ultimo_pago.monto : Number(responseData.ultimo_pago.monto)
+    } : undefined;
+
+    return {
+      saldo: saldoNum,
+      total_citas_pagadas: totalCitas,
+      ultimo_pago: ultimoPago
+    };
+
   } catch (error) {
     console.error('Error al obtener saldo del médico:', error);
     // Si falla, devolver saldo en 0
