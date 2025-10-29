@@ -553,7 +553,18 @@
         "label": "Aktueller Saldo",
         "loading": "Wird geladen...",
         "description": "Summe aller bezahlten Termine",
+        "reserved": "Reserviert",
         "withdraw": "Auszahlung anfordern"
+      },
+      "withdraw": {
+        "title": "Auszahlung anfordern",
+        "amount": "0.00",
+        "available": "Verfügbar",
+        "payment_method": "PAYPAL ••••",
+        "notes": "Notizen",
+        "request": "Auszahlung anfordern",
+        "cancel": "Abbrechen",
+        "success": "Auszahlungsanfrage gesendet"
       },
       "loading": "Brieftasche wird geladen...",
       "notImplemented": {

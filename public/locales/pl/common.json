@@ -607,10 +607,11 @@
     "billing": {
       "title": "Mój portfel",
       "subtitle": "Zarządzaj swoimi finansami i metodami płatności",
-      "balance": {
+            "balance": {
         "label": "Saldo bieżące",
         "loading": "Ładowanie...",
         "description": "Suma wszystkich opłaconych wizyt",
+        "reserved": "Zarezerwowane",
         "withdraw": "Poproś o wypłatę"
       },
       "loading": "Ładowanie portfela...",

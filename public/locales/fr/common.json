@@ -526,7 +526,18 @@
             "label": "Solde actuel",
             "loading": "Chargement...",
             "description": "Somme de tous les rendez-vous payés",
+            "reserved": "Réservé",
             "withdraw": "Demander un retrait"
+          },
+          "withdraw": {
+            "title": "Demander un retrait",
+            "amount": "0.00",
+            "available": "Disponible",
+            "payment_method": "PAYPAL ••••",
+            "notes": "Notes",
+            "request": "Demander le retrait",
+            "cancel": "Annuler",
+            "success": "Demande de retrait envoyée"
           },
           "loading": "Chargement du portefeuille...",
           "notImplemented": {

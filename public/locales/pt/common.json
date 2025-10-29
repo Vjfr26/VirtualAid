@@ -607,12 +607,22 @@
     "billing": {
       "title": "Minha carteira",
       "subtitle": "Gerencie suas finanças e métodos de pagamento",
-      "balance": {
-        "label": "Saldo atual",
-        "loading": "Carregando...",
-        "description": "Soma de todas as consultas pagas",
-        "withdraw": "Solicitar saque"
-      },
+            "balance": {
+              "label": "Saldo atual",
+              "loading": "Carregando...",
+              "description": "Soma de todas as consultas pagas",
+              "reserved": "Reservado",
+              "withdraw": "Solicitar saque"
+            },
+            "withdraw": {
+              "title": "Solicitar saque",
+              "amount": "0.00",
+              "available": "Disponível",
+              "payment_method": "PAYPAL ••••",
+              "notes": "Notas",
+              "request": "Solicitar saque",
+              "cancel": "Cancelar"
+            },
       "loading": "Carregando carteira...",
       "notImplemented": {
         "title": "Sistema de carteira em desenvolvimento",

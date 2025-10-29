@@ -1,14 +1,18 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { requestPayout } from '../services/payouts';
 import { BillingProfile, PaymentMethod, Address, Invoice } from '../services/billing';
 
 interface MedicoData {
   email: string;
   nombre: string;
   apellido: string;
+  // Nuevo: monto reservado (payouts en proceso) retornado por el backend
+  reserved_balance?: number;
 }
+
 
 interface BillingSectionProps {
   ctx: {
@@ -96,6 +100,14 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
     loadingSaldo
   } = ctx;
 
+    // Estado para modal de retiro
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawNotes, setWithdrawNotes] = useState('');
+    const [withdrawLoading, setWithdrawLoading] = useState(false);
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
+    const [selectedPmId, setSelectedPmId] = useState<number | null>(null);
+
   const [activeTab, setActiveTab] = useState<'perfil' | 'metodos' | 'facturas'>('perfil');
   const [mounted, setMounted] = useState(false);
 
@@ -103,11 +115,70 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
     setMounted(true);
   }, []);
 
+  // Refs para manejo de foco en modal
+  const modalOverlayRef = useRef<HTMLDivElement | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  // Refs para modal de métodos de pago
+  const pmModalOverlayRef = useRef<HTMLDivElement | null>(null);
+  const pmModalContentRef = useRef<HTMLDivElement | null>(null);
+
   // Componente Modal usando Portal
   const ModalPortal = ({ children }: { children: React.ReactNode }) => {
     if (!mounted) return null;
     return createPortal(children, document.body);
   };
+
+  // Efecto para manejo de foco y teclado cuando el modal de retiro está abierto
+  useEffect(() => {
+    const anyModalOpen = withdrawOpen || pmFormOpen || !!pmEditingId;
+    if (!anyModalOpen) return;
+
+    // bloquear scroll del body
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // cerrar cualquier modal abierto
+        setWithdrawOpen(false);
+        setPmFormOpen(false);
+        setPmEditingId(null);
+        setWithdrawAmount('');
+        setWithdrawNotes('');
+        setWithdrawError(null);
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        // focus trap dentro del modal actualmente abierto
+        const container = withdrawOpen ? modalContentRef.current : pmModalContentRef.current;
+        if (!container) return;
+        const focusable = container.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex='-1'])");
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            (last as HTMLElement).focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === last) {
+            (first as HTMLElement).focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [withdrawOpen, pmFormOpen, pmEditingId, setPmFormOpen, setPmEditingId]);
 
   return (
     <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 flex flex-col gap-4 overflow-hidden">
@@ -146,9 +217,22 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
               {t('medico.billing.balance.description')}
             </span>
           </div>
-          <button className="bg-white text-teal-700 font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg hover:bg-emerald-50 transition-all duration-300">
-            💸 {t('medico.billing.balance.withdraw')}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="text-white/80 text-sm text-right">
+              <span className="text-xs block">{t('medico.billing.balance.reserved')}</span>
+              <span className="font-semibold">
+                {typeof medicoData?.reserved_balance === 'number'
+                  ? `$${medicoData.reserved_balance.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `$0.00`}
+              </span>
+            </div>
+            <button
+              onClick={() => setWithdrawOpen(true)}
+              className="bg-white text-teal-700 font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg hover:bg-emerald-50 transition-all duration-300"
+            >
+              💸 {t('medico.billing.balance.withdraw')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -641,10 +725,89 @@ export default function BillingSection({ ctx }: BillingSectionProps) {
       </div>
 
       {/* Modal para agregar/editar método de pago */}
+      {withdrawOpen && (
+        <ModalPortal>
+          <div ref={modalOverlayRef} className="fixed inset-0 bg-black/50 text-gray-600 flex items-center justify-center z-[9999] p-4" onMouseDown={(e) => {
+              // Cerrar modal si se hace click fuera del contenido (overlay)
+              if (e.target === modalOverlayRef.current) {
+                setWithdrawOpen(false);
+                setWithdrawAmount('');
+                setWithdrawNotes('');
+                setWithdrawError(null);
+              }
+            }}>
+            <div ref={modalContentRef} className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              <h3 className="font-bold text-gray-700 text-lg mb-4 flex items-center gap-2">💸 {t('medico.billing.withdraw.title')}</h3>
+              <form onSubmit={async (e) => { e.preventDefault();
+                setWithdrawError(null);
+                if (!medicoData?.email) { setWithdrawError(t('medico.billing.withdraw.errors.no_email')); return; }
+                const parsed = Number(withdrawAmount.replace(/[^0-9.,]/g, '').replace(',', '.'));
+                const saldo = typeof saldoMedico === 'number' ? saldoMedico : 0;
+                const reserved = typeof medicoData?.reserved_balance === 'number' ? medicoData.reserved_balance : 0;
+                const available = Math.max(0, saldo - reserved);
+                if (isNaN(parsed) || parsed <= 0) { setWithdrawError(t('medico.billing.withdraw.errors.invalid_amount')); return; }
+                if (parsed > available) { setWithdrawError(t('medico.billing.withdraw.errors.exceeds_available')); return; }
+                try {
+                  setWithdrawLoading(true);
+                  await requestPayout(medicoData.email, { amount: parsed, payment_method_id: selectedPmId ?? undefined, notes: withdrawNotes });
+                  // éxito: cerrar modal y refrescar para actualizar saldo y reserved_balance
+                  setWithdrawOpen(false);
+                  alert(t('medico.billing.withdraw.success'));
+                  window.location.reload();
+                } catch (err: any) {
+                  console.error('Error requesting payout:', err);
+                  setWithdrawError(err?.message || String(err));
+                } finally {
+                  setWithdrawLoading(false);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.billing.withdraw.amount')}</label>
+                  <input ref={amountInputRef} type="text" inputMode="decimal" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="0.00" />
+                  <p className="text-xs text-gray-500 mt-1">{t('medico.billing.withdraw.available', { available: (Math.max(0, (typeof saldoMedico === 'number' ? saldoMedico : 0) - (typeof medicoData?.reserved_balance === 'number' ? medicoData.reserved_balance : 0))).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</p>
+                </div>
+
+                {pmList.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.billing.withdraw.payment_method')}</label>
+                    <select value={selectedPmId ?? ''} onChange={(e) => setSelectedPmId(e.target.value ? Number(e.target.value) : null)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <option value="">{t('medico.billing.withdraw.payment_method_default')}</option>
+                      {pmList.map(pm => (
+                        <option key={pm.id} value={pm.id}>{pm.brand ? `${pm.brand.toUpperCase()} •••• ${pm.last4 || ''}` : `#${pm.id}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('medico.billing.withdraw.notes')}</label>
+                  <textarea value={withdrawNotes} onChange={(e) => setWithdrawNotes(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} />
+                </div>
+
+                {withdrawError && <div className="text-sm text-red-600">{withdrawError}</div>}
+
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" disabled={withdrawLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-semibold transition-colors disabled:opacity-50">
+                    {withdrawLoading ? t('medico.billing.withdraw.sending') : t('medico.billing.withdraw.request')}
+                  </button>
+                  <button type="button" onClick={() => { setWithdrawOpen(false); setWithdrawAmount(''); setWithdrawNotes(''); setWithdrawError(null); }} className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                    {t('medico.billing.withdraw.cancel')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
       {(pmFormOpen || pmEditingId) && (
         <ModalPortal>
-          <div className="fixed inset-0 bg-black/50 text-gray-600 flex items-center justify-center z-[9999] p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div ref={pmModalOverlayRef} className="fixed inset-0 bg-black/50 text-gray-600 flex items-center justify-center z-[9999] p-4" onMouseDown={(e) => {
+              if (e.target === pmModalOverlayRef.current) {
+                setPmFormOpen(false);
+                setPmEditingId(null);
+              }
+            }}>
+            <div ref={pmModalContentRef} className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
               <h3 className="font-bold text-gray-600 text-lg mb-4 flex items-center gap-2">
                 <span>{pmEditingId ? '✏️' : '➕'}</span>
                 {pmEditingId ? t('medico.billing.modal.editTitle') : t('medico.billing.modal.addTitle')}

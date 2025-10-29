@@ -68,6 +68,8 @@ export interface Medico {
   email_verified_at?: string;
   created_at?: string;
   updated_at?: string;
+  // Nuevo campo agregado en backend: monto reservado para solicitudes de payout en proceso
+  reserved_balance?: number;
 }
 
 export interface Experiencia {

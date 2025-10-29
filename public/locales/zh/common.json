@@ -611,6 +611,7 @@
         "label": "当前余额",
         "loading": "加载中...",
         "description": "所有已付款预约的总和",
+        "reserved": "保留金额",
         "withdraw": "请求提款"
       },
       "loading": "加载钱包中...",

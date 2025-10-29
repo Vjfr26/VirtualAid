@@ -596,7 +596,18 @@
         "label": "Current Balance",
         "loading": "Loading...",
         "description": "Sum of all paid appointments",
+        "reserved": "Reserved",
         "withdraw": "Request Withdrawal"
+      },
+      "withdraw": {
+        "title": "Withdraw funds",
+        "amount": "0.00",
+        "available": "Available",
+        "payment_method": "PAYPAL ••••",
+        "notes": "Notes",
+        "request": "Request withdrawal",
+        "cancel": "Cancel",
+        "success": "Withdrawal request sent"
       },
       "loading": "Loading wallet...",
       "notImplemented": {

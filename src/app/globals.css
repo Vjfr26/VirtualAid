@@ -36,6 +36,18 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Evitar que placeholders desaparezcan al pasar el ratón (algunos resets o utilidades pueden afectar su opacidad) */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  opacity: 1;
+}
+input:hover::placeholder,
+textarea:hover::placeholder,
+select:hover::placeholder {
+  opacity: 1;
+}
+
 /* Día seleccionado en React Calendar: verde oscuro y letra blanca */
 .react-calendar__tile--active,
 .react-calendar__tile--active:enabled:hover,

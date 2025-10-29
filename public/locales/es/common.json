@@ -504,6 +504,17 @@
         "description": "Suma de todas las citas pagadas",
         "withdraw": "Solicitar retiro"
       },
+      "withdraw": {
+        "title": "Solicitar retiro",
+        "amount": "0.00",
+        "available": "Disponible",
+        "payment_method": "PAYPAL ••••",
+        "payment_method_default": "PAYPAL ••••",
+        "notes": "Notas",
+        "request": "Solicitar retiro",
+        "cancel": "Cancelar",
+        "success": "Solicitud de retiro enviada"
+      },
       "loading": "Cargando billetera...",
       "notImplemented": {
         "title": "Sistema de billetera en desarrollo",

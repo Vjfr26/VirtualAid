@@ -609,10 +609,11 @@
     "billing": {
       "title": "マイウォレット",
       "subtitle": "財務と支払い方法を管理",
-      "balance": {
+        "balance": {
         "label": "現在の残高",
         "loading": "読み込み中...",
         "description": "すべての支払い済み予約の合計",
+        "reserved": "保留額",
         "withdraw": "出金リクエスト"
       },
       "loading": "ウォレットを読み込み中...",

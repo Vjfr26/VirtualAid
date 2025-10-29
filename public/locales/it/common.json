@@ -611,7 +611,18 @@
         "label": "Saldo attuale",
         "loading": "Caricamento...",
         "description": "Somma di tutti gli appuntamenti pagati",
+        "reserved": "Riservato",
         "withdraw": "Richiedi prelievo"
+      },
+      "withdraw": {
+        "title": "Richiedi prelievo",
+        "amount": "0.00",
+        "available": "Disponibile",
+        "payment_method": "PAYPAL ••••",
+        "notes": "Note",
+        "request": "Richiedi prelievo",
+        "success": "Richiesta di prelievo inviata",
+        "cancel": "Annulla"
       },
       "loading": "Caricamento portafoglio...",
       "notImplemented": {
