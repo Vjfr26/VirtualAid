@@ -17,6 +17,10 @@ interface DashboardCardsProps {
   pagos: Pago[];
   loadingPagos: boolean;
   totalIngresos: number;
+  // Nuevos: payouts y saldo diferido (reserved)
+  payouts?: Array<{ id: number; amount: number; status: string; requested_at: string; processed_at?: string | null; }>;
+  loadingPayouts?: boolean;
+  reservedBalance?: number | null;
 }
 
 export default function DashboardCards({
@@ -25,7 +29,10 @@ export default function DashboardCards({
   setMostrarDetalleIngresos,
   pagos,
   loadingPagos,
-  totalIngresos
+  totalIngresos,
+  payouts,
+  loadingPayouts,
+  reservedBalance
 }: DashboardCardsProps) {
   const { t } = useTranslation();
 
@@ -93,51 +100,53 @@ export default function DashboardCards({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
               <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.month_total')}</div>
-              <div className="text-2xl font-bold text-emerald-800">
-                {loadingPagos ? "..." : formatearMonto(calcularIngresosPorPeriodo(pagos, 'mes'))}
-              </div>
+                <div className="text-2xl font-bold text-emerald-800">
+                  {/* Ahora muestra el Saldo diferido (reserved balance) */}
+                  {loadingPayouts ? '...' : typeof reservedBalance === 'number' ? formatearMonto(reservedBalance) : formatearMonto(0)}
+                </div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
               <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.total')}</div>
               <div className="text-2xl font-bold text-emerald-800">
-                {loadingPagos ? "..." : formatearMonto(totalIngresos)}
+                  {/* Ahora muestra el total retirado (sumatorio de payouts procesados) */}
+                  {loadingPayouts ? '...' : formatearMonto((payouts ?? []).filter(p => (p.status || '').toLowerCase() === 'processed').reduce((s, p) => s + (p.amount || 0), 0))}
               </div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
               <div className="text-sm text-emerald-600 font-semibold">{t('medico.dashboard.summary.revenue_detail.completed_payments')}</div>
-              <div className="text-2xl font-bold text-emerald-800">{pagos.length}</div>
+                <div className="text-2xl font-bold text-emerald-800">{(payouts ?? []).filter(p => (p.status || '').toLowerCase() === 'processed').length}</div>
             </div>
           </div>
           
           {/* Lista de pagos recientes */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
             <h4 className="font-semibold text-emerald-800 mb-3">{t('medico.dashboard.summary.revenue_detail.recent_payments')}</h4>
-            {loadingPagos ? (
+            {loadingPayouts ? (
               <div className="text-center py-4">
                 <div className="inline-block animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 h-8 w-8"></div>
               </div>
-            ) : pagos.length === 0 ? (
+            ) : (payouts ?? []).length === 0 ? (
               <div className="text-gray-500 text-center py-4">{t('medico.dashboard.summary.revenue_detail.no_payments')}</div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {pagos.slice(0, 5).map((pago) => (
-                  <div key={pago.id} className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg">
+                {(payouts ?? []).slice(0, 5).map((p) => (
+                  <div key={p.id} className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg">
                     <div>
                       <div className="font-medium text-gray-800">
-                        {formatearMonto(pago.monto)}
+                        {formatearMonto(p.amount)}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {new Date(pago.fecha_pago).toLocaleDateString('es-ES')} - {pago.metodo}
+                        {new Date(p.requested_at).toLocaleDateString('es-ES')} {p.processed_at ? `• ${new Date(p.processed_at).toLocaleDateString('es-ES')}` : ''}
                       </div>
                     </div>
                     <div>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        pago.estado === 'completado' ? 'bg-green-100 text-green-800' :
-                        pago.estado === 'pagado' ? 'bg-blue-100 text-blue-800' :
-                        pago.estado === 'confirmado' ? 'bg-emerald-100 text-emerald-800' :
+                        (p.status || '').toLowerCase() === 'processed' ? 'bg-green-100 text-green-800' :
+                        (p.status || '').toLowerCase() === 'pending' ? 'bg-blue-100 text-blue-800' :
+                        (p.status || '').toLowerCase() === 'rejected' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {pago.estado}
+                        {p.status}
                       </span>
                     </div>
                   </div>

@@ -744,7 +744,7 @@
         "revenue": "Ingresos",
         "revenue_detail_title": "Detalle de Ingresos",
         "revenue_detail": {
-          "month_total": "Total del mes",
+          "month_total": "En Proceso",
           "total": "Total general",
           "completed_payments": "Pagos completados",
           "recent_payments": "Pagos recientes",

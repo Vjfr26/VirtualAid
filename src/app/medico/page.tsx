@@ -20,6 +20,7 @@ import {
   type Medico, type Horario, type Cita, type Paciente, type Pago, type SaldoMedicoResponse,
   type CitasCanceladasStats
 } from './services';
+import { listPayouts, type Payout } from './services/payouts';
 import { resolveMedicoAvatarUrls } from '../usuario/services/perfil';
 import { getSession as getSessionFromApi } from './services/api';
 import {
@@ -111,6 +112,9 @@ export default function MedicoDashboard() {
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [loadingPagos, setLoadingPagos] = useState(true);
+  // Payouts (retiros)
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [loadingPayouts, setLoadingPayouts] = useState(true);
   const [mostrarDetalleIngresos, setMostrarDetalleIngresos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -428,7 +432,7 @@ export default function MedicoDashboard() {
         // Ejecutar llamadas en paralelo para obtener todos los datos necesarios
         console.log('Debug - Cargando datos para médico:', email);
         
-        const [medicoData, horariosData, citasData, pagosData, saldoData, canceladasStatsData] = await Promise.all([
+        const [medicoData, horariosData, citasData, pagosData, saldoData, payoutsData, canceladasStatsData] = await Promise.all([
           getMedicoPerfil(email).catch(err => {
             console.error('Error cargando perfil médico:', err);
             throw err;
@@ -450,6 +454,10 @@ export default function MedicoDashboard() {
           getSaldoMedico(email).catch(err => {
             console.error('Error cargando saldo:', err);
             return { saldo: 0, total_citas_pagadas: 0 };
+          }),
+          listPayouts(email).catch(err => {
+            console.error('Error cargando payouts:', err);
+            return { payouts: [] };
           }),
           getCitasCanceladasStats(email).catch(err => {
             console.error('Error cargando estadísticas de canceladas:', err);
@@ -491,6 +499,10 @@ export default function MedicoDashboard() {
         setPagos(pagosData.pagos);
         setTotalIngresos(pagosData.total_ingresos);
         setLoadingPagos(false);
+
+  // Procesar payouts
+  setPayouts(payoutsData?.payouts ?? []);
+  setLoadingPayouts(false);
 
         // Procesar datos de saldo
         setSaldoMedico(saldoData.saldo);
@@ -1358,6 +1370,9 @@ export default function MedicoDashboard() {
               pagos={pagos}
               loadingPagos={loadingPagos}
               totalIngresos={totalIngresos}
+              payouts={payouts}
+              loadingPayouts={loadingPayouts}
+              reservedBalance={typeof medicoData?.reserved_balance === 'number' ? medicoData?.reserved_balance : null}
             />
             
             {/* Grid principal reorganizado para mejor balance visual */}
