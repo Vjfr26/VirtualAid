@@ -191,6 +191,7 @@ export default function PerfilSection({ ctx }: { ctx: any }) {
                   return;
                 }
 
+                
                 // Agregar cache-busting para forzar recarga de imagen
                 const urlWithCacheBust = url.includes('?') 
                   ? `${url}&_cb=${Date.now()}` 
