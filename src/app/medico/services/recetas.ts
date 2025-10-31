@@ -1,6 +1,4 @@
 import { fetchJSON } from './api';
-import dbService from '@/lib/database';
-import type { Receta as DBReceta, NuevaRecetaData as DBNuevaRecetaData } from '@/lib/database';
 
 const isBrowser = typeof window !== 'undefined';
 const RAW_API_URL = isBrowser ? '' : (process.env.NEXT_PUBLIC_API_URL ?? '');
@@ -36,7 +34,7 @@ export interface NuevaRecetaData {
 }
 
 // Función para convertir de formato DB a formato frontend
-function convertirRecetaDBaFrontend(recetaDB: DBReceta): Receta {
+function convertirRecetaDBaFrontend(recetaDB: any): Receta {
   return {
     id: recetaDB.codigo_receta || recetaDB.id?.toString() || '',
     medicamento: recetaDB.medicamento,
@@ -55,7 +53,7 @@ function convertirRecetaDBaFrontend(recetaDB: DBReceta): Receta {
 }
 
 // Función para convertir de formato frontend a formato DB
-function convertirRecetaFrontendaDB(recetaFrontend: NuevaRecetaData): DBNuevaRecetaData {
+function convertirRecetaFrontendaDB(recetaFrontend: NuevaRecetaData): any {
   return {
     medicamento: recetaFrontend.medicamento,
     dosis: recetaFrontend.dosis,
@@ -72,35 +70,22 @@ function convertirRecetaFrontendaDB(recetaFrontend: NuevaRecetaData): DBNuevaRec
 // Obtener todas las recetas de un paciente
 export async function getRecetasPaciente(emailPaciente: string): Promise<Receta[]> {
   try {
-    // Primero intentar con las rutas locales de Next.js (nuevas)
-    try {
-      const localRecetas = await fetchJSON<Receta[]>(`/api/recetas/paciente/${encodeURIComponent(emailPaciente)}`);
-      if (localRecetas && localRecetas.length >= 0) {
-        return localRecetas;
-      }
-    } catch (localError) {
-      console.log('Rutas nuevas no disponibles localmente, intentando con API remota...');
+    // Usar la nueva ruta: GET /api/recetas/{paciente_email}
+    const response = await fetchJSON<Receta[]>(`/api/recetas/${encodeURIComponent(emailPaciente)}`, {
+      method: 'GET'
+    });
+
+    // Si la respuesta es un array, devolverlo directamente
+    if (Array.isArray(response)) {
+      return response;
     }
 
-    // Luego intentar con la API remota (nuevas rutas)
-    if (API_URL && API_URL.length > 0) {
-      try {
-        const recetasRemota = await fetchJSON<any[]>(`${API_URL}/api/recetas/paciente/${encodeURIComponent(emailPaciente)}`);
-        if (recetasRemota && recetasRemota.length >= 0) {
-          // Si son recetas de la nueva DB, convertir formato
-          if (recetasRemota[0] && 'codigo_receta' in recetasRemota[0]) {
-            return recetasRemota.map(convertirRecetaDBaFrontend);
-          }
-          return recetasRemota;
-        }
-      } catch (remoteError) {
-        console.log('API remota con nuevas rutas no disponible, intentando con rutas anteriores...');
-      }
+    // Si viene en formato de objeto con propiedad recetas
+    if (response && typeof response === 'object' && 'recetas' in response) {
+      return (response as any).recetas || [];
     }
 
-    // Fallback al sistema anterior (JSON mock)
-    const recetas = await fetchJSON<Receta[]>(`/api/usuario/${encodeURIComponent(emailPaciente)}/recetas`);
-    return recetas;
+    return [];
   } catch (error) {
     console.error('Error obteniendo recetas del paciente:', error);
     return [];
@@ -113,7 +98,7 @@ export async function crearReceta(emailPaciente: string, recetaData: NuevaReceta
     // Obtener información del médico actual
     const medicoInfo = getInfoMedicoActual();
     const emailMedico = recetaData.medicoEmail || medicoInfo.medicoEmail;
-    
+
     // Preparar datos para la API
     const dataParaAPI = {
       paciente_email: emailPaciente,
@@ -128,107 +113,111 @@ export async function crearReceta(emailPaciente: string, recetaData: NuevaReceta
       medico: recetaData.medico || medicoInfo.medico
     };
 
-    // Primero intentar con las rutas locales de Next.js (nuevas)
-    try {
-      const localResponse = await fetchJSON<{ success: boolean; receta: any; message: string }>(`/api/recetas/paciente/${encodeURIComponent(emailPaciente)}`, {
-        method: 'POST',
-        body: JSON.stringify(dataParaAPI)
-      });
-      
-      if (localResponse.success && localResponse.receta) {
-        let recetaFinal: Receta;
-        if ('codigo_receta' in localResponse.receta) {
-          recetaFinal = convertirRecetaDBaFrontend(localResponse.receta);
-        } else {
-          recetaFinal = localResponse.receta;
-        }
-        
-        return { 
-          success: true, 
-          receta: recetaFinal
-        };
-      }
-    } catch (localError) {
-      console.log('Rutas nuevas no disponibles localmente, intentando con API remota...');
-    }
-
-    // Luego intentar con la API remota (nuevas rutas)
-    if (API_URL && API_URL.length > 0) {
-      try {
-        const remoteResponse = await fetchJSON<{ success: boolean; receta: any; message: string }>(`${API_URL}/api/recetas`, {
-          method: 'POST',
-          body: JSON.stringify(dataParaAPI)
-        });
-        
-        if (remoteResponse.success && remoteResponse.receta) {
-          let recetaFinal: Receta;
-          if ('codigo_receta' in remoteResponse.receta) {
-            recetaFinal = convertirRecetaDBaFrontend(remoteResponse.receta);
-          } else {
-            recetaFinal = remoteResponse.receta;
-          }
-          
-          return { 
-            success: true, 
-            receta: recetaFinal
-          };
-        }
-      } catch (remoteError) {
-        console.log('API remota con nuevas rutas no disponible, intentando con rutas anteriores...');
-      }
-    }
-
-    // Fallback al sistema anterior (JSON mock)
-    const fallbackResponse = await fetchJSON<{ success: boolean; receta: Receta; message: string }>(`/api/usuario/${encodeURIComponent(emailPaciente)}/recetas`, {
+    // Usar la nueva ruta: POST /api/recetas
+    const response = await fetchJSON<{ success: boolean; receta: any; message: string }>(`/api/recetas`, {
       method: 'POST',
-      body: JSON.stringify({
-        ...recetaData,
-        medico: recetaData.medico || medicoInfo.medico,
-        medicoEmail: emailMedico
-      })
+      body: JSON.stringify(dataParaAPI)
     });
-    
-    return { 
-      success: fallbackResponse.success, 
-      receta: fallbackResponse.receta 
+
+    if (response.success && response.receta) {
+      let recetaFinal: Receta;
+      if ('codigo_receta' in response.receta) {
+        recetaFinal = convertirRecetaDBaFrontend(response.receta);
+      } else {
+        recetaFinal = response.receta;
+      }
+
+      return {
+        success: true,
+        receta: recetaFinal
+      };
+    }
+
+    return {
+      success: false,
+      error: response.message || 'Error al crear la receta'
     };
   } catch (error) {
     console.error('Error creando receta:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Error desconocido' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido'
+    };
+  }
+}// Actualizar estado de una receta (completar, cancelar, etc.)
+export async function actualizarEstadoReceta(emailPaciente: string, recetaId: string, nuevoEstado: Receta['estado']): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Usar la nueva ruta: PUT /api/recetas/{recetaId}
+    await fetchJSON(`/api/recetas/${encodeURIComponent(recetaId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error actualizando estado de receta:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido'
     };
   }
 }
 
-// Actualizar estado de una receta (completar, cancelar, etc.)
-export async function actualizarEstadoReceta(emailPaciente: string, recetaId: string, nuevoEstado: Receta['estado']): Promise<{ success: boolean; error?: string }> {
+// Obtener una receta específica por ID
+export async function getRecetaPorId(recetaId: string): Promise<Receta | null> {
   try {
-    // Intentar con la nueva base de datos primero
-    const idNumerico = parseInt(recetaId.replace(/\D/g, ''));
-    if (!isNaN(idNumerico)) {
-      const resultado = await dbService.cambiarEstadoReceta(idNumerico, nuevoEstado);
-      if (resultado.success) {
-        return resultado;
-      }
+    // Usar la nueva ruta: GET /api/recetas/{recetaId}
+    const response = await fetchJSON<Receta>(`/api/recetas/${encodeURIComponent(recetaId)}`, {
+      method: 'GET'
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error obteniendo receta por ID:', error);
+    return null;
+  }
+}
+
+// Obtener todas las recetas de un médico
+export async function getRecetasMedico(emailMedico: string): Promise<Receta[]> {
+  try {
+    // Usar la nueva ruta: GET /api/recetas/{medico_email}
+    const response = await fetchJSON<Receta[]>(`/api/recetas/${encodeURIComponent(emailMedico)}`, {
+      method: 'GET'
+    });
+
+    // Si la respuesta es un array, devolverlo directamente
+    if (Array.isArray(response)) {
+      return response;
     }
 
-    // Fallback al sistema anterior
-    const endpoint = API_URL && API_URL.length > 0 
-      ? `${API_URL}/api/usuario/${encodeURIComponent(emailPaciente)}/recetas/${recetaId}` 
-      : `/api/usuario/${encodeURIComponent(emailPaciente)}/recetas/${recetaId}`;
-    
-    await fetchJSON(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify({ estado: nuevoEstado })
+    // Si viene en formato de objeto con propiedad recetas
+    if (response && typeof response === 'object' && 'recetas' in response) {
+      return (response as any).recetas || [];
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Error obteniendo recetas del médico:', error);
+    return [];
+  }
+}
+
+// Actualizar una receta completa
+export async function actualizarReceta(recetaId: string, recetaData: Partial<NuevaRecetaData & { estado?: Receta['estado'] }>): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Usar la nueva ruta: PUT /api/recetas/{recetaId}
+    await fetchJSON(`/api/recetas/${encodeURIComponent(recetaId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(recetaData)
     });
-    
+
     return { success: true };
   } catch (error) {
-    console.error('Error actualizando estado de receta:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Error desconocido' 
+    console.error('Error actualizando receta:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido'
     };
   }
 }
@@ -236,11 +225,11 @@ export async function actualizarEstadoReceta(emailPaciente: string, recetaId: st
 // Función auxiliar para obtener información del médico actual (desde sesión)
 export function getInfoMedicoActual() {
   if (typeof window === 'undefined') return { medico: 'Dr. Médico', medicoEmail: 'medico@virtualaid.com' };
-  
+
   try {
     const email = localStorage.getItem('medicoEmail');
     const nombre = localStorage.getItem('medicoNombre') || 'Dr. Médico';
-    
+
     return {
       medico: nombre,
       medicoEmail: email || 'medico@virtualaid.com'

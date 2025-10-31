@@ -1181,7 +1181,7 @@ export default function MedicoDashboard() {
       
       {/* Notificaciones fijas en esquina superior derecha de la pantalla */}
       {notificacionDisponibilidad && (
-        <div className={`fixed top-24 right-8 z-[60] p-4 rounded-2xl font-semibold border shadow-lg transition-all duration-500 transform animate-bounce max-w-md ${
+        <div className={`fixed top-24 right-8 z-[60] p-4 rounded-2xl font-semibold border shadow-lg transition-all duration-500 max-w-md ${
           notificacionDisponibilidad.tipo === 'success' 
             ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-200' 
             : notificacionDisponibilidad.tipo === 'warning'
@@ -1234,9 +1234,6 @@ export default function MedicoDashboard() {
                     <span className="text-gray-800 font-semibold">{horarioAEliminar.hora}</span>
                   </div>
                 </div>
-                <p className="text-red-700 text-sm font-medium">
-                  {t('medico.modals.delete_warning')}
-                </p>
               </div>
               <div className="flex gap-4 justify-center">
                 <button
@@ -1378,62 +1375,63 @@ export default function MedicoDashboard() {
             {/* Grid principal reorganizado para mejor balance visual */}
             <div className="space-y-8">
               {/* Grid con las 4 secciones: estadísticas + citas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-1 xl:grid-cols-1 gap-6">
                 {/* Panel de Estadísticas de Hoy */}
                 <section className="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200/50 flex flex-col overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-cyan-700 p-5 md:p-6 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <span className="text-xl">📈</span>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.today.title')}</h2>
-                      <p className="text-blue-100 text-xs">{new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                <div className="flex flex-col md:flex-row items-stretch h-full">
+                  {/* Izquierda: panel azul grande (mejorado) */}
+                  <div className="flex-none w-full sm:w-32 md:w-44 xl:w-48 2xl:w-56 bg-gradient-to-r from-blue-600 via-blue-700 to-cyan-700 p-3 sm:p-4 md:p-5 xl:p-6 relative overflow-hidden rounded-t-2xl md:rounded-l-3xl md:rounded-t-none flex items-center justify-center mx-auto md:mx-0 h-auto sm:h-32 md:h-full self-stretch">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/18 to-transparent rounded-t-3xl md:rounded-l-3xl"></div>
+                    <div className="relative flex flex-row md:flex-col items-center gap-3 text-white w-auto">
+                      <div className="text-left md:text-center flex-1">
+                        <h2 className="font-bold text-white text-lg sm:text-xl lg:text-2xl leading-tight tracking-tight">{t('medico.dashboard.today.title')}</h2>
+                        <p className="text-blue-100 text-xs sm:text-sm mt-1 uppercase tracking-wide">{new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                      </div>
+                      <Image className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 md:mt-12 ml-4 md:ml-0" src="/imagenes/grafico-de-barras.png" alt="Analisis" width={80} height={80} />
                     </div>
                   </div>
-                </div>
-                <div className="p-5 md:p-6">
-                  <div className="w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-500 rounded mb-4" />
-                  {(() => {
-                    const hoy = formatLocalYYYYMMDD(new Date());
-                    const citasHoy = citas.filter(cita => {
-                      const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
-                      return fechaCita === hoy;
-                    });
-                    const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
-                    const citasCanceladas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'cancelada').length;
-                    const citasPendientes = citasHoy.filter(cita => !cita.estado || cita.estado.toLowerCase() === 'programada').length;
-                    
-                    return (
+                  {/* Derecha: métricas y próxima cita */}
+                  <div className="p-5 md:p-6 flex-1">
+                    <div className="w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-500 rounded mb-4" />
+                    {(() => {
+                      const hoy = formatLocalYYYYMMDD(new Date());
+                      const citasHoy = citas.filter(cita => {
+                        const fechaCita = formatLocalYYYYMMDD(combinarFechaHoraLocal(cita.fecha).date);
+                        return fechaCita === hoy;
+                      });
+                      const citasCompletadas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'completada').length;
+                      const citasCanceladas = citasHoy.filter(cita => cita.estado?.toLowerCase() === 'cancelada').length;
+                      const citasPendientes = citasHoy.filter(cita => !cita.estado || cita.estado.toLowerCase() === 'programada').length;
+                      
+                      return (
                       <div className="grid grid-cols-2 gap-4">
                         {/* Total de citas hoy */}
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 text-center">
+                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 text-center shadow-sm">
                           <div className="text-2xl font-bold text-blue-700 mb-1">{citasHoy.length}</div>
                           <div className="text-xs text-blue-600 font-medium">{t('medico.dashboard.today.card_appointments')}</div>
                         </div>
                         
                         {/* Citas completadas */}
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center shadow-sm">
                           <div className="text-2xl font-bold text-green-700 mb-1">{citasCompletadas}</div>
                           <div className="text-xs text-green-600 font-medium">{t('medico.dashboard.today.card_completed')}</div>
                         </div>
                         
                         {/* Citas pendientes */}
-                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 text-center">
+                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 text-center shadow-sm">
                           <div className="text-2xl font-bold text-orange-700 mb-1">{citasPendientes}</div>
                           <div className="text-xs text-orange-600 font-medium">{t('medico.dashboard.today.card_pending')}</div>
                         </div>
                         
                         {/* Citas canceladas */}
-                        <div className="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 text-center">
+                        <div className="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 text-center shadow-sm">
                           <div className="text-2xl font-bold text-red-700 mb-1">{citasCanceladas}</div>
                           <div className="text-xs text-red-600 font-medium">{t('medico.dashboard.today.card_cancelled')}</div>
                         </div>
                       </div>
                     );
                   })()}
-                  {/* Próxima cita - VERSIÓN CORREGIDA con normalización de fechas */}
+                  {/* Próxima cita - VERSIÓN CORREGIDA con normalización de fechas (estilizada) */}
                     {(() => {
                       // ✅ USAR FUNCIÓN CONSISTENTE DEL DASHBOARD USUARIO
                       const ahoraServidor = currentTime;
@@ -1517,17 +1515,17 @@ export default function MedicoDashboard() {
                       }
 
                       return (
-                        <div className="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
+                        <div className="mt-4 bg-white border border-indigo-100 rounded-xl p-3 shadow-sm">
                           <div className="flex items-center gap-2 mb-2 justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-lg">⏰</span>
+                              <span className="text-xl">⏰</span>
                               <h3 className="font-semibold text-indigo-800 text-sm">{t('medico.dashboard.next.title')}</h3>
                             </div>
                             <div className="flex gap-1">
                               <button
                                 onClick={refrescarDatos}
                                 disabled={loadingCitas}
-                                className="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition-colors"
+                                className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded transition-colors"
                                 title={t('medico.dashboard.next.refresh_title')}
                               >
                                 {loadingCitas ? '⟳' : '🔄'}
@@ -1540,7 +1538,7 @@ export default function MedicoDashboard() {
                             <div className="text-xs text-red-500">{t('medico.dashboard.next.error', { error: errorCitas })}</div>
                           ) : proximaCita ? (
                             <div className="space-y-1">
-                              <div className="font-medium text-indigo-700">
+                              <div className="font-semibold text-indigo-700 text-base">
                                 {usuariosMap.get(proximaCita.usuario_id) || 
                                 (proximaCita.usuario_id?.includes('@') 
                                   ? proximaCita.usuario_id.split('@')[0].split('.').map(part => 
@@ -1548,19 +1546,19 @@ export default function MedicoDashboard() {
                                     ).join(' ')
                                   : proximaCita.usuario_id || t('medico.dashboard.next.no_name'))}
                               </div>
-                              <div className="text-xs text-indigo-600">
-                                📅 {esHoy ? t('today') : esMañana ? t('medico.dashboard.next.time.tomorrow') : combinarFechaHoraLocal(proximaCita.fecha).date.toLocaleDateString(locale, {
-                                  weekday: 'short',
-                                  day: 'numeric', 
-                                  month: 'short'
-                                })} • 🕐 {proximaCita.hora}
-                              </div>
+                                <div className="text-xs text-indigo-600">
+                                  📅 {esHoy ? t('today') : esMañana ? t('medico.dashboard.next.time.tomorrow') : combinarFechaHoraLocal(proximaCita.fecha).date.toLocaleDateString(locale, {
+                                    weekday: 'short',
+                                    day: 'numeric', 
+                                    month: 'short'
+                                  })} • 🕐 <span className="font-medium text-indigo-700">{proximaCita.hora}</span>
+                                </div>
                               {proximaCita.motivo && (
                                 <div className="text-xs text-indigo-500 italic">
                                   💬 {proximaCita.motivo}
                                 </div>
                               )}
-                              <div className="text-xs text-indigo-400">
+                              <div className="text-xs text-indigo-500">
                                 📋 {proximaCita.estado || t('medico.dashboard.next.pending_status')}
                               </div>
                               {/* Mostrar tiempo restante con contexto mejorado - VERSIÓN CORREGIDA */}
@@ -1575,7 +1573,7 @@ export default function MedicoDashboard() {
                                 const horas = Math.floor(minutos / 60);
                                 const dias = Math.floor(horas / 24);
 
-                                if (esHoy) {
+                                  if (esHoy) {
                                   if (minutos <= 15) {
                                     return <div className="text-xs text-red-600 font-semibold">{t('medico.dashboard.next.time.starts_in_minutes_alert', { minutes: minutos, suffix: minutos !== 1 ? 's' : '' })}</div>;
                                   } else if (minutos < 60) {
@@ -1621,217 +1619,222 @@ export default function MedicoDashboard() {
                           )}
                         </div>
                       );
-                    })()}
+                      })()}
+                  </div>
                 </div>
               </section>
               
               {/* Panel de Métricas Mensuales */}
               <section className="bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200/50 flex flex-col overflow-hidden">
-                <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 p-5 md:p-6 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-transparent"></div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <span className="text-xl">📊</span>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.monthly.title')}</h2>
-                      <p className="text-amber-100 text-xs">{new Date().toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</p>
+                <div className="flex flex-col md:flex-row items-stretch h-full">
+                  {/* Izquierda: panel ámbar grande */}
+                  <div className="flex-none w-full sm:w-32 md:w-44 xl:w-48 2xl:w-56 bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 p-3 sm:p-4 md:p-5 xl:p-6 relative overflow-hidden rounded-t-2xl md:rounded-l-3xl md:rounded-t-none flex items-center justify-center mx-auto md:mx-0 h-auto sm:h-32 md:h-full self-stretch">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-600/18 to-transparent rounded-t-3xl md:rounded-l-3xl"></div>
+                    <div className="relative flex flex-row md:flex-col items-center gap-3 text-white w-auto">
+                      <div className="text-left md:text-center flex-1">
+                        <h2 className="font-bold text-white text-lg sm:text-xl lg:text-2xl leading-tight tracking-tight">{t('medico.dashboard.monthly.title')}</h2>
+                        <p className="text-amber-100 text-xs sm:text-sm mt-1 uppercase tracking-wide">{new Date().toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</p>
+                      </div>
+                      <Image className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 md:mt-12 ml-4 md:ml-0" src="/imagenes/tendencia.png" alt="Analisis" width={80} height={80} />
                     </div>
                   </div>
-                </div>
-                <div className="p-5 md:p-6">
-                  <div className="w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded mb-4" />
-                  {(() => {
-                    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-                    const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-                    
-                    const citasMes = citas.filter(cita => {
-                      const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
-                      return fechaCita >= inicioMes && fechaCita <= finMes;
-                    });
-                    
-                    const citasCompletadasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'completada').length;
-                    const citasCanceladasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'cancelada').length;
-                    const tasaExito = citasMes.length > 0 ? ((citasCompletadasMes / citasMes.length) * 100).toFixed(1) : 0;
-                    
-                    const pacientesUnicos = new Set(citasMes.map(c => c.usuario_id)).size;
-                    
-                    return (
-                      <div className="space-y-4">
-                        {/* Métricas principales */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 text-center">
-                            <div className="text-xl font-bold text-blue-700 mb-1">{citasMes.length}</div>
-                            <div className="text-xs text-blue-600 font-medium">{t('medico.dashboard.monthly.total_appointments')}</div>
-                          </div>
-
-                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 text-center">
-                            <div className="text-xl font-bold text-green-700 mb-1">{citasCompletadasMes}</div>
-                            <div className="text-xs text-green-600 font-medium">{t('medico.dashboard.monthly.completed_appointments')}</div>
-                          </div>
-
-                          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3 text-center">
-                            <div className="text-xl font-bold text-purple-700 mb-1">{pacientesUnicos}</div>
-                            <div className="text-xs text-purple-600 font-medium">{t('medico.dashboard.monthly.unique_patients')}</div>
-                          </div>
-
-                          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3 text-center">
-                            <div className="text-xl font-bold text-amber-700 mb-1">{tasaExito}%</div>
-                            <div className="text-xs text-amber-600 font-medium">{t('medico.dashboard.monthly.success_rate')}</div>
-                          </div>
-                        </div>
-                        
-                        {/* Días más activos */}
-                        {(() => {
-                          const diasActividad = citasMes.reduce((acc: { [key: string]: number }, cita) => {
-                            const dia = combinarFechaHoraLocal(cita.fecha).date.toLocaleDateString(locale, { weekday: 'long' });
-                            acc[dia] = (acc[dia] || 0) + 1;
-                            return acc;
-                          }, {});
-                          
-                          const diasMasActivos = Object.entries(diasActividad)
-                            .sort(([,a], [,b]) => b - a)
-                            .slice(0, 2);
-                          
-                          return diasMasActivos.length > 0 ? (
-                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3">
-                              <div className="text-xs font-semibold text-amber-800 mb-2">{t('medico.dashboard.monthly.active_days')}</div>
-                              <div className="space-y-1">
-                                {diasMasActivos.map(([dia, cantidad]) => (
-                                  <div key={dia} className="flex justify-between items-center">
-                                    <span className="text-xs text-amber-700 capitalize">{dia}</span>
-                                    <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">
-                                      {t('medico.dashboard.monthly.active_day_count', { count: cantidad })}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                  {/* Derecha: métricas */}
+                  <div className="p-5 md:p-6 flex-1">
+                    <div className="w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded mb-4" />
+                    {(() => {
+                      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                      const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                      
+                      const citasMes = citas.filter(cita => {
+                        const fechaCita = combinarFechaHoraLocal(cita.fecha).date;
+                        return fechaCita >= inicioMes && fechaCita <= finMes;
+                      });
+                      
+                      const citasCompletadasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'completada').length;
+                      const citasCanceladasMes = citasMes.filter(c => c.estado?.toLowerCase() === 'cancelada').length;
+                      const tasaExito = citasMes.length > 0 ? ((citasCompletadasMes / citasMes.length) * 100).toFixed(1) : 0;
+                      
+                      const pacientesUnicos = new Set(citasMes.map(c => c.usuario_id)).size;
+                      
+                      return (
+                        <div className="space-y-4">
+                          {/* Métricas principales */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 text-center">
+                              <div className="text-xl font-bold text-blue-700 mb-1">{citasMes.length}</div>
+                              <div className="text-xs text-blue-600 font-medium">{t('medico.dashboard.monthly.total_appointments')}</div>
                             </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    );
-                  })()}
+
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 text-center">
+                              <div className="text-xl font-bold text-green-700 mb-1">{citasCompletadasMes}</div>
+                              <div className="text-xs text-green-600 font-medium">{t('medico.dashboard.monthly.completed_appointments')}</div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3 text-center">
+                              <div className="text-xl font-bold text-purple-700 mb-1">{pacientesUnicos}</div>
+                              <div className="text-xs text-purple-600 font-medium">{t('medico.dashboard.monthly.unique_patients')}</div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3 text-center">
+                              <div className="text-xl font-bold text-amber-700 mb-1">{tasaExito}%</div>
+                              <div className="text-xs text-amber-600 font-medium">{t('medico.dashboard.monthly.success_rate')}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Días más activos */}
+                          {(() => {
+                            const diasActividad = citasMes.reduce((acc: { [key: string]: number }, cita) => {
+                              const dia = combinarFechaHoraLocal(cita.fecha).date.toLocaleDateString(locale, { weekday: 'long' });
+                              acc[dia] = (acc[dia] || 0) + 1;
+                              return acc;
+                            }, {});
+                            
+                            const diasMasActivos = Object.entries(diasActividad)
+                              .sort(([,a], [,b]) => b - a)
+                              .slice(0, 2);
+                            
+                            return diasMasActivos.length > 0 ? (
+                              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3">
+                                <div className="text-xs font-semibold text-amber-800 mb-2">{t('medico.dashboard.monthly.active_days')}</div>
+                                <div className="space-y-1">
+                                  {diasMasActivos.map(([dia, cantidad]) => (
+                                    <div key={dia} className="flex justify-between items-center">
+                                      <span className="text-xs text-amber-700 capitalize">{dia}</span>
+                                      <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                                        {t('medico.dashboard.monthly.active_day_count', { count: cantidad })}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </section>
               
               {/* Panel de Tendencias y Comparativas */}
               <section className="bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 backdrop-blur-sm rounded-2xl shadow-xl border border-indigo-200/50 flex flex-col overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 p-5 md:p-6 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-transparent"></div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <span className="text-xl">📈</span>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-white uppercase tracking-wide">{t('medico.dashboard.trends.title')}</h2>
-                      <p className="text-indigo-100 text-xs">{t('medico.dashboard.trends.subtitle')}</p>
+                <div className="flex flex-col md:flex-row items-stretch h-full">
+                  {/* Izquierda: panel púrpura grande */}
+                  <div className="flex-none w-full sm:w-32 md:w-40 lg:w-44 xl:w-48 2xl:w-56 bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 p-3 sm:p-4 md:p-5 xl:p-6 relative overflow-hidden rounded-t-2xl md:rounded-l-3xl flex items-center justify-center mx-auto md:mx-0 h-auto sm:h-32 md:h-full self-stretch">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/18 to-transparent rounded-t-3xl md:rounded-l-3xl"></div>
+                    <div className="relative flex flex-row md:flex-col items-center gap-3 text-white w-auto">
+                      <div className="text-left md:text-center flex-1">
+                        <h2 className="font-bold text-white text-lg sm:text-xl lg:text-2xl leading-tight tracking-tight">{t('medico.dashboard.trends.title')}</h2>
+                        <p className="text-indigo-100 text-xs sm:text-sm mt-1 uppercase tracking-wide">{t('medico.dashboard.trends.subtitle')}</p>
+                      </div>
+                      <Image className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 md:mt-12 ml-4 md:ml-0" src="/imagenes/metrico.png" alt="Analisis" width={80} height={80} />
                     </div>
                   </div>
-                </div>
-                <div className="p-5 md:p-6 @container">
-                  <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded mb-4" />
+                  {/* Derecha: métricas */}
+                  <div className="p-5 md:p-6 flex-1">
+                    <div className="w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded mb-4" />
 
-                  <div className="space-y-4">
-                    {/* Evolución de Citas: Asistieron vs Canceladas */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-lg">📊</span>
-                        <h3 className="text-sm font-bold text-indigo-900">{t('medico.dashboard.trends.evolution_title')}</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Citas Completadas */}
-                        <div className="bg-white/80 rounded-lg p-3 border border-green-200">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-green-700">{t('medico.dashboard.trends.attended_label')}</span>
-                            <span className="text-xs text-green-600 font-semibold">
-                              {tendenciasDashboard.diffCompletadas}
-                            </span>
-                          </div>
-                          <div className="text-2xl font-bold text-green-700">
-                            {tendenciasDashboard.completadasActuales}
-                          </div>
-                          <div className="text-xs text-green-600 mt-1">
-                            {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.completadasPct })}
-                          </div>
+                    <div className="space-y-4">
+                      {/* Evolución de Citas: Asistieron vs Canceladas */}
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-lg">📊</span>
+                          <h3 className="text-sm font-bold text-indigo-900">{t('medico.dashboard.trends.evolution_title')}</h3>
                         </div>
-                        {/* Citas Canceladas */}
-                        <div className="bg-white/80 rounded-lg p-3 border border-red-200">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-red-700">{t('medico.dashboard.trends.cancelled_label')}</span>
-                            <span className="text-xs text-red-600 font-semibold">
-                              {tendenciasDashboard.diffCanceladas}
-                            </span>
-                          </div>
-                          <div className="text-2xl font-bold text-red-700">
-                            {tendenciasDashboard.canceladasActuales}
-                          </div>
-                          <div className="text-xs text-red-600 mt-1">
-                            {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.canceladasPct })}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Barra comparativa visual */}
-                      <div className="mt-3 bg-white/60 rounded-lg p-2">
-                        <div className="flex h-3 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-gradient-to-r from-green-400 to-green-500"
-                            style={{ width: `${tendenciasDashboard.completadasPct}%` }}
-                          ></div>
-                          <div 
-                            className="bg-gradient-to-r from-red-400 to-red-500"
-                            style={{ width: `${tendenciasDashboard.canceladasPct}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-gray-600 text-center mt-1">
-                          {t('medico.dashboard.trends.total_label', { count: tendenciasDashboard.totalActualCitas })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Grid de 2 columnas para ingresos y retención - Cards más compactos */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Ingresos Semanales - Card más compacto */}
-                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 flex flex-col shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg bg-emerald-100 rounded-lg p-1.5 shadow-inner">💰</span>
-                          <h3 className="text-xs font-bold text-emerald-900 leading-tight">{t('medico.dashboard.trends.revenue_title')}</h3>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-xs text-emerald-700 mb-0.5">{t('medico.dashboard.trends.revenue_subtitle')}</div>
-                          <div className="text-xl font-extrabold text-emerald-700 mb-1 tracking-tight">
-                            {formatearMonto(tendenciasDashboard.ingresosActuales)}
-                          </div>
-                          <div className="text-xs text-emerald-600 font-medium">
-                            {tendenciasDashboard.ingresosComparativa}
-                          </div>
-                          {/* Indicador comparativo compacto */}
-                          {tendenciasDashboard.ingresosPrevios > 0 && (
-                            <div className="mt-1.5 pt-1.5 border-t border-emerald-200">
-                              <div className="flex justify-between text-xs gap-2">
-                                <span className="text-gray-600">{t('medico.dashboard.trends.revenue_previous')}</span>
-                                <span className="text-gray-700 font-medium">
-                                  {formatearMonto(tendenciasDashboard.ingresosPrevios)}
-                                </span>
-                              </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Citas Completadas */}
+                          <div className="bg-white/80 rounded-lg p-3 border border-green-200">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-green-700">{t('medico.dashboard.trends.attended_label')}</span>
+                              <span className="text-xs text-green-600 font-semibold">
+                                {tendenciasDashboard.diffCompletadas}
+                              </span>
                             </div>
-                          )}
+                            <div className="text-2xl font-bold text-green-700">
+                              {tendenciasDashboard.completadasActuales}
+                            </div>
+                            <div className="text-xs text-green-600 mt-1">
+                              {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.completadasPct })}
+                            </div>
+                          </div>
+                          {/* Citas Canceladas */}
+                          <div className="bg-white/80 rounded-lg p-3 border border-red-200">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-red-700">{t('medico.dashboard.trends.cancelled_label')}</span>
+                              <span className="text-xs text-red-600 font-semibold">
+                                {tendenciasDashboard.diffCanceladas}
+                              </span>
+                            </div>
+                            <div className="text-2xl font-bold text-red-700">
+                              {tendenciasDashboard.canceladasActuales}
+                            </div>
+                            <div className="text-xs text-red-600 mt-1">
+                              {t('medico.dashboard.trends.total_percentage', { percent: tendenciasDashboard.canceladasPct })}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Barra comparativa visual */}
+                        <div className="mt-3 bg-white/60 rounded-lg p-2">
+                          <div className="flex h-3 rounded-full overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-green-400 to-green-500"
+                              style={{ width: `${tendenciasDashboard.completadasPct}%` }}
+                            ></div>
+                            <div 
+                              className="bg-gradient-to-r from-red-400 to-red-500"
+                              style={{ width: `${tendenciasDashboard.canceladasPct}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-gray-600 text-center mt-1">
+                            {t('medico.dashboard.trends.total_label', { count: tendenciasDashboard.totalActualCitas })}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Tasa de Retención - Card más compacto */}
-                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 flex flex-col shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg bg-purple-100 rounded-lg p-1.5 shadow-inner">🔄</span>
-                          <h3 className="text-xs font-bold text-purple-900 leading-tight">{t('medico.dashboard.trends.retention_title')}</h3>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-xs text-purple-700 mb-0.5">{t('medico.dashboard.trends.retention_subtitle')}</div>
-                          <div className="text-xl font-extrabold text-purple-700 mb-1 tracking-tight">
-                            {tendenciasDashboard.retencionLabel}
+                      {/* Grid de 2 columnas para ingresos y retención - Cards más compactos */}
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+                        {/* Ingresos Semanales - Card más compacto */}
+                        <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 flex flex-col shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg bg-emerald-100 rounded-lg p-1.5 shadow-inner">💰</span>
+                            <h3 className="text-xs font-bold text-emerald-900 leading-tight">{t('medico.dashboard.trends.revenue_title')}</h3>
                           </div>
-                          <div className="text-xs text-purple-600">
-                            {t('medico.dashboard.trends.retention_note')}
+                          <div className="flex-1">
+                            <div className="text-xs text-emerald-700 mb-0.5">{t('medico.dashboard.trends.revenue_subtitle')}</div>
+                            <div className="text-xl font-extrabold text-emerald-700 mb-1 tracking-tight">
+                              {formatearMonto(tendenciasDashboard.ingresosActuales)}
+                            </div>
+                            <div className="text-xs text-emerald-600 font-medium">
+                              {tendenciasDashboard.ingresosComparativa}
+                            </div>
+                            {/* Indicador comparativo compacto */}
+                            {tendenciasDashboard.ingresosPrevios > 0 && (
+                              <div className="mt-1.5 pt-1.5 border-t border-emerald-200">
+                                <div className="flex justify-between text-xs gap-2">
+                                  <span className="text-gray-600">{t('medico.dashboard.trends.revenue_previous')}</span>
+                                  <span className="text-gray-700 font-medium">
+                                    {formatearMonto(tendenciasDashboard.ingresosPrevios)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Tasa de Retención - Card más compacto */}
+                        <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 flex flex-col shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg bg-purple-100 rounded-lg p-1.5 shadow-inner">🔄</span>
+                            <h3 className="text-xs font-bold text-purple-900 leading-tight">{t('medico.dashboard.trends.retention_title')}</h3>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-xs text-purple-700 mb-0.5">{t('medico.dashboard.trends.retention_subtitle')}</div>
+                            <div className="text-xl font-extrabold text-purple-700 mb-1 tracking-tight">
+                              {tendenciasDashboard.retencionLabel}
+                            </div>
+                            <div className="text-xs text-purple-600">
+                              {t('medico.dashboard.trends.retention_note')}
+                            </div>
                           </div>
                         </div>
                       </div>

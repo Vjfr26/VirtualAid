@@ -285,24 +285,19 @@ export default function DisponibilidadSection({ ctx }: DisponibilidadSectionProp
                                 onClick={async () => {
                                   // Encontrar el horario crudo correspondiente
                                   if (!medicoData) return;
-                                  console.log('Todos los horarios disponibles:', horarios);
                                   // Buscar en `horarios` un registro que coincida con día y horas
                                   const diasIdx: any = { 'Domingo':0,'Lunes':1,'Martes':2,'Miércoles':3,'Jueves':4,'Viernes':5,'Sábado':6 };
                                   const diaIdx = diasIdx[d.dia];
                                   const horaParts = h.split(' - ').map((s: string) => s.trim());
                                   const targetFormat = `${horaParts[0]} - ${horaParts[1]}`;
-                                  console.log('Buscando:', { dia: d.dia, diaIdx, targetFormat });
-                                  console.log('Horarios del día', d.dia, ':', horarios.filter((hr: any) => hr.dia_semana === diaIdx));
                                   const found = horarios.find((hr: any) => {
                                     if (hr.dia_semana !== diaIdx) return false;
                                     // Normalizar formato: quitar segundos si existen
                                     const inicio = hr.hora_inicio.split(':').slice(0, 2).join(':');
                                     const fin = hr.hora_fin.split(':').slice(0, 2).join(':');
                                     const dbFormat = `${inicio} - ${fin}`;
-                                    console.log(`Comparando: "${dbFormat}" vs "${targetFormat}"`);
                                     return dbFormat === targetFormat;
                                   });
-                                  console.log('Horario encontrado:', found);
                                   if (found && found.id) {
                                     // Verificar si tiene citas asociadas
                                     const citasAsociadas = verificarCitasEnHorario(d.dia, targetFormat);

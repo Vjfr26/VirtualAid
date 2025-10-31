@@ -662,6 +662,21 @@ export default function Register() {
             />
           </div>
 
+          {/* Fecha de nacimiento disponible para todos los tipos de usuario */}
+          <div className="registro-inputGroup">
+            <label htmlFor="dob" className="sr-only">{t('date_of_birth', 'Date of birth')}</label>
+            <input
+              id="dob"
+              className="registro-input"
+              type="date"
+              name="dob"
+              placeholder={t('date_of_birth', 'Date of birth')}
+              value={form.dob}
+              onChange={handleChange}
+              max={todayISO}
+            />
+          </div>
+
           <div className="registro-formRow">
             <div className="registro-inputGroup">
               <div className="registro-passwordInput">
@@ -735,18 +750,8 @@ export default function Register() {
                 />
               </div>
               <div className="registro-inputGroup">
-                <label htmlFor="dob" className="sr-only">{t('date_of_birth', 'Date of birth')}</label>
-                <input
-                  id="dob"
-                  className="registro-input"
-                  type="date"
-                  name="dob"
-                  placeholder={t('date_of_birth', 'Date of birth')}
-                  value={form.dob}
-                  onChange={handleChange}
-                  max={todayISO}
-                  required
-                />
+                {/* DOB ahora está en el formulario general; mantenemos el bloque vacío para estilos si se necesita */}
+                {/* (Se ha movido el input de fecha de nacimiento fuera del bloque específico de doctor) */}
               </div>
             </>
           )}

@@ -47,7 +47,17 @@ export default function DashboardCards({
           return (
             <div
               key={idx}
-              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/50 ${esCardIngresos ? 'cursor-pointer shadow-emerald-400/50 hover:shadow-emerald-500/90 border-6 border-emerald-400 ring-4 ring-emerald-300/60 ring-offset-2 ring-offset-white' : ''}`}
+              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${esCardIngresos ? 'cursor-pointer' : ''}`}
+              style={esCardIngresos ? {
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 30px 8px rgba(16, 185, 129, 0.6)',
+                transition: 'box-shadow 0.3s ease-in-out'
+              } : {}}
+              onMouseEnter={esCardIngresos ? (e) => {
+                e.currentTarget.style.boxShadow = '0 15px 35px -5px rgba(0, 0, 0, 0.15), 0 15px 15px -5px rgba(0, 0, 0, 0.06), 0 0 60px 20px rgba(16, 185, 129, 1), 0 0 100px 25px rgba(16, 185, 129, 0.6)'
+              } : undefined}
+              onMouseLeave={esCardIngresos ? (e) => {
+                e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 30px 8px rgba(16, 185, 129, 0.6)'
+              } : undefined}
               onClick={esCardIngresos ? () => setMostrarDetalleIngresos(!mostrarDetalleIngresos) : undefined}
             >
               {/* Efecto de brillo */}
@@ -136,7 +146,9 @@ export default function DashboardCards({
                         {formatearMonto(p.amount)}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {new Date(p.requested_at).toLocaleDateString('es-ES')} {p.processed_at ? `• ${new Date(p.processed_at).toLocaleDateString('es-ES')}` : ''}
+                        {new Date(p.requested_at).toLocaleDateString('es-ES')} {p.processed_at ? (
+                          <> • {new Date(p.processed_at).toLocaleDateString('es-ES')}</>
+                        ) : ''}
                       </div>
                     </div>
                     <div>
